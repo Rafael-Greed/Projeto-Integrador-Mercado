@@ -1,0 +1,246 @@
+// ========================================================
+// MÓDULO 1: USUÁRIOS E ACESSOS (AUDITORIA DO SISTEMA)
+// ========================================================
+Table USUARIOS {
+  id int [pk, increment]
+  nome varchar
+  email varchar [note: "Login corporativo"]
+  senha_hash varchar [note: "Senha criptografada"]
+  perfil varchar [note: "ADMIN, SUPORTE, FISCAL, ESTOQUE"]
+  ativo boolean [default: true, note: "Status de acesso"]
+  ultimo_acesso datetime
+}
+
+// ========================================================
+// MÓDULO 2: CADASTROS BASE (LOJAS, CLIENTES, CATEGORIAS)
+// ========================================================
+Table LOJAS {
+  id int [pk, increment]
+  nome varchar
+  cnpj varchar [unique]
+  uf varchar
+  ie varchar
+  crt varchar [note: "1-Simples Nacional, 2-Simples Excesso, 3-Regime Normal"]
+}
+
+Table CLIENTES {
+  id int [pk, increment]
+  nome_razao_social varchar
+  cpf_cnpj varchar [unique]
+  ie_rg varchar
+  uf varchar
+  perfil_fiscal varchar [note: "CONTRIBUINTE, NAO_CONTRIBUINTE, ISENTO"]
+  email varchar
+  senha_hash varchar
+  ativo boolean [default: true]
+  ultimo_acesso datetime
+  data_cadastro datetime
+}
+
+Table CATEGORIAS {
+  id int [pk, increment]
+  nome varchar
+  descricao varchar
+}
+
+// ========================================================
+// MÓDULO 3: FORNECEDORES (CADASTRO EXPANDIDO)
+// ========================================================
+Table FORNECEDORES {
+  id int [pk, increment]
+  razao_social varchar
+  nome_fantasia varchar
+  cnpj varchar [unique]
+  ie varchar
+  regime_tributario varchar [note: "SIMPLES_NACIONAL, LUCRO_PRESUMIDO, LUCRO_REAL"]
+  uf varchar
+  status_homologacao varchar [note: "PENDENTE, HOMOLOGADO, BLOQUEADO"]
+  ativo boolean [default: true]
+  data_cadastro datetime
+}
+
+Table CONTATOS_FORNECEDOR {
+  id int [pk, increment]
+  fornecedor_id int [ref: > FORNECEDORES.id]
+  nome varchar
+  cargo_setor varchar [note: "COMERCIAL, FINANCEIRO, LOGISTICA"]
+  email varchar
+  telefone varchar
+  celular_whatsapp varchar
+  principal boolean
+}
+
+Table DADOS_BANCARIOS_FORNECEDOR {
+  id int [pk, increment]
+  fornecedor_id int [ref: > FORNECEDORES.id]
+  banco_codigo_nome varchar
+  agencia varchar
+  conta_corrente varchar
+  tipo_chave_pix varchar
+  chave_pix varchar
+  principal boolean
+}
+
+// ========================================================
+// MÓDULO 4: PRODUTOS E CONTROLE DE ESTOQUE
+// ========================================================
+Table PRODUTOS {
+  id int [pk, increment]
+  sku varchar [unique]
+  nome varchar
+  categoria_id int [ref: > CATEGORIAS.id]
+  ncm varchar [note: "Nomenclatura Comum do Mercosul"]
+  cest varchar [note: "Código Especificador da ST"]
+  preco_custo decimal
+  preco_venda decimal
+}
+
+Table ESTOQUE {
+  id int [pk, increment]
+  loja_id int [ref: > LOJAS.id]
+  produto_id int [ref: > PRODUTOS.id]
+  quantidade_atual int
+  quantidade_minima int
+  localizacao varchar
+}
+
+Table MOVIMENTACOES_ESTOQUE {
+  id int [pk, increment]
+  loja_id int [ref: > LOJAS.id]
+  produto_id int [ref: > PRODUTOS.id]
+  usuario_id int [ref: > USUARIOS.id, note: "Operador responsável"]
+  tipo varchar [note: "ENTRADA, SAIDA, AJUSTE, DEVOLUCAO_CLIENTE, QUARENTENA"]
+  quantidade int
+  nota_fiscal_id int [ref: > NOTAS_FISCAIS.id]
+  data_movimentacao datetime
+}
+
+// ========================================================
+// MÓDULO 5: ENGINE TRIBUTÁRIA E REGRAS FISCAIS
+// ========================================================
+Table CFOP {
+  id int [pk, increment]
+  codigo varchar [unique, note: "Ex: 5102, 6102, 1202"]
+  descricao varchar
+  tipo_operacao varchar [note: "ENTRADA, SAIDA"]
+  escopo varchar [note: "ESTADUAL, INTERESTADUAL, EXTERIOR"]
+}
+
+Table CST_CSOSN {
+  id int [pk, increment]
+  codigo varchar [unique, note: "Ex: 00, 10, 101, 201"]
+  descricao varchar
+  tipo_imposto varchar [note: "ICMS, PIS, COFINS, IPI, IBS, CBS"]
+}
+
+Table MATRIZ_FISCAL {
+  id int [pk, increment]
+  descricao varchar
+  cfop_id int [ref: > CFOP.id]
+  categoria_id int [ref: > CATEGORIAS.id, note: "Filtro Categoria ou Nulo"]
+  ncm varchar [note: "Filtro NCM ou Nulo"]
+  uf_origem varchar
+  uf_destino varchar
+  perfil_cliente varchar [note: "CONTRIBUINTE, NAO_CONTRIBUINTE"]
+}
+
+Table REGRAS_IMPOSTO_ITEM {
+  id int [pk, increment]
+  matriz_fiscal_id int [ref: > MATRIZ_FISCAL.id]
+  imposto varchar [note: "ICMS, PIS, COFINS, IPI, IBS, CBS"]
+  cst_csosn_id int [ref: > CST_CSOSN.id]
+  aliquota_padrao decimal
+  percentual_reducao_bc decimal
+  aliquota_st decimal
+  mva_st decimal
+}
+
+// ========================================================
+// MÓDULO 6: FATURAMENTO (NOTAS FISCAIS E ITENS)
+// ========================================================
+Table NOTAS_FISCAIS {
+  id int [pk, increment]
+  loja_id int [ref: > LOJAS.id]
+  usuario_id int [ref: > USUARIOS.id, note: "Quem emitiu/importou"]
+  numero_nf varchar
+  serie varchar
+  tipo_operacao varchar [note: "E - Entrada, S - Saída, D - Devolução"]
+  nota_fiscal_origem_id int [ref: - NOTAS_FISCAIS.id, note: "Vínculo NF de Devolução"]
+  fornecedor_id int [ref: > FORNECEDORES.id]
+  cliente_id int [ref: > CLIENTES.id]
+  valor_total decimal
+  valor_produtos decimal
+  valor_impostos decimal
+  data_emissao datetime
+}
+
+Table ITENS_NOTA_FISCAL {
+  id int [pk, increment]
+  nota_fiscal_id int [ref: > NOTAS_FISCAIS.id]
+  produto_id int [ref: > PRODUTOS.id]
+  cfop_id int [ref: > CFOP.id]
+  quantidade int
+  valor_unitario decimal
+  base_calculo_icms decimal
+  valor_icms decimal
+  valor_pis decimal
+  valor_cofins decimal
+  valor_ibs decimal
+  valor_cbs decimal
+}
+
+// ========================================================
+// MÓDULO 7: FLUXO DE DEVOLUÇÃO E QUALIDADE (RMA)
+// ========================================================
+Table DEVOLUCOES {
+  id int [pk, increment]
+  cliente_id int [ref: > CLIENTES.id]
+  loja_id int [ref: > LOJAS.id]
+  nota_fiscal_origem_id int [ref: > NOTAS_FISCAIS.id]
+  nota_fiscal_devolucao_id int [ref: - NOTAS_FISCAIS.id]
+  usuario_id int [ref: > USUARIOS.id]
+  status varchar [note: "PENDENTE, EM_INSPECAO, APROVADA, RECUSADA, CONCLUIDA"]
+  tipo_solucao varchar [note: "ESTORNO, CREDITO_CUPOM, TROCA_ITEM"]
+  motivo_geral varchar
+  valor_total_devolucao decimal
+  data_solicitacao datetime
+  data_conclusao datetime
+}
+
+Table ITENS_DEVOLUCAO {
+  id int [pk, increment]
+  devolucao_id int [ref: > DEVOLUCOES.id]
+  produto_id int [ref: > PRODUTOS.id]
+  quantidade int
+  valor_unitario decimal
+  motivo_especifico varchar
+  acao_destinacao varchar [note: "RETORNO_ESTOQUE, DESCARTE, GARANTIA_FORNECEDOR"]
+}
+
+Table INSPECOES_QUALIDADE {
+  id int [pk, increment]
+  item_devolucao_id int [ref: - ITENS_DEVOLUCAO.id]
+  usuario_id int [ref: > USUARIOS.id, note: "Inspetor/Técnico"]
+  resultado varchar [note: "APROVADO_REVENDA, AVARIADO_PERDA, DEFEITO_FABRICA"]
+  embalagem_intacta boolean
+  observacoes varchar
+  data_inspecao datetime
+}
+
+// ========================================================
+// MÓDULO 8: CUPONS UNIFICADOS (CRÉDITO E MARKETING)
+// ========================================================
+Table CUPONS {
+  id int [pk, increment]
+  codigo varchar [unique, note: "Ex: DEV-8A9X2 ou DESCONTO10"]
+  tipo varchar [note: "CREDITO_DEVOLUCAO, PROMOCIONAL, VALE_PRESENTE"]
+  valor_original decimal
+  saldo_atual decimal [note: "Saldo restante para abatemento"]
+  tipo_desconto varchar [note: "VALOR_FIXO, PERCENTUAL"]
+  valor_minimo_carrinho decimal
+  cliente_id int [ref: > CLIENTES.id]
+  devolucao_id int [ref: - DEVOLUCOES.id]
+  data_emissao datetime
+  data_validade datetime
+  ativo boolean [default: true]
+}
