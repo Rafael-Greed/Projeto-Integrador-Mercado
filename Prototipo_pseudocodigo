@@ -1,0 +1,559 @@
+/* =========================================================================
+   MÓDULO TRIBUTÁRIO E DE MATRIZ FISCAL (LUCRO REAL / NCM / CEST / CFOP / CST)
+   ========================================================================= */
+
+/* Sub-rotina para buscar alíquota do ICMS interno/interestadual */
+SUB_ROTINA buscar_aliquota_icms(ncm CADEIA, uf_origem CADEIA, uf_destino CADEIA)
+    SE uf_origem = "SP" E uf_destino = "SP" ENTÃO
+        RETORNE 0.18  /* 18% ICMS interno SP */
+    SENÃO
+        RETORNE 0.12  /* Alíquota interestadual */
+    FIM_SE
+FIM_SUB_ROTINA buscar_aliquota_icms
+
+/* Sub-rotina para buscar alíquota do PIS (Tributação Monofásica para Bebidas Isotônicas) */
+SUB_ROTINA buscar_aliquota_pis(ncm CADEIA)
+    SE ncm = "2202.99.00" ENTÃO
+        RETORNE 0.00  /* Monofásico = 0% no varejo */
+    SENÃO
+        RETORNE 0.0165 /* 1.65% Lucro Real Padrão */
+    FIM_SE
+FIM_SUB_ROTINA buscar_aliquota_pis
+
+/* Sub-rotina para buscar alíquota da COFINS (Tributação Monofásica para Bebidas Isotônicas) */
+SUB_ROTINA buscar_aliquota_cofins(ncm CADEIA)
+    SE ncm = "2202.99.00" ENTÃO
+        RETORNE 0.00  /* Monofásico = 0% no varejo */
+    SENÃO
+        RETORNE 0.0760 /* 7.60% Lucro Real Padrão */
+    FIM_SE
+FIM_SUB_ROTINA buscar_aliquota_cofins
+
+SUB_ROTINA calcular_imposto_item(valor_base NUMÉRICO, aliquota NUMÉRICO)
+    RETORNE valor_base * aliquota
+FIM_SUB_ROTINA calcular_imposto_item
+
+
+/* =========================================================================
+   MÓDULO DE VALIDAÇÃO DE ENTRADA (CPF ATÉ 11 DÍGITOS)
+   ========================================================================= */
+
+SUB_ROTINA ler_cpf_valido
+    DECLARE cpf_temp CADEIA
+    DECLARE cpf_valido LOGICO
+    
+    cpf_valido <- FALSO
+    
+    ENQUANTO cpf_valido = FALSO FAÇA
+    INÍCIO
+        ESCREVA "CPF (DIGITE APENAS OS 11 NÚMEROS, SEM PONTOS OU HÍFEN): "
+        LEIA cpf_temp
+        
+        SE TAMANHO(cpf_temp) > 11 ENTÃO
+            ESCREVA ">>> ERRO: O CPF DEVE TER NO MÁXIMO 11 DÍGITOS! TENTE NOVAMENTE. <<<"
+        SENÃO
+            SE TAMANHO(cpf_temp) < 11 ENTÃO
+                ESCREVA ">>> AVISO: CPF DEVE CONTER EXATAMENTE 11 DÍGITOS. DIGITE NOVAMENTE. <<<"
+            SENÃO
+                cpf_valido <- VERDADEIRO
+            FIM_SE
+        FIM_SE
+    FIM_ENQUANTO
+    
+    RETORNE cpf_temp
+FIM_SUB_ROTINA ler_cpf_valido
+
+
+/* =========================================================================
+   MÓDULO DE DUPLA VERIFICAÇÃO E INTERFACE
+   ========================================================================= */
+
+SUB_ROTINA confirmar_dupla_verificacao(qtd_atual NUMÉRICO, qtd_alteracao NUMÉRICO, tipo_operacao CADEIA)
+    DECLARE confirmacao CADEIA
+    
+    ESCREVA "--------------------------------------------------"
+    ESCREVA " [DUPLA VERIFICAÇÃO] CONFIRMAÇÃO DE SEGURANÇA"
+    ESCREVA " TIPO OPERAÇÃO: ", tipo_operacao
+    ESCREVA " QUANTIDADE ATUAL EM ESTOQUE: ", qtd_atual
+    ESCREVA " QUANTIDADE A MOVER/AJUSTAR: ", qtd_alteracao
+    ESCREVA " CONFIRMA A OPERAÇÃO? (S/N): "
+    LEIA confirmacao
+    
+    SE confirmacao = "S" OU confirmacao = "s" ENTÃO
+        RETORNE 1
+    SENÃO
+        ESCREVA ">>> OPERAÇÃO CANCELADA PELO USUÁRIO! <<<"
+        RETORNE 0
+    FIM_SE
+FIM_SUB_ROTINA confirmar_dupla_verificacao
+
+SUB_ROTINA exibir_cabecalho
+    ESCREVA "=================================================="
+    ESCREVA "     SISTEMA DE GESTÃO TRIBUTÁVEL E ESTOQUE       "
+    ESCREVA "=================================================="
+FIM_SUB_ROTINA exibir_cabecalho
+
+
+/* =========================================================================
+   ALGORITMO PRINCIPAL
+   ========================================================================= */
+ALGORITMO
+
+/* Vetores de Cadastro de Funcionários e Hierarquia (Até 10) */
+DECLARE FUNC_NOME[10], FUNC_CPF[10], FUNC_CARGO[10] CADEIA
+DECLARE TOTAL_FUNCIONARIOS, FUNC_LOGADO_INDEX NUMÉRICO
+
+/* Cadastro do Cliente */
+DECLARE CLI_NOME, CLI_CPF, CLI_SEXO, CLI_DATA_NASC, CLI_UF CADEIA
+
+/* Vetores de Produtos e Ficha Fiscal (Até 10) */
+DECLARE PROD_NOME[10], PROD_NCM[10], PROD_CEST[10], PROD_CFOP[10], PROD_CST[10] CADEIA
+DECLARE PROD_PRECOS[10], PROD_ESTOQUE[10], PROD_CATEGORIA[10] NUMÉRICO
+DECLARE TOTAL_PRODUTOS NUMÉRICO
+
+/* Vetores de Fornecedores (Até 5) */
+DECLARE FORN_NOME[5], FORN_CNPJ[5], FORN_UF[5] CADEIA
+DECLARE TOTAL_FORNECEDORES NUMÉRICO
+
+/* Vetores de Histórico de Movimentações (Até 20) */
+DECLARE HIST_TIPO[20], HIST_USUARIO[20], HIST_PRODUTO[20] CADEIA
+DECLARE HIST_QTDE[20] NUMÉRICO
+DECLARE TOTAL_HISTORICO NUMÉRICO
+
+/* Variáveis Gerais de Controle */
+DECLARE UF_ORIGEM, UF_DESTINO CADEIA
+DECLARE PERFIL_ACESSO, OPCAO_CLIENTE, OPCAO_MENU, I, POS_ITEM, QTDE_COMPRAR, QTDE_MOVER, CONFIRMADO NUMÉRICO
+DECLARE VALOR_TOTAL_COMPRA, VALOR_TOTAL_NOTA NUMÉRICO
+DECLARE ALIQ_ICMS, ALIQ_PIS, ALIQ_COFINS, VAL_ICMS, VAL_PIS, VAL_COFINS NUMÉRICO
+DECLARE TOTAL_ICMS, TOTAL_PIS, TOTAL_COFINS NUMÉRICO
+
+/* Inicializações */
+TOTAL_FUNCIONARIOS <- 0
+TOTAL_PRODUTOS <- 0
+TOTAL_FORNECEDORES <- 0
+TOTAL_HISTORICO <- 0
+UF_ORIGEM <- "SP"
+
+exibir_cabecalho
+
+ESCREVA "IDENTIFIQUE SEU PERFIL DE ACESSO:"
+ESCREVA "1 - CLIENTE (Realizar Compras / Emitir Nota Fiscal)"
+ESCREVA "2 - FUNCIONÁRIO (Acesso ao Painel Administrativo)"
+ESCREVA "ESCOLHA UMA OPÇÃO: "
+LEIA PERFIL_ACESSO
+
+/* =========================================================================
+   FLUXO 1: ÁREA DO CLIENTE
+   ========================================================================= */
+SE PERFIL_ACESSO = 1 ENTÃO
+INÍCIO
+    ESCREVA "--- CADASTRO OBRIGATÓRIO DE CLIENTE ---"
+    ESCREVA "NOME COMPLETO: "
+    LEIA CLI_NOME
+    
+    /* Chamada da sub-rotina de validação do CPF */
+    CLI_CPF <- ler_cpf_valido()
+    
+    ESCREVA "SEXO (M/F/Outro): "
+    LEIA CLI_SEXO
+    ESCREVA "DATA DE NASCIMENTO (DD/MM/AAAA): "
+    LEIA CLI_DATA_NASC
+    ESCREVA "UF DE RESIDÊNCIA (Ex: SP, RJ, MG): "
+    LEIA CLI_UF
+
+    ESCREVA ">>> BEM-VINDO(A), ", CLI_NOME, "! <<<"
+
+    /* Cadastra um produto base inicial no estoque para permitir compras */
+    PROD_NOME[1] <- "WHEY PROTEIN ISOLADO"
+    PROD_CATEGORIA[1] <- 1
+    PROD_PRECOS[1] <- 120.00
+    PROD_ESTOQUE[1] <- 50
+    PROD_NCM[1] <- "2106.90.30"
+    PROD_CEST[1] <- "NULO"
+    PROD_CFOP[1] <- "5102"
+    PROD_CST[1] <- "00"
+    TOTAL_PRODUTOS <- 1
+
+    OPCAO_CLIENTE <- 0
+    ENQUANTO OPCAO_CLIENTE != 3 FAÇA
+    INÍCIO
+        ESCREVA " "
+        ESCREVA "=================== PAINEL DO CLIENTE ==================="
+        ESCREVA "1 - VISUALIZAR CATÁLOGO DE PRODUTOS"
+        ESCREVA "2 - REALIZAR COMPRA E EMITIR NOTA FISCAL"
+        ESCREVA "3 - SAIR DO SISTEMA"
+        ESCREVA "ESCOLHA UMA OPÇÃO: "
+        LEIA OPCAO_CLIENTE
+
+        SE OPCAO_CLIENTE = 1 ENTÃO
+        INÍCIO
+            ESCREVA "--- CATÁLOGO DE PRODUTOS DISPONÍVEIS ---"
+            PARA I <- 1 ATÉ TOTAL_PRODUTOS FAÇA
+                ESCREVA "ID: ", I, " | PRODUTO: ", PROD_NOME[I], " | PREÇO: R$ ", PROD_PRECOS[I], " | ESTOQUE: ", PROD_ESTOQUE[I]
+            FIM_PARA
+        FIM_SE
+
+        SE OPCAO_CLIENTE = 2 ENTÃO
+        INÍCIO
+            SE TOTAL_PRODUTOS = 0 ENTÃO
+                ESCREVA "NENHUM PRODUTO DISPONÍVEL NO MOMENTO."
+            SENÃO
+                ESCREVA "--- COMPRA E EMISSÃO DE NOTA FISCAL ---"
+                PARA I <- 1 ATÉ TOTAL_PRODUTOS FAÇA
+                    ESCREVA "ID: ", I, " | PRODUTO: ", PROD_NOME[I], " | PREÇO: R$ ", PROD_PRECOS[I]
+                FIM_PARA
+                
+                ESCREVA "DIGITE O ID DO PRODUTO QUE DESEJA COMPRAR: "
+                LEIA POS_ITEM
+
+                SE POS_ITEM >= 1 E POS_ITEM <= TOTAL_PRODUTOS ENTÃO
+                INÍCIO
+                    ESCREVA "DIGITE A QUANTIDADE QUE DESEJA COMPRAR: "
+                    LEIA QTDE_COMPRAR
+
+                    SE QTDE_COMPRAR <= PROD_ESTOQUE[POS_ITEM] ENTÃO
+                    INÍCIO
+                        VALOR_TOTAL_COMPRA <- PROD_PRECOS[POS_ITEM] * QTDE_COMPRAR
+
+                        /* Cálculo de tributos por sub-rotinas */
+                        ALIQ_ICMS <- buscar_aliquota_icms(PROD_NCM[POS_ITEM], UF_ORIGEM, CLI_UF)
+                        ALIQ_PIS <- buscar_aliquota_pis(PROD_NCM[POS_ITEM])
+                        ALIQ_COFINS <- buscar_aliquota_cofins(PROD_NCM[POS_ITEM])
+
+                        VAL_ICMS <- calcular_imposto_item(VALOR_TOTAL_COMPRA, ALIQ_ICMS)
+                        VAL_PIS <- calcular_imposto_item(VALOR_TOTAL_COMPRA, ALIQ_PIS)
+                        VAL_COFINS <- calcular_imposto_item(VALOR_TOTAL_COMPRA, ALIQ_COFINS)
+
+                        /* Atualiza estoque e historico */
+                        PROD_ESTOQUE[POS_ITEM] <- PROD_ESTOQUE[POS_ITEM] - QTDE_COMPRAR
+                        
+                        SE TOTAL_HISTORICO < 20 ENTÃO
+                            TOTAL_HISTORICO <- TOTAL_HISTORICO + 1
+                            HIST_TIPO[TOTAL_HISTORICO] <- "VENDA CLIENTE"
+                            HIST_PRODUTO[TOTAL_HISTORICO] <- PROD_NOME[POS_ITEM]
+                            HIST_QTDE[TOTAL_HISTORICO] <- QTDE_COMPRAR
+                            HIST_USUARIO[TOTAL_HISTORICO] <- "CLIENTE: " + CLI_NOME
+                        FIM_SE
+
+                        ESCREVA " "
+                        ESCREVA "=================================================="
+                        ESCREVA "          NOTA FISCAL ELETRÔNICA DE COMPRA        "
+                        ESCREVA " CLIENTE: ", CLI_NOME, " | CPF: ", CLI_CPF
+                        ESCREVA " DATA NASC.: ", CLI_DATA_NASC, " | SEXO: ", CLI_SEXO
+                        ESCREVA " UF ORIGEM: ", UF_ORIGEM, " | UF DESTINO: ", CLI_UF
+                        ESCREVA "=================================================="
+                        ESCREVA "ITEM: ", PROD_NOME[POS_ITEM], " | QUANTIDADE: ", QTDE_COMPRAR
+                        ESCREVA "DADOS FISCAIS -> NCM: ", PROD_NCM[POS_ITEM], " | CFOP: ", PROD_CFOP[POS_ITEM]
+                        ESCREVA "VALOR TOTAL BRUTO: R$ ", VALOR_TOTAL_COMPRA
+                        ESCREVA "--- TRIBUTOS INCIDENTES (LUCRO REAL) ---"
+                        ESCREVA "ICMS RECOLHIDO: R$ ", VAL_ICMS, " | PIS: R$ ", VAL_PIS, " | COFINS: R$ ", VAL_COFINS
+                        ESCREVA "TOTAL DE IMPOSTOS DA OPERAÇÃO: R$ ", (VAL_ICMS + VAL_PIS + VAL_COFINS)
+                        ESCREVA "=================================================="
+                        ESCREVA ">>> COMPRA REALIZADA COM SUCESSO! <<<"
+                    SENÃO
+                        ESCREVA ">>> ESTOQUE INSUFICIENTE PARA A QUANTIDADE DESEJADA! <<<"
+                    FIM_SE
+                SENÃO
+                    ESCREVA "ID DE PRODUTO INVÁLIDO!"
+                FIM_SE
+            FIM_SE
+        FIM_SE
+    FIM_ENQUANTO
+FIM
+
+/* =========================================================================
+   FLUXO 2: ÁREA DO FUNCIONÁRIO / HIERARQUIA
+   ========================================================================= */
+SENÃO
+    SE PERFIL_ACESSO = 2 ENTÃO
+    INÍCIO
+        ESCREVA "--- IDENTIFICAÇÃO DO FUNCIONÁRIO ---"
+        
+        /* Cadastro inicial obrigatório do Gerente Titular */
+        SE TOTAL_FUNCIONARIOS = 0 ENTÃO
+        INÍCIO
+            ESCREVA "NENHUM FUNCIONÁRIO CADASTRADO. REALIZANDO CADASTRO DO GERENTE TITULAR:"
+            ESCREVA "NOME COMPLETO: "
+            LEIA FUNC_NOME[1]
+            
+            FUNC_CPF[1] <- ler_cpf_valido()
+            FUNC_CARGO[1] <- "GERENTE"
+            TOTAL_FUNCIONARIOS <- 1
+            ESCREVA ">>> GERENTE TITULAR CADASTRADO COM SUCESSO! <<<"
+        FIM_SE
+
+        FUNC_LOGADO_INDEX <- 1
+
+        ESCREVA " "
+        ESCREVA ">>> PAINEL OPERACIONAL INICIADO POR: ", FUNC_NOME[FUNC_LOGADO_INDEX], " [", FUNC_CARGO[FUNC_LOGADO_INDEX], "] <<<"
+
+        OPCAO_MENU <- 0
+        ENQUANTO OPCAO_MENU != 7 FAÇA
+        INÍCIO
+            ESCREVA " "
+            ESCREVA "=================== MENU ADMINISTRATIVO ==================="
+            ESCREVA "1 - CADASTRAR NOVO FUNCIONÁRIO (RESTRITO AO GERENTE)"
+            ESCREVA "2 - CADASTRAR FORNECEDORES"
+            ESCREVA "3 - CADASTRAR PRODUTO E INFORMAÇÕES FISCAIS (NCM/CEST)"
+            ESCREVA "4 - MOVIMENTAÇÃO DE ESTOQUE (ENTRADA / SAÍDA / AJUSTE / DEVOLUÇÃO)"
+            ESCREVA "5 - EMITIR NOTA FISCAL DE VENDA (CÁLCULO AUTOMÁTICO DE IMPOSTOS)"
+            ESCREVA "6 - HISTÓRICO DE MOVIMENTAÇÕES DE ESTOQUE"
+            ESCREVA "7 - SAIR DO SISTEMA"
+            ESCREVA "ESCOLHA UMA OPÇÃO: "
+            LEIA OPCAO_MENU
+
+            /* ------------------------------------------------------------------
+               OPÇÃO 1: CADASTRAR FUNCIONÁRIO (APENAS GERENTE)
+               ------------------------------------------------------------------ */
+            SE OPCAO_MENU = 1 ENTÃO
+            INÍCIO
+                SE FUNC_CARGO[FUNC_LOGADO_INDEX] != "GERENTE" ENTÃO
+                    ESCREVA " "
+                    ESCREVA ">>> ACESSO NEGADO! APENAS FUNCIONÁRIOS COM HIERARQUIA DE GERENTE PODEM CADASTRAR OUTROS FUNCIONÁRIOS. <<<"
+                SENÃO
+                    SE TOTAL_FUNCIONARIOS < 10 ENTÃO
+                    INÍCIO
+                        TOTAL_FUNCIONARIOS <- TOTAL_FUNCIONARIOS + 1
+                        ESCREVA "--- CADASTRO DE NOVO FUNCIONÁRIO ---"
+                        ESCREVA "NOME COMPLETO DO NOVO FUNCIONÁRIO: "
+                        LEIA FUNC_NOME[TOTAL_FUNCIONARIOS]
+
+                        FUNC_CPF[TOTAL_FUNCIONARIOS] <- ler_cpf_valido()
+
+                        DECLARE OPCAO_CARGO NUMÉRICO
+                        ESCREVA "SELEÇÃO DE HIERARQUIA:"
+                        ESCREVA "1 - GERENTE"
+                        ESCREVA "2 - OPERADOR"
+                        ESCREVA "ESCOLHA O CARGO DO FUNCIONÁRIO: "
+                        LEIA OPCAO_CARGO
+
+                        SE OPCAO_CARGO = 1 ENTÃO
+                            FUNC_CARGO[TOTAL_FUNCIONARIOS] <- "GERENTE"
+                        SENÃO
+                            FUNC_CARGO[TOTAL_FUNCIONARIOS] <- "OPERADOR"
+                        FIM_SE
+
+                        ESCREVA ">>> NOVO FUNCIONÁRIO CADASTRADO COM SUCESSO! <<<"
+                    FIM
+                    SENÃO
+                        ESCREVA "LIMITE MÁXIMO DE FUNCIONÁRIOS ATINGIDO."
+                    FIM_SE
+                FIM_SE
+            FIM_SE
+
+            /* ------------------------------------------------------------------
+               OPÇÃO 2: CADASTRAR FORNECEDORES
+               ------------------------------------------------------------------ */
+            SE OPCAO_MENU = 2 ENTÃO
+            INÍCIO
+                SE TOTAL_FORNECEDORES < 5 ENTÃO
+                INÍCIO
+                    TOTAL_FORNECEDORES <- TOTAL_FORNECEDORES + 1
+                    ESCREVA "--- CADASTRO DE FORNECEDOR ", TOTAL_FORNECEDORES, " ---"
+                    ESCREVA "NOME / RAZÃO SOCIAL: "
+                    LEIA FORN_NOME[TOTAL_FORNECEDORES]
+                    ESCREVA "CNPJ: "
+                    LEIA FORN_CNPJ[TOTAL_FORNECEDORES]
+                    ESCREVA "UF DO FORNECEDOR (Ex: SP, RJ, MG): "
+                    LEIA FORN_UF[TOTAL_FORNECEDORES]
+                    ESCREVA ">>> FORNECEDOR CADASTRADO COM SUCESSO! <<<"
+                FIM
+                SENÃO
+                    ESCREVA "LIMITE MÁXIMO DE FORNECEDORES ATINGIDO."
+                FIM_SE
+            FIM_SE
+
+            /* ------------------------------------------------------------------
+               OPÇÃO 3: CADASTRAR PRODUTO E FICHA FISCAL
+               ------------------------------------------------------------------ */
+            SE OPCAO_MENU = 3 ENTÃO
+            INÍCIO
+                SE TOTAL_PRODUTOS < 10 ENTÃO
+                INÍCIO
+                    TOTAL_PRODUTOS <- TOTAL_PRODUTOS + 1
+                    I <- TOTAL_PRODUTOS
+                    ESCREVA "--- CADASTRO DO PRODUTO ", I, " ---"
+                    ESCREVA "NOME DO PRODUTO: "
+                    LEIA PROD_NOME[I]
+
+                    ESCREVA "CATEGORIA (1 - Suplemento | 2 - Bebida Isotônica | 3 - Vestuário | 4 - Calçado): "
+                    LEIA PROD_CATEGORIA[I]
+
+                    ESCREVA "PREÇO UNITÁRIO: R$ "
+                    LEIA PROD_PRECOS[I]
+
+                    ESCREVA "ESTOQUE INICIAL: "
+                    LEIA PROD_ESTOQUE[I]
+
+                    ESCREVA "--- FICHA FISCAL E TRIBUTÁRIA ---"
+                    ESCREVA "NCM (Ex: 2106.90.30 / 2202.99.00 / 6109.90.00 / 6404.11.00): "
+                    LEIA PROD_NCM[I]
+
+                    ESCREVA "CEST (Código Especificador da Substituição Tributária): "
+                    LEIA PROD_CEST[I]
+
+                    ESCREVA "CFOP REGISTRADO (Ex: 5102 - Venda de mercadoria): "
+                    LEIA PROD_CFOP[I]
+
+                    ESCREVA "CST/CSOSN (Ex: 00 - Tributada integralmente / 60 - ICMS cobrado ant.): "
+                    LEIA PROD_CST[I]
+
+                    ESCREVA ">>> PRODUTO E FICHA FISCAL CADASTRADOS COM SUCESSO! <<<"
+                FIM
+                SENÃO
+                    ESCREVA "LIMITE MÁXIMO DE PRODUTOS ATINGIDO."
+                FIM_SE
+            FIM_SE
+
+            /* ------------------------------------------------------------------
+               OPÇÃO 4: MOVIMENTAÇÃO DE ESTOQUE (DUPLA VERIFICAÇÃO)
+               ------------------------------------------------------------------ */
+            SE OPCAO_MENU = 4 ENTÃO
+            INÍCIO
+                SE TOTAL_PRODUTOS = 0 ENTÃO
+                    ESCREVA "NENHUM PRODUTO CADASTRADO."
+                SENÃO
+                    ESCREVA "--- SELEÇÃO DE PRODUTO PARA MOVIMENTAÇÃO ---"
+                    PARA I <- 1 ATÉ TOTAL_PRODUTOS FAÇA
+                        ESCREVA "ID: ", I, " | PRODUTO: ", PROD_NOME[I], " | ESTOQUE ATUAL: ", PROD_ESTOQUE[I]
+                    FIM_PARA
+
+                    ESCREVA "DIGITE O ID DO PRODUTO: "
+                    LEIA POS_ITEM
+
+                    SE POS_ITEM >= 1 E POS_ITEM <= TOTAL_PRODUTOS ENTÃO
+                    INÍCIO
+                        DECLARE TIPO_MOV CADEIA
+                        ESCREVA "TIPO DE OPERAÇÃO (ENTRADA / SAIDA / AJUSTE / DEVOLUCAO): "
+                        LEIA TIPO_MOV
+
+                        ESCREVA "QUANTIDADE A MOVER/AJUSTAR: "
+                        LEIA QTDE_MOVER
+
+                        CONFIRMADO <- confirmar_dupla_verificacao(PROD_ESTOQUE[POS_ITEM], QTDE_MOVER, TIPO_MOV)
+
+                        SE CONFIRMADO = 1 ENTÃO
+                        INÍCIO
+                            SE TIPO_MOV = "ENTRADA" OU TIPO_MOV = "DEVOLUCAO" ENTÃO
+                                PROD_ESTOQUE[POS_ITEM] <- PROD_ESTOQUE[POS_ITEM] + QTDE_MOVER
+                            SENÃO
+                                SE TIPO_MOV = "SAIDA" ENTÃO
+                                    PROD_ESTOQUE[POS_ITEM] <- PROD_ESTOQUE[POS_ITEM] - QTDE_MOVER
+                                SENÃO
+                                    SE TIPO_MOV = "AJUSTE" ENTÃO
+                                        PROD_ESTOQUE[POS_ITEM] <- QTDE_MOVER
+                                    FIM_SE
+                                FIM_SE
+                            FIM_SE
+
+                            SE TOTAL_HISTORICO < 20 ENTÃO
+                                TOTAL_HISTORICO <- TOTAL_HISTORICO + 1
+                                HIST_TIPO[TOTAL_HISTORICO] <- TIPO_MOV
+                                HIST_PRODUTO[TOTAL_HISTORICO] <- PROD_NOME[POS_ITEM]
+                                HIST_QTDE[TOTAL_HISTORICO] <- QTDE_MOVER
+                                HIST_USUARIO[TOTAL_HISTORICO] <- "FUNC (" + FUNC_CARGO[FUNC_LOGADO_INDEX] + "): " + FUNC_NOME[FUNC_LOGADO_INDEX]
+                            FIM_SE
+
+                            ESCREVA ">>> MOVIMENTAÇÃO REALIZADA! NOVO ESTOQUE: ", PROD_ESTOQUE[POS_ITEM], " <<<"
+                        FIM_SE
+                    FIM
+                    SENÃO
+                        ESCREVA "ID DE PRODUTO INVÁLIDO!"
+                    FIM_SE
+                FIM_SE
+            FIM_SE
+
+            /* ------------------------------------------------------------------
+               OPÇÃO 5: EMITIR NOTA FISCAL DE SAÍDA E CÁLCULO TRIBUTÁRIO
+               ------------------------------------------------------------------ */
+            SE OPCAO_MENU = 5 ENTÃO
+            INÍCIO
+                SE TOTAL_PRODUTOS = 0 ENTÃO
+                    ESCREVA "NENHUM PRODUTO CADASTRADO PARA EMISSÃO DE NOTA FISCAL."
+                SENÃO
+                    ESCREVA "--- DADOS DA OPERAÇÃO DA NOTA FISCAL DE SAÍDA ---"
+                    ESCREVA "UF DE DESTINO DA VENDA (Ex: SP, RJ, MG): "
+                    LEIA UF_DESTINO
+
+                    VALOR_TOTAL_NOTA <- 0
+                    TOTAL_ICMS <- 0
+                    TOTAL_PIS <- 0
+                    TOTAL_COFINS <- 0
+
+                    ESCREVA " "
+                    ESCREVA "=================================================="
+                    ESCREVA "          NOTA FISCAL ELETRÔNICA DE SAÍDA         "
+                    ESCREVA " RESPONSÁVEL: ", FUNC_NOME[FUNC_LOGADO_INDEX], " | CPF: ", FUNC_CPF[FUNC_LOGADO_INDEX]
+                    ESCREVA " CARGO: ", FUNC_CARGO[FUNC_LOGADO_INDEX]
+                    ESCREVA " UF ORIGEM: ", UF_ORIGEM, " | UF DESTINO: ", UF_DESTINO
+                    ESCREVA "=================================================="
+
+                    PARA I <- 1 ATÉ TOTAL_PRODUTOS FAÇA
+                    INÍCIO
+                        DECLARE VALOR_ITEM NUMÉRICO
+                        VALOR_ITEM <- PROD_PRECOS[I] * PROD_ESTOQUE[I]
+                        VALOR_TOTAL_NOTA <- VALOR_TOTAL_NOTA + VALOR_ITEM
+
+                        ALIQ_ICMS <- buscar_aliquota_icms(PROD_NCM[I], UF_ORIGEM, UF_DESTINO)
+                        ALIQ_PIS <- buscar_aliquota_pis(PROD_NCM[I])
+                        ALIQ_COFINS <- buscar_aliquota_cofins(PROD_NCM[I])
+
+                        VAL_ICMS <- calcular_imposto_item(VALOR_ITEM, ALIQ_ICMS)
+                        VAL_PIS <- calcular_imposto_item(VALOR_ITEM, ALIQ_PIS)
+                        VAL_COFINS <- calcular_imposto_item(VALOR_ITEM, ALIQ_COFINS)
+
+                        TOTAL_ICMS <- TOTAL_ICMS + VAL_ICMS
+                        TOTAL_PIS <- TOTAL_PIS + VAL_PIS
+                        TOTAL_COFINS <- TOTAL_COFINS + VAL_COFINS
+
+                        SE TOTAL_HISTORICO < 20 ENTÃO
+                            TOTAL_HISTORICO <- TOTAL_HISTORICO + 1
+                            HIST_TIPO[TOTAL_HISTORICO] <- "EMISSÃO NF"
+                            HIST_PRODUTO[TOTAL_HISTORICO] <- PROD_NOME[I]
+                            HIST_QTDE[TOTAL_HISTORICO] <- PROD_ESTOQUE[I]
+                            HIST_USUARIO[TOTAL_HISTORICO] <- "FUNC: " + FUNC_NOME[FUNC_LOGADO_INDEX]
+                        FIM_SE
+
+                        ESCREVA "ITEM ", I, ": ", PROD_NOME[I]
+                        ESCREVA "   ↳ DADOS FISCAIS -> NCM: ", PROD_NCM[I], " | CEST: ", PROD_CEST[I], " | CFOP: ", PROD_CFOP[I], " | CST: ", PROD_CST[I]
+                        ESCREVA "   ↳ VALOR ITEM: R$ ", VALOR_ITEM
+                        ESCREVA "   ↳ TRIBUTOS -> ICMS: R$ ", VAL_ICMS, " | PIS: R$ ", VAL_PIS, " | COFINS: R$ ", VAL_COFINS
+                        ESCREVA "--------------------------------------------------"
+                    FIM_PARA
+
+                    ESCREVA "====== RESUMO DE TRIBUTOS E VALORES DA NOTA ======"
+                    ESCREVA "VALOR TOTAL BRUTO DA NOTA: R$ ", VALOR_TOTAL_NOTA
+                    ESCREVA "TOTAL ICMS RECOLHIDO: R$ ", TOTAL_ICMS
+                    ESCREVA "TOTAL PIS RECOLHIDO: R$ ", TOTAL_PIS
+                    ESCREVA "TOTAL COFINS RECOLHIDO: R$ ", TOTAL_COFINS
+                    ESCREVA "TOTAL DE TRIBUTOS INCIDENTES: R$ ", (TOTAL_ICMS + TOTAL_PIS + TOTAL_COFINS)
+                    ESCREVA "=================================================="
+                FIM_SE
+            FIM_SE
+
+            /* ------------------------------------------------------------------
+               OPÇÃO 6: HISTÓRICO DE MOVIMENTAÇÕES DE ESTOQUE
+               ------------------------------------------------------------------ */
+            SE OPCAO_MENU = 6 ENTÃO
+            INÍCIO
+                ESCREVA "--- HISTÓRICO DE MOVIMENTAÇÕES DE ESTOQUE ---"
+                SE TOTAL_HISTORICO = 0 ENTÃO
+                    ESCREVA "NENHUMA MOVIMENTAÇÃO REGISTRADA ATÉ O MOMENTO."
+                SENÃO
+                    PARA I <- 1 ATÉ TOTAL_HISTORICO FAÇA
+                        ESCREVA "REGISTRO ", I, " | OPERAÇÃO: ", HIST_TIPO[I], " | PRODUTO: ", HIST_PRODUTO[I], " | QTDE: ", HIST_QTDE[I], " | REGISTRADO POR: ", HIST_USUARIO[I]
+                    FIM_PARA
+                FIM_SE
+            FIM_SE
+
+        FIM_ENQUANTO
+    FIM
+    SENÃO
+        ESCREVA "PERFIL DE ACESSO INVÁLIDO!"
+    FIM_SE
+FIM_SE
+
+ESCREVA " "
+ESCREVA ">>> SESSÃO FINALIZADA. ATÉ LOGO! <<<"
+
+FIM_ALGORITMO.
