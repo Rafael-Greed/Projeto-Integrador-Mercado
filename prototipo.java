@@ -110,6 +110,11 @@ public class SistemaTributavelCompleto {
         int[] prodCategoria = new int[10];
         int totalProdutos = 0;
 
+        // Estrutura do Carrinho de Compras (Até 10 itens acumulados)
+        int[] carrinhoProdIndex = new int[10];
+        int[] carrinhoQtde = new int[10];
+        int totalItensCarrinho = 0;
+
         // Fornecedores (Até 5)
         String[] fornNome = new String[5];
         String[] fornCnpj = new String[5];
@@ -129,7 +134,7 @@ public class SistemaTributavelCompleto {
         exibirCabecalho();
 
         System.out.println("IDENTIFIQUE SEU PERFIL DE ACESSO:");
-        System.out.println("1 - CLIENTE (Realizar Compras / Emitir Nota Fiscal)");
+        System.out.println("1 - CLIENTE (Realizar Compras / Acumular no Carrinho)");
         System.out.println("2 - FUNCIONÁRIO (Acesso ao Painel Administrativo)");
         System.out.print("ESCOLHA UMA OPÇÃO: ");
         
@@ -143,14 +148,13 @@ public class SistemaTributavelCompleto {
         }
 
         /* =========================================================================
-           FLUXO DE ACESSO DO CLIENTE
+           FLUXO DE ACESSO DO CLIENTE COM CARRINHO DE COMPRAS
            ========================================================================= */
         if (perfilAcesso == 1) {
             System.out.println("\n--- CADASTRO OBRIGATÓRIO DE CLIENTE ---");
             System.out.print("NOME COMPLETO: ");
             cliNome = scanner.nextLine();
             
-            // Validação de limite do CPF do Cliente (Máximo 11 dígitos)
             cliCpf = lerCpfValido(scanner);
 
             System.out.print("SEXO (M/F/Outro): ");
@@ -162,7 +166,7 @@ public class SistemaTributavelCompleto {
 
             System.out.println("\n>>> BEM-VINDO(A), " + cliNome.toUpperCase() + "! <<<");
 
-            // Exemplo de produto base pré-cadastrado no estoque
+            // Produtos base pré-cadastrados para demonstrar a navegação e carrinho
             prodNome[0] = "WHEY PROTEIN ISOLADO";
             prodCategoria[0] = 1;
             prodPrecos[0] = 120.00;
@@ -171,14 +175,25 @@ public class SistemaTributavelCompleto {
             prodCest[0] = "NULO";
             prodCfop[0] = "5102";
             prodCst[0] = "00";
-            totalProdutos = 1;
+
+            prodNome[1] = "BEBIDA ISOTÔNICA 500ML";
+            prodCategoria[1] = 2;
+            prodPrecos[1] = 8.50;
+            prodEstoque[1] = 100;
+            prodNcm[1] = "2202.99.00";
+            prodCest[1] = "NULO";
+            prodCfop[1] = "5102";
+            prodCst[1] = "60";
+
+            totalProdutos = 2;
 
             int opcaoCliente = 0;
-            while (opcaoCliente != 3) {
+            while (opcaoCliente != 4) {
                 System.out.println("\n=================== PAINEL DO CLIENTE ===================");
                 System.out.println("1 - VISUALIZAR CATÁLOGO DE PRODUTOS");
-                System.out.println("2 - REALIZAR COMPRA E EMITIR NOTA FISCAL");
-                System.out.println("3 - SAIR DO SISTEMA");
+                System.out.println("2 - ADICIONAR PRODUTO AO CARRINHO DE COMPRAS");
+                System.out.println("3 - VISUALIZAR CARRINHO E FINALIZAR COMPRA (GERAR NOTA FISCAL)");
+                System.out.println("4 - SAIR DO SISTEMA");
                 System.out.print("ESCOLHA UMA OPÇÃO: ");
 
                 try {
@@ -199,60 +214,120 @@ public class SistemaTributavelCompleto {
                     }
 
                 } else if (opcaoCliente == 2) {
-                    if (totalProdutos == 0) {
-                        System.out.println("NENHUM PRODUTO DISPONÍVEL PARA COMPRA NO MOMENTO.");
-                    } else {
-                        System.out.println("\n--- SIMULAÇÃO E EMISSÃO DE NOTA FISCAL DE COMPRA ---");
-                        for (int i = 0; i < totalProdutos; i++) {
-                            System.out.println("ID: " + (i + 1) + " | PRODUTO: " + prodNome[i] + " | PREÇO: R$ " + prodPrecos[i]);
+                    System.out.println("\n--- ADICIONAR PRODUTOS AO CARRINHO ---");
+                    for (int i = 0; i < totalProdutos; i++) {
+                        System.out.println("ID: " + (i + 1) + " | PRODUTO: " + prodNome[i] + 
+                                " | PREÇO: R$ " + String.format("%.2f", prodPrecos[i]) + 
+                                " | ESTOQUE: " + prodEstoque[i]);
+                    }
+                    
+                    System.out.print("DIGITE O ID DO PRODUTO QUE DESEJA ADICIONAR: ");
+                    int posItem = scanner.nextInt() - 1;
+
+                    if (posItem >= 0 && posItem < totalProdutos) {
+                        System.out.print("DIGITE A QUANTIDADE DESEJADA: ");
+                        int qtdeComprar = scanner.nextInt();
+
+                        if (qtdeComprar <= prodEstoque[posItem]) {
+                            if (totalItensCarrinho < 10) {
+                                carrinhoProdIndex[totalItensCarrinho] = posItem;
+                                carrinhoQtde[totalItensCarrinho] = qtdeComprar;
+                                totalItensCarrinho++;
+                                
+                                System.out.println(">>> PRODUTO '" + prodNome[posItem] + "' (QTDE: " + qtdeComprar + ") ADICIONADO AO CARRINHO COM SUCESSO! <<<");
+                            } else {
+                                System.out.println(">>> O SEU CARRINHO JÁ ATINGIU O LIMITE MÁXIMO DE ITENS. <<<");
+                            }
+                        } else {
+                            System.out.println(">>> ESTOQUE INSUFICIENTE PARA ESSA QUANTIDADE! <<<");
                         }
-                        System.out.print("DIGITE O ID DO PRODUTO QUE DESEJA COMPRAR: ");
-                        int posItem = scanner.nextInt() - 1;
+                    } else {
+                        System.out.println("ID DE PRODUTO INVÁLIDO!");
+                    }
 
-                        if (posItem >= 0 && posItem < totalProdutos) {
-                            System.out.print("DIGITE A QUANTIDADE QUE DESEJA COMPRAR: ");
-                            int qtdeComprar = scanner.nextInt();
+                } else if (opcaoCliente == 3) {
+                    if (totalItensCarrinho == 0) {
+                        System.out.println("SEU CARRINHO ESTÁ VAZIO. ADICIONE ITENS ANTES DE FINALIZAR A COMPRA.");
+                    } else {
+                        double valorTotalCarrinho = 0.0;
+                        double totalIcms = 0.0, totalPis = 0.0, totalCofins = 0.0;
 
-                            if (qtdeComprar <= prodEstoque[posItem]) {
-                                double valorTotalCompra = prodPrecos[posItem] * qtdeComprar;
+                        System.out.println("\n==================================================");
+                        System.out.println("             CARRINHO DE COMPRAS ACUMULADO        ");
+                        System.out.println("==================================================");
+                        
+                        for (int i = 0; i < totalItensCarrinho; i++) {
+                            int idxP = carrinhoProdIndex[i];
+                            double valorTotalItem = prodPrecos[idxP] * carrinhoQtde[i];
+                            valorTotalCarrinho += valorTotalItem;
+                            
+                            System.out.printf("ITEM %d: %s | QTDE: %d | VAL. UNIT: R$ %.2f | TOTAL: R$ %.2f\n", 
+                                    (i + 1), prodNome[idxP], carrinhoQtde[i], prodPrecos[idxP], valorTotalItem);
+                        }
+                        
+                        System.out.println("--------------------------------------------------");
+                        System.out.printf("VALOR TOTAL ACUMULADO DO CARRINHO: R$ %.2f\n", valorTotalCarrinho);
+                        
+                        System.out.print("DESEJA FINALIZAR A COMPRA E EMITIR A NOTA FISCAL? (S/N): ");
+                        String confirmarCompra = scanner.next();
 
-                                double aliqIcms = buscarAliquotaIcms(prodNcm[posItem], ufOrigem, cliUf);
-                                double aliqPis = buscarAliquotaPis(prodNcm[posItem]);
-                                double aliqCofins = buscarAliquotaCofins(prodNcm[posItem]);
+                        if (confirmarCompra.equalsIgnoreCase("S")) {
+                            System.out.println("\n==================================================");
+                            System.out.println("          NOTA FISCAL ELETRÔNICA DE COMPRA        ");
+                            System.out.println(" CLIENTE: " + cliNome.toUpperCase() + " | CPF: " + cliCpf);
+                            System.out.println(" DATA NASC.: " + cliDataNasc + " | SEXO: " + cliSexo);
+                            System.out.println(" UF ORIGEM: " + ufOrigem + " | UF DESTINO: " + cliUf);
+                            System.out.println("==================================================");
 
-                                double valIcms = calcularImpostoItem(valorTotalCompra, aliqIcms);
-                                double valPis = calcularImpostoItem(valorTotalCompra, aliqPis);
-                                double valCofins = calcularImpostoItem(valorTotalCompra, aliqCofins);
+                            // Processa todos os itens do carrinho de uma só vez
+                            for (int i = 0; i < totalItensCarrinho; i++) {
+                                int idxP = carrinhoProdIndex[i];
+                                double valorTotalItem = prodPrecos[idxP] * carrinhoQtde[i];
 
-                                prodEstoque[posItem] -= qtdeComprar;
+                                double aliqIcms = buscarAliquotaIcms(prodNcm[idxP], ufOrigem, cliUf);
+                                double aliqPis = buscarAliquotaPis(prodNcm[idxP]);
+                                double aliqCofins = buscarAliquotaCofins(prodNcm[idxP]);
+
+                                double valIcms = calcularImpostoItem(valorTotalItem, aliqIcms);
+                                double valPis = calcularImpostoItem(valorTotalItem, aliqPis);
+                                double valCofins = calcularImpostoItem(valorTotalItem, aliqCofins);
+
+                                totalIcms += valIcms;
+                                totalPis += valPis;
+                                totalCofins += valCofins;
+
+                                // Abate do estoque do produto
+                                prodEstoque[idxP] -= carrinhoQtde[i];
+
+                                // Registro no histórico
                                 if (totalHistorico < 20) {
                                     histTipo[totalHistorico] = "VENDA CLIENTE";
-                                    histProduto[totalHistorico] = prodNome[posItem];
-                                    histQtde[totalHistorico] = qtdeComprar;
+                                    histProduto[totalHistorico] = prodNome[idxP];
+                                    histQtde[totalHistorico] = carrinhoQtde[i];
                                     histUsuario[totalHistorico] = "CLIENTE: " + cliNome;
                                     totalHistorico++;
                                 }
 
-                                System.out.println("\n==================================================");
-                                System.out.println("          NOTA FISCAL ELETRÔNICA DE COMPRA        ");
-                                System.out.println(" CLIENTE: " + cliNome.toUpperCase() + " | CPF: " + cliCpf);
-                                System.out.println(" DATA NASC.: " + cliDataNasc + " | SEXO: " + cliSexo);
-                                System.out.println(" UF ORIGEM: " + ufOrigem + " | UF DESTINO: " + cliUf);
-                                System.out.println("==================================================");
-                                System.out.println("ITEM: " + prodNome[posItem] + " | QUANTIDADE: " + qtdeComprar);
-                                System.out.println("DADOS FISCAIS -> NCM: " + prodNcm[posItem] + " | CFOP: " + prodCfop[posItem]);
-                                System.out.printf("VALOR TOTAL BRUTO: R$ %.2f\n", valorTotalCompra);
-                                System.out.println("--- TRIBUTOS INCIDENTES (LUCRO REAL) ---");
-                                System.out.printf("ICMS RECOLHIDO: R$ %.2f | PIS: R$ %.2f | COFINS: R$ %.2f\n", valIcms, valPis, valCofins);
-                                System.out.printf("TOTAL DE IMPOSTOS DA OPERAÇÃO: R$ %.2f\n", (valIcms + valPis + valCofins));
-                                System.out.println("==================================================");
-                                System.out.println(">>> COMPRA REALIZADA COM SUCESSO! <<<");
-
-                            } else {
-                                System.out.println(">>> ESTOQUE INSUFICIENTE PARA A QUANTIDADE DESEJADA! <<<");
+                                System.out.println("ITEM " + (i + 1) + ": " + prodNome[idxP] + " | QUANTIDADE: " + carrinhoQtde[i]);
+                                System.out.println("   ↳ DADOS FISCAIS -> NCM: " + prodNcm[idxP] + " | CFOP: " + prodCfop[idxP]);
+                                System.out.printf("   ↳ VALOR ITEM BRUTO: R$ %.2f\n", valorTotalItem);
+                                System.out.printf("   ↳ TRIBUTOS -> ICMS: R$ %.2f | PIS: R$ %.2f | COFINS: R$ %.2f\n", valIcms, valPis, valCofins);
+                                System.out.println("--------------------------------------------------");
                             }
+
+                            System.out.println("====== RESUMO FINAL DA COMPRA E TRIBUTOS ======");
+                            System.out.printf("VALOR TOTAL DA COMPRA: R$ %.2f\n", valorTotalCarrinho);
+                            System.out.printf("TOTAL ICMS RECOLHIDO: R$ %.2f\n", totalIcms);
+                            System.out.printf("TOTAL PIS RECOLHIDO: R$ %.2f\n", totalPis);
+                            System.out.printf("TOTAL COFINS RECOLHIDO: R$ %.2f\n", totalCofins);
+                            System.out.printf("TOTAL DE TRIBUTOS INCIDENTES: R$ %.2f\n", (totalIcms + totalPis + totalCofins));
+                            System.out.println("==================================================");
+                            System.out.println(">>> COMPRA FINALIZADA COM SUCESSO! OBRIGADO! <<<");
+
+                            // Esvazia o carrinho
+                            totalItensCarrinho = 0;
                         } else {
-                            System.out.println("ID DE PRODUTO INVÁLIDO!");
+                            System.out.println(">>> COMPRA MANTIDA EM ABERTO NO CARRINHO. <<<");
                         }
                     }
                 }
@@ -264,7 +339,6 @@ public class SistemaTributavelCompleto {
         } else if (perfilAcesso == 2) {
             System.out.println("\n--- IDENTIFICAÇÃO DO FUNCIONÁRIO ---");
             
-            // Cadastro automático do Gerente caso seja o primeiro acesso
             if (totalFuncionarios == 0) {
                 System.out.println("NENHUM FUNCIONÁRIO CADASTRADO. REALIZANDO CADASTRO DO GERENTE TITULAR:");
                 System.out.print("NOME COMPLETO: ");
@@ -302,15 +376,12 @@ public class SistemaTributavelCompleto {
                     continue;
                 }
 
-                /* ------------------------------------------------------------------
-                   OPÇÃO 1: CADASTRO DE FUNCIONÁRIOS (SOMENTE GERENTE)
-                   ------------------------------------------------------------------ */
                 if (opcaoMenu == 1) {
                     if (!funcCargo[funcLogadoIndex].equals("GERENTE")) {
                         System.out.println("\n>>> ACESSO NEGADO! APENAS FUNCIONÁRIOS COM HIERARQUIA DE GERENTE PODEM CADASTRAR OUTROS FUNCIONÁRIOS. <<<");
                     } else {
                         if (totalFuncionarios < 10) {
-                            System.out.println("\n--- CADASTRO DE NOVO FUNCIONÁRIO (GERENCIADO POR: " + funcNome[funcLogadoIndex] + ") ---");
+                            System.out.println("\n--- CADASTRO DE NOVO FUNCIONÁRIO ---");
                             System.out.print("NOME COMPLETO DO NOVO FUNCIONÁRIO: ");
                             funcNome[totalFuncionarios] = scanner.nextLine();
 
