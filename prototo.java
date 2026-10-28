@@ -6,8 +6,12 @@ public class prototo {
 
     /* =========================================================================
        [MÓDULO 1] TRIBUTÁRIO E DE MATRIZ FISCAL (RECEITA FEDERAL / ANOS 2026 E 2027)
-       Responsável por gerenciar regras de incidência tributária, alíquotas de 
-       ICMS, PIS e COFINS com base na legislação e UF de origem/destino.
+       -------------------------------------------------------------------------
+       FONTE DAS INFORMAÇÕES: 
+       - Legislação tributária brasileira para o ICMS (Regulamento do ICMS - RICMS/SP).
+       - Diretrizes federais de transição da Reforma Tributária para PIS (1,65%) 
+         e COFINS (7,60%), com alíquota zero aplicada a produtos específicos (ex: NCM 2202.99.00).
+       - Regras de alíquota interestadual padrão (12%) vs interna (18% em 2026 e 19% em 2027).
        ========================================================================= */
     public static double aliquotaIcmsInterno2026 = 0.18;
     public static double aliquotaIcmsInterno2027 = 0.19; 
@@ -44,8 +48,11 @@ public class prototo {
     }
 
     /* =========================================================================
-       [MÓDULO 2] SEGURANÇA E GERAÇÃO DE CREDENCIAIS
-       Responsável por gerar senhas randômicas seguras para novos cadastros.
+       [MÓDULO 2] SEGURANÇA, CREDENCIAIS E FORMATAÇÃO UTILITÁRIA
+       -------------------------------------------------------------------------
+       FONTE DAS INFORMAÇÕES: 
+       - Padrões de segurança da informação (OWASP) para senhas temporárias.
+       - Padrões de formatação monetária corporativa brasileira.
        ========================================================================= */
     public static String geradorSenhaAleatoriaSistema() {
         String caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$";
@@ -57,10 +64,17 @@ public class prototo {
         return senha.toString();
     }
 
+    public static String formatarMoeda(double valor) {
+        return String.format("R$ %.2f", valor);
+    }
+
     /* =========================================================================
        [MÓDULO 3] VALIDAÇÃO ROBUSTA DE ENTRADAS DE DADOS
-       Garante consistência nas entradas do usuário com tratamento de exceções 
-       e exibição nativa de exemplos corretos abaixo de cada mensagem de erro.
+       -------------------------------------------------------------------------
+       FONTE DAS INFORMAÇÕES: 
+       - Algoritmo oficial da Receita Federal do Brasil para validação matemática 
+         dos Dígitos Verificadores (DV) do CPF (módulo 11).
+       - Padrões de formatação de CEP do sistema de endereçamento postal dos Correios (8 dígitos).
        ========================================================================= */
     public static String lerNomeValido(Scanner scanner, String mensagemPersonalizada) {
         String nome = "";
@@ -86,24 +100,38 @@ public class prototo {
     public static String lerCpfValido(Scanner scanner) {
         String cpf = "";
         while (true) {
-            System.out.print("CPF (DIGITE APENAS OS 11 NÚMEROS) [Exemplo correto: 11111111111]: ");
-            cpf = scanner.nextLine().trim();
+            System.out.print("CPF (DIGITE APENAS OS 11 NÚMEROS) [Exemplo correto: 11144477735]: ");
+            cpf = scanner.nextLine().trim().replaceAll("[^0-9]", "");
 
-            if (cpf.matches(".*[a-zA-Z].*")) {
-                System.out.println(">>> ERRO: O CPF não pode conter letras!");
-                System.out.println(">>> O que é permitido: Apenas números de 0 a 9.");
-                System.out.println(">>> Exemplo correto: 11111111111. Tente novamente. <<<\n");
+            if (cpf.length() != 11 || cpf.matches("^(.)\\1{10}$")) {
+                System.out.println(">>> ERRO: CPF INVÁLIDO! O CPF deve conter 11 dígitos reais e não pode ser uma sequência repetida.");
+                System.out.println(">>> O que é permitido: Apenas números válidos conforme receita federal.");
+                System.out.println(">>> Exemplo correto: 11144477735. Tente novamente. <<<\n");
                 continue;
             }
 
-            cpf = cpf.replaceAll("[^0-9]", "");
+            try {
+                int soma1 = 0, soma2 = 0;
+                for (int i = 0; i < 9; i++) {
+                    int num = Character.getNumericValue(cpf.charAt(i));
+                    soma1 += num * (10 - i);
+                    soma2 += num * (11 - i);
+                }
+                int dv1 = 11 - (soma1 % 11);
+                if (dv1 > 9) dv1 = 0;
 
-            if (cpf.length() != 11) {
-                System.out.println(">>> ERRO: O CPF DEVE CONTER EXATAMENTE 11 DÍGITOS!");
-                System.out.println(">>> O que é permitido: Sequência exata de 11 números.");
-                System.out.println(">>> Exemplo correto: 11111111111. Tente novamente. <<<\n");
-            } else {
-                break;
+                soma2 += dv1 * 2;
+                int dv2 = 11 - (soma2 % 11);
+                if (dv2 > 9) dv2 = 0;
+
+                if (dv1 == Character.getNumericValue(cpf.charAt(9)) && dv2 == Character.getNumericValue(cpf.charAt(10))) {
+                    break;
+                } else {
+                    System.out.println(">>> ERRO: Os dígitos verificadores (DV) do CPF não conferem matematicamente!");
+                    System.out.println(">>> Exemplo correto: Um CPF real e válido (Ex: 11144477735). Tente novamente. <<<\n");
+                }
+            } catch (Exception e) {
+                System.out.println(">>> ERRO na validação do CPF. Tente novamente. <<<\n");
             }
         }
         return cpf;
@@ -117,7 +145,7 @@ public class prototo {
 
             if (cep.length() != 8) {
                 System.out.println(">>> ERRO: CEP INVÁLIDO! O CEP deve conter exatamente 8 números.");
-                System.out.println(">>> O que é permitido: Sequência de 8 dígitos numéricos.");
+                System.out.println(">>> O que é permitido: Sequência exata de 8 dígitos numéricos.");
                 System.out.println(">>> Exemplo correto: 04753060. Tente novamente. <<<\n");
             } else {
                 break;
@@ -128,7 +156,9 @@ public class prototo {
 
     /* =========================================================================
        [MÓDULO 4] REGRA DE NEGÓCIO E GESTÃO SALARIAL
-       Controla padrões salariais por cargo e valida desvios de média de mercado.
+       -------------------------------------------------------------------------
+       FONTE DAS INFORMAÇÕES: 
+       - Padrões de mercado corporativo e tabelas salariais de referência para os cargos.
        ========================================================================= */
     public static double obterSalarioPadraoCargo(String cargo) {
         if (cargo.equalsIgnoreCase("GERENTE")) return 5500.00;
@@ -161,39 +191,42 @@ public class prototo {
     }
 
     /* =========================================================================
-       MÉTODO PRINCIPAL (CONTROLE DE FLUXO E MENUS)
+       MÉTODO PRINCIPAL (CONTROLE DE FLUXO E MENOS)
        ========================================================================= */
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
-        /* ---------------------------------------------------------------------
-           [CADASTROS PRÉ-PRONTOS DO SISTEMA]
-           - F01: CARLOS GERENTE | CPF: 11111111111 | Senha: admin123 | Salário: R$ 5500.00
-           - F02: ANA OPERADORA  | CPF: 22222222222 | Senha: op123   | Salário: R$ 2200.00
-           - F03: MARINA FINANCEIRO| CPF: 33333333333| Senha: fin123  | Salário: R$ 4800.00
-           - Cliente Exemplo: MARIO SILVA | CPF: 99999999999 | Senha: cli123
-           --------------------------------------------------------------------- */
+          /* ===============================================================================================================
+             TABELA DE AUDITORIA COMPLETA: ERROS ENCONTRADOS, CAUSAS E CORREÇÕES IMPLEMENTADAS NO SISTEMA
+             ===============================================================================================================
+             +-------------------------------+----------------------------------+------------------------------------------+
+             | Erro / Problema Identificado  | Causa Raiz                       | Correção Implementada                    |
+             +-------------------------------+----------------------------------+------------------------------------------+
+             | Identificação Abrupta no      | O programa exigia o Nome e o CPF | Adiantamento condicional: o cliente      |
+             | Painel do Cliente             | imediatamente ao entrar na opção | navega pelo catálogo e só é solicitado   |
+             |                               | 1, antes de qualquer navegação.  | ao interagir com carrinho/compra.        |
+             +-------------------------------+----------------------------------+------------------------------------------+
+             | Falhas na Folha de Pagamento  | Ausência de controle individual  | Inclusão do vetor booleano `funcPago[]`  |
+             |                               | de quitação salarial (risco de   | vinculado a cada funcionário para        |
+             |                               | pagamentos em dobro).            | auditar pagamentos individuais.          |
+             +-------------------------------+----------------------------------+------------------------------------------+
+             | Falta de Exemplos nas         | Mensagens de erro puramente      | Padronização de todas as mensagens com   |
+             | Entradas de Dados             | genéricas sem orientar formato.  | exemplos textuais claros (`[Exemplo...]`)|
+             +-------------------------------+----------------------------------+------------------------------------------+
+             | Carrinho Limitado e Dupla     | Ausência de rotinas de remoção e | Implementação de menu de revisão com     |
+             | Baixa de Estoque              | ajuste de qtde; abatimento duplo.| remoção, alteração e baixa única no final.|
+             +-------------------------------+----------------------------------+------------------------------------------+
+             | Validação Frágil de CPF       | O sistema conferia apenas se a   | Implementação do algoritmo da Receita    |
+             |                               | string tinha 11 caracteres.      | Federal (Módulo 11) com cálculo de DVs.  |
+             +-------------------------------+----------------------------------+------------------------------------------+
+             | Perda de Dados no Cadastro    | O cadastro no checkout era       | Inclusão de rotina de persistência para  |
+             | Tardio                        | descartado após a compra.        | salvar permanentemente no array.         |
+             +-------------------------------+----------------------------------+------------------------------------------+
+             | Estouro de Limite de Vetores  | Inserção de dados além da        | Implementação de barreiras de proteção   |
+             | (*ArrayIndexOutOfBounds*)     | capacidade máxima dos arrays.    | (*Bounds Checking*) em todos os cadastros|
+             +-------------------------------+----------------------------------+------------------------------------------+ */
 
-          /* =====================================================================
-             TABELA DE AUDITORIA: ERROS ENCONTRADOS E CORREÇÕES IMPLEMENTADAS
-             =====================================================================
-             +------------------------------+---------------------------------+---------------------------------------------+
-             | Erro / Problema Identificado | Causa Raiz                      | Correção Implementada                       |
-             +------------------------------+---------------------------------+---------------------------------------------+
-             | Loop na Folha de Pagamentos  | Ausência de controle individual | Inclusão do vetor booleano `funcPago[]`     |
-             |                              | de quitação salarial.           | para auditar pagamentos individuais.        |
-             +------------------------------+---------------------------------+---------------------------------------------+
-             | Identificação Abrupta no     | Solicitação de nome e CPF logo  | Adiantamento condicional da identificação   |
-             | Painel do Cliente            | na entrada da opção 1.          | apenas ao interagir com carrinho/compra.    |
-             +------------------------------+---------------------------------+---------------------------------------------+
-             | Falta de Exemplos Práticos   | Mensagens de erro genéricas     | Padronização de mensagens orientativas com  |
-             | nas Entradas de Dados        | sem orientar o formato correto. | exemplos textuais claros em cada validação. |
-             +------------------------------+---------------------------------+---------------------------------------------+
-             | Falha de Desbloqueio por     | Uso de código fixo genérico para| Vinculação do desbloqueio ao ID funcional   |
-             | ID de Autoridade Superior    | liberação de tentativas.        | ativo de um funcionário Gerente (ex: F01).  |
-             +------------------------------+---------------------------------+---------------------------------------------+ */
-
-        // Arrays de Funcionários
+        // Arrays de Funcionários (Capacidade máxima: 10)
         String[] funcId = new String[10];
         String[] funcNome = new String[10];
         String[] funcCpf = new String[10];
@@ -203,12 +236,12 @@ public class prototo {
         boolean[] funcPago = new boolean[10]; 
         int totalFuncionarios = 0;
 
-        funcId[0] = "F01"; funcNome[0] = "CARLOS GERENTE"; funcCpf[0] = "11111111111"; funcCargo[0] = "GERENTE"; funcSenha[0] = "admin123"; funcSalario[0] = 5500.00; funcPago[0] = false;
-        funcId[1] = "F02"; funcNome[1] = "ANA OPERADORA"; funcCpf[1] = "22222222222"; funcCargo[1] = "OPERADOR"; funcSenha[1] = "op123"; funcSalario[1] = 2200.00; funcPago[1] = false;
-        funcId[2] = "F03"; funcNome[2] = "MARINA FINANCEIRO"; funcCpf[2] = "33333333333"; funcCargo[2] = "FINANCEIRO"; funcSenha[2] = "fin123"; funcSalario[2] = 4800.00; funcPago[2] = false;
+        funcId[0] = "F01"; funcNome[0] = "CARLOS GERENTE"; funcCpf[0] = "35111584834"; funcCargo[0] = "GERENTE"; funcSenha[0] = "admin123"; funcSalario[0] = 5500.00; funcPago[0] = false;
+        funcId[1] = "F02"; funcNome[1] = "ANA OPERADORA"; funcCpf[1] = "71493628030"; funcCargo[1] = "OPERADOR"; funcSenha[1] = "op123"; funcSalario[1] = 2200.00; funcPago[1] = false;
+        funcId[2] = "F03"; funcNome[2] = "MARINA FINANCEIRO"; funcCpf[2] = "52998224725"; funcCargo[2] = "FINANCEIRO"; funcSenha[2] = "fin123"; funcSalario[2] = 4800.00; funcPago[2] = false;
         totalFuncionarios = 3;
 
-        // Clientes
+        // Clientes (Capacidade máxima: 10)
         String[] cliNomeArr = new String[10];
         String[] cliCpfArr = new String[10];
         String[] cliSenhaArr = new String[10];
@@ -219,7 +252,7 @@ public class prototo {
         int totalClientes = 0;
 
         cliNomeArr[0] = "MARIO SILVA";
-        cliCpfArr[0] = "99999999999";
+        cliCpfArr[0] = "11144477735";
         cliSenhaArr[0] = "cli123";
         cliSexoArr[0] = "M";
         cliDataNascArr[0] = "10/05/1995";
@@ -227,7 +260,7 @@ public class prototo {
         cliCepArr[0] = "04753060";
         totalClientes = 1;
 
-        // Produtos (14 produtos totais)
+        // Produtos (Capacidade máxima: 20)
         String[] prodNome = new String[20];
         String[] prodNcm = new String[20];
         String[] prodCest = new String[20];
@@ -255,7 +288,7 @@ public class prototo {
         prodNome[13] = "LUVA DE TREINO MUSCULAÇÃO"; prodCategoria[13] = 5; prodPrecos[13] = 45.00; prodPrecoOriginal[13] = 50.00; prodEstoque[13] = 35; prodNcm[13] = "4203.29.00"; prodCest[13] = "28.060.00"; prodCfop[13] = "5102"; prodCst[13] = "00";
         totalProdutos = 14;
 
-        // Fornecedores
+        // Fornecedores (Capacidade máxima: 5)
         String[] fornNome = new String[5]; 
         String[] fornCnpj = new String[5]; 
         String[] fornUf = new String[5]; 
@@ -386,13 +419,17 @@ public class prototo {
                                 String cliSenha = geradorSenhaAleatoriaSistema();
                                 System.out.println(">>> SENHA GERADA PARA PRÓXIMOS ACESSOS: " + cliSenha + " <<<");
 
-                                if (totalClientes < 10) {
+                                if (totalClientes < cliNomeArr.length) {
                                     cliNomeArr[totalClientes] = cliNome;
                                     cliCpfArr[totalClientes] = cliCpf;
                                     cliSenhaArr[totalClientes] = cliSenha;
+                                    cliSexoArr[totalClientes] = "M";
+                                    cliDataNascArr[totalClientes] = "01/01/2000";
                                     cliUfArr[totalClientes] = cliUf;
                                     cliCepArr[totalClientes] = cliCep;
                                     totalClientes++;
+                                } else {
+                                    System.out.println(">>> AVISO: Limite máximo de clientes atingido. Cadastro não persistido na base. <<<");
                                 }
                                 clienteCadastrado = true;
                             } else {
@@ -411,7 +448,7 @@ public class prototo {
                                 String statusEstoque = (prodEstoque[i] > 0) ? " | Estoque: " + prodEstoque[i] : " | [ESGOTADO]";
                                 String tagOferta = (prodPrecos[i] < prodPrecoOriginal[i]) ? " ** [EM OFERTA!] **" : "";
                                 System.out.println("ID: " + (i + 1) + " | PRODUTO: " + prodNome[i] + 
-                                        " | PREÇO: R$ " + String.format("%.2f", prodPrecos[i]) + tagOferta + statusEstoque);
+                                        " | PREÇO: " + formatarMoeda(prodPrecos[i]) + tagOferta + statusEstoque);
                             }
                         }
                     } else if (opcaoCliente == 2) {
@@ -420,7 +457,7 @@ public class prototo {
                         for (int i = 0; i < totalProdutos; i++) {
                             if (prodNome[i] != null && prodEstoque[i] > 0) {
                                 String tagOferta = (prodPrecos[i] < prodPrecoOriginal[i]) ? " ** [EM OFERTA!] **" : "";
-                                System.out.println("ID: " + (i + 1) + " | " + prodNome[i] + " - R$ " + String.format("%.2f", prodPrecos[i]) + tagOferta + " | Disponível: " + prodEstoque[i]);
+                                System.out.println("ID: " + (i + 1) + " | " + prodNome[i] + " - " + formatarMoeda(prodPrecos[i]) + tagOferta + " | Disponível: " + prodEstoque[i]);
                                 temProdutosDisponiveis = true;
                             }
                         }
@@ -452,7 +489,7 @@ public class prototo {
                                 }
 
                                 if (qtdeComprar > 0 && qtdeComprar <= prodEstoque[posItem]) {
-                                    if (totalItensCarrinho < 10) {
+                                    if (totalItensCarrinho < carrinhoProdIndex.length) {
                                         carrinhoProdIndex[totalItensCarrinho] = posItem;
                                         carrinhoQtde[totalItensCarrinho] = qtdeComprar;
                                         totalItensCarrinho++;
@@ -483,14 +520,16 @@ public class prototo {
                                     int idxP = carrinhoProdIndex[i];
                                     double valItem = prodPrecos[idxP] * carrinhoQtde[i];
                                     valorTotalCarrinho += valItem;
-                                    System.out.printf("[%d] %s | Qtde: %d | Unit: R$ %.2f | Total: R$ %.2f\n", 
-                                            (i + 1), prodNome[idxP], carrinhoQtde[i], prodPrecos[idxP], valItem);
+                                    System.out.printf("[%d] %s | Qtde: %d | Unit: %s | Total: %s\n", 
+                                            (i + 1), prodNome[idxP], carrinhoQtde[i], formatarMoeda(prodPrecos[idxP]), formatarMoeda(valItem));
                                 }
                                 System.out.println("--------------------------------------------------");
-                                System.out.printf("VALOR TOTAL DO CARRINHO: R$ %.2f\n", valorTotalCarrinho);
+                                System.out.println("VALOR TOTAL DO CARRINHO: " + formatarMoeda(valorTotalCarrinho));
 
                                 System.out.println("\n1 - Concluir compra e prosseguir para pagamento");
-                                System.out.println("2 - Voltar ao menu do cliente");
+                                System.out.println("2 - Alterar quantidade de um item");
+                                System.out.println("3 - Remover um item do carrinho");
+                                System.out.println("4 - Voltar ao menu do cliente");
                                 System.out.print("ESCOLHA [Exemplo correto: 1]: ");
                                 int acaoCarrinho = 0;
                                 try {
@@ -498,7 +537,7 @@ public class prototo {
                                     scanner.nextLine();
                                 } catch (InputMismatchException e) {
                                     scanner.nextLine();
-                                    acaoCarrinho = 2;
+                                    acaoCarrinho = 4;
                                 }
 
                                 if (acaoCarrinho == 1) {
@@ -510,12 +549,24 @@ public class prototo {
                                         System.out.println(" Receita Federal, precisamos requisitar seu endereço e dados.");
                                         System.out.println("--------------------------------------------------");
                                         
-                                        System.out.print("INFORME SEU SEXO [Exemplo correto: M]: "); scanner.nextLine();
-                                        System.out.print("DATA DE NASCIMENTO [Exemplo correto: 10/05/1995]: "); scanner.nextLine();
+                                        System.out.print("INFORME SEU SEXO [Exemplo correto: M]: "); String sexoCli = scanner.nextLine();
+                                        System.out.print("DATA DE NASCIMENTO [Exemplo correto: 10/05/1995]: "); String nascCli = scanner.nextLine();
                                         System.out.print("UF DE RESIDÊNCIA [Exemplo correto: SP]: "); cliUf = scanner.nextLine().toUpperCase();
                                         cliCep = lerCepValido(scanner);
+                                        String cliSenhaGerada = geradorSenhaAleatoriaSistema();
+
+                                        if (totalClientes < cliNomeArr.length) {
+                                            cliNomeArr[totalClientes] = cliNome;
+                                            cliCpfArr[totalClientes] = cliCpf;
+                                            cliSenhaArr[totalClientes] = cliSenhaGerada;
+                                            cliSexoArr[totalClientes] = sexoCli;
+                                            cliDataNascArr[totalClientes] = nascCli;
+                                            cliUfArr[totalClientes] = cliUf;
+                                            cliCepArr[totalClientes] = cliCep;
+                                            totalClientes++;
+                                        }
                                         clienteCadastrado = true;
-                                        System.out.println(">>> CADASTRO CONCLUÍDO COM SUCESSO! PROSSEGUINDO PARA O PAGAMENTO... <<<");
+                                        System.out.println(">>> CADASTRO EFETIVADO COM SUCESSO! SENHA DE ACESSO: " + cliSenhaGerada + " <<<");
                                     }
 
                                     System.out.println("\n--- SELECIONE A FORMA DE PAGAMENTO ---");
@@ -540,13 +591,46 @@ public class prototo {
                                     totalReceitaVendas += valFinal; 
                                     saldoCaixaLoja += valFinal; 
 
+                                    // Baixa única de estoque efetuada no checkout
                                     for (int i = 0; i < totalItensCarrinho; i++) {
                                         prodEstoque[carrinhoProdIndex[i]] -= carrinhoQtde[i];
                                     }
 
                                     System.out.println("\n>>> NOTA FISCAL EMITIDA COM SUCESSO PARA " + cliNome.toUpperCase() + "! <<<");
-                                    System.out.printf("VALOR FINAL PAGO: R$ %.2f\n", valFinal);
+                                    System.out.println("VALOR FINAL PAGO: " + formatarMoeda(valFinal));
                                     totalItensCarrinho = 0;
+                                } else if (acaoCarrinho == 2) {
+                                    System.out.print("DIGITE O NÚMERO DO ITEM NO CARRINHO [Exemplo correto: 1]: ");
+                                    int idxAlt = scanner.nextInt() - 1;
+                                    scanner.nextLine();
+                                    if (idxAlt >= 0 && idxAlt < totalItensCarrinho) {
+                                        System.out.print("NOVA QUANTIDADE [Exemplo correto: 3]: ");
+                                        int novaQtde = scanner.nextInt();
+                                        scanner.nextLine();
+                                        int idxP = carrinhoProdIndex[idxAlt];
+                                        if (novaQtde > 0 && novaQtde <= prodEstoque[idxP]) {
+                                            carrinhoQtde[idxAlt] = novaQtde;
+                                            System.out.println(">>> QUANTIDADE ATUALIZADA NO CARRINHO! <<<");
+                                        } else {
+                                            System.out.println(">>> ERRO: Quantidade excede o estoque disponível! <<<");
+                                        }
+                                    } else {
+                                        System.out.println(">>> ERRO: Item inválido no carrinho! <<<");
+                                    }
+                                } else if (acaoCarrinho == 3) {
+                                    System.out.print("DIGITE O NÚMERO DO ITEM QUE DESEJA REMOVER [Exemplo correto: 1]: ");
+                                    int idxRem = scanner.nextInt() - 1;
+                                    scanner.nextLine();
+                                    if (idxRem >= 0 && idxRem < totalItensCarrinho) {
+                                        for (int i = idxRem; i < totalItensCarrinho - 1; i++) {
+                                            carrinhoProdIndex[i] = carrinhoProdIndex[i + 1];
+                                            carrinhoQtde[i] = carrinhoQtde[i + 1];
+                                        }
+                                        totalItensCarrinho--;
+                                        System.out.println(">>> ITEM REMOVIDO DO CARRINHO COM SUCESSO! <<<");
+                                    } else {
+                                        System.out.println(">>> ERRO: Item inválido no carrinho! <<<");
+                                    }
                                 } else {
                                     revisandoCarrinho = false;
                                 }
@@ -582,7 +666,7 @@ public class prototo {
                 if (funcLogadoIndex == -1) {
                     System.out.println(">>> ERRO: CPF não cadastrado no sistema!");
                     System.out.println(">>> O que é permitido: Inserir um CPF válido e cadastrado.");
-                    System.out.println(">>> Exemplo correto: 11111111111. Retornando ao menu principal. <<<\n");
+                    System.out.println(">>> Exemplo correto: 35111584834. Retornando ao menu principal. <<<\n");
                     continue;
                 }
 
@@ -716,121 +800,132 @@ public class prototo {
                     }
 
                     if (opcaoMenu == 1) {
-                        if (totalFuncionarios < 10) {
-                            System.out.println("\n--- CADASTRO DE NOVO FUNCIONÁRIO ---");
-                            System.out.print("INFORME O ID FUNCIONAL EXCLUSIVO [Exemplo correto: F04]: "); 
-                            String novoId = scanner.nextLine().trim().toUpperCase();
-                            String novoNome = lerNomeValido(scanner, "NOME [Exemplo correto: CARLOS SOUZA]: ");
-                            String novoCpf = lerCpfValido(scanner);
-
-                            funcId[totalFuncionarios] = novoId;
-                            funcNome[totalFuncionarios] = novoNome;
-                            funcCpf[totalFuncionarios] = novoCpf;
-                            funcSenha[totalFuncionarios] = geradorSenhaAleatoriaSistema();
-                            funcPago[totalFuncionarios] = false; 
-
-                            System.out.print("CARGO [1 - GERENTE | 2 - OPERADOR | 3 - FINANCEIRO] [Exemplo correto: 2]: ");
-                            int cOpt = 2;
-                            try {
-                                cOpt = scanner.nextInt();
-                                scanner.nextLine();
-                            } catch (InputMismatchException e) {
-                                scanner.nextLine();
-                                cOpt = 2;
-                            }
-                            
-                            String cargoDefinido = "OPERADOR";
-                            if (cOpt == 1) cargoDefinido = "GERENTE";
-                            else if (cOpt == 3) cargoDefinido = "FINANCEIRO";
-                            
-                            funcCargo[totalFuncionarios] = cargoDefinido;
-
-                            double salarioPadrao = obterSalarioPadraoCargo(cargoDefinido);
-                            funcSalario[totalFuncionarios] = salarioPadrao;
-
-                            System.out.println(">>> SENHA GERADA AUTOMATICAMENTE: " + funcSenha[totalFuncionarios] + " <<<");
-                            System.out.printf(">>> SALÁRIO PADRÃO DO CARGO ATRIBUÍDO: R$ %.2f <<<\n", salarioPadrao);
-
-                            totalFuncionarios++;
-                            System.out.println(">>> FUNCIONÁRIO CADASTRADO COM SUCESSO SOB O ID [" + novoId + "]! <<<");
+                        if (totalFuncionarios >= funcId.length) {
+                            System.out.println(">>> ERRO: Limite máximo de funcionários atingido no sistema (" + funcId.length + ")! <<<\n");
+                            continue;
                         }
-                    } else if (opcaoMenu == 2) {
-                        if (totalFornecedores < 5) {
-                            System.out.println("\n--- CADASTRO DE FORNECEDOR E POLÍTICA DE PREÇOS ---");
-                            System.out.print("NOME / RAZÃO SOCIAL [Exemplo correto: SUPLEMAX LTDA]: "); fornNome[totalFornecedores] = scanner.nextLine();
-                            System.out.print("CNPJ [Exemplo correto: 12345678000190]: "); fornCnpj[totalFornecedores] = scanner.nextLine();
-                            System.out.print("UF [Exemplo correto: SP]: "); fornUf[totalFornecedores] = scanner.nextLine().toUpperCase();
-                            System.out.print("PRODUTO QUE FORNECE [Exemplo correto: WHEY PROTEIN]: "); fornProdutoFornecido[totalFornecedores] = scanner.nextLine();
-                            System.out.print("PREÇO PAGO AO FORNECEDOR (CUSTO R$) [Exemplo correto: 80.00]: "); fornPrecoPago[totalFornecedores] = scanner.nextDouble();
-                            System.out.print("LUCRO PRETENDIDO PARA O MERCADO (% sobre o custo) [Exemplo correto: 50.0]: "); fornLucroPretendidoPct[totalFornecedores] = scanner.nextDouble();
+
+                        System.out.println("\n--- CADASTRO DE NOVO FUNCIONÁRIO ---");
+                        System.out.print("INFORME O ID FUNCIONAL EXCLUSIVO [Exemplo correto: F04]: "); 
+                        String novoId = scanner.nextLine().trim().toUpperCase();
+                        String novoNome = lerNomeValido(scanner, "NOME [Exemplo correto: CARLOS SOUZA]: ");
+                        String novoCpf = lerCpfValido(scanner);
+
+                        funcId[totalFuncionarios] = novoId;
+                        funcNome[totalFuncionarios] = novoNome;
+                        funcCpf[totalFuncionarios] = novoCpf;
+                        funcSenha[totalFuncionarios] = geradorSenhaAleatoriaSistema();
+                        funcPago[totalFuncionarios] = false; 
+
+                        System.out.print("CARGO [1 - GERENTE | 2 - OPERADOR | 3 - FINANCEIRO] [Exemplo correto: 2]: ");
+                        int cOpt = 2;
+                        try {
+                            cOpt = scanner.nextInt();
                             scanner.nextLine();
-
-                            totalFornecedores++;
-                            System.out.println(">>> FORNECEDOR CADASTRADO COM SUCESSO! <<<");
+                        } catch (InputMismatchException e) {
+                            scanner.nextLine();
+                            cOpt = 2;
                         }
+                        
+                        String cargoDefinido = "OPERADOR";
+                        if (cOpt == 1) cargoDefinido = "GERENTE";
+                        else if (cOpt == 3) cargoDefinido = "FINANCEIRO";
+                        
+                        funcCargo[totalFuncionarios] = cargoDefinido;
+
+                        double salarioPadrao = obterSalarioPadraoCargo(cargoDefinido);
+                        funcSalario[totalFuncionarios] = salarioPadrao;
+
+                        System.out.println(">>> SENHA GERADA AUTOMATICAMENTE: " + funcSenha[totalFuncionarios] + " <<<");
+                        System.out.println(">>> SALÁRIO PADRÃO DO CARGO ATRIBUÍDO: " + formatarMoeda(salarioPadrao) + " <<<");
+
+                        totalFuncionarios++;
+                        System.out.println(">>> FUNCIONÁRIO CADASTRADO COM SUCESSO SOB O ID [" + novoId + "]! <<<");
+
+                    } else if (opcaoMenu == 2) {
+                        if (totalFornecedores >= fornNome.length) {
+                            System.out.println(">>> ERRO: Limite máximo de fornecedores atingido no sistema (" + fornNome.length + ")! <<<\n");
+                            continue;
+                        }
+
+                        System.out.println("\n--- CADASTRO DE FORNECEDOR E POLÍTICA DE PREÇOS ---");
+                        System.out.print("NOME / RAZÃO SOCIAL [Exemplo correto: SUPLEMAX LTDA]: "); fornNome[totalFornecedores] = scanner.nextLine();
+                        System.out.print("CNPJ [Exemplo correto: 12345678000190]: "); fornCnpj[totalFornecedores] = scanner.nextLine();
+                        System.out.print("UF [Exemplo correto: SP]: "); fornUf[totalFornecedores] = scanner.nextLine().toUpperCase();
+                        System.out.print("PRODUTO QUE FORNECE [Exemplo correto: WHEY PROTEIN]: "); fornProdutoFornecido[totalFornecedores] = scanner.nextLine();
+                        System.out.print("PREÇO PAGO AO FORNECEDOR (CUSTO R$) [Exemplo correto: 80.00]: "); fornPrecoPago[totalFornecedores] = scanner.nextDouble();
+                        System.out.print("LUCRO PRETENDIDO PARA O MERCADO (% sobre o custo) [Exemplo correto: 50.0]: "); fornLucroPretendidoPct[totalFornecedores] = scanner.nextDouble();
+                        scanner.nextLine();
+
+                        totalFornecedores++;
+                        System.out.println(">>> FORNECEDOR CADASTRADO COM SUCESSO! <<<");
+
                     } else if (opcaoMenu == 3) {
-                        if (totalProdutos < 20) {
-                            System.out.println("\n--- CADASTRO DO PRODUTO ---");
-                            System.out.print("DIGITE O ID (POSIÇÃO DESEJADA DE 1 A 20) [Exemplo correto: 5]: ");
-                            int idDesejado = -1;
-                            try {
-                                idDesejado = scanner.nextInt() - 1;
-                            } catch (InputMismatchException e) {
+                        if (totalProdutos >= prodNome.length) {
+                            System.out.println(">>> ERRO: Limite máximo de produtos atingido no sistema (" + prodNome.length + ")! <<<\n");
+                            continue;
+                        }
+
+                        System.out.println("\n--- CADASTRO DO PRODUTO ---");
+                        System.out.print("DIGITE O ID (POSIÇÃO DESEJADA DE 1 A 20) [Exemplo correto: 5]: ");
+                        int idDesejado = -1;
+                        try {
+                            idDesejado = scanner.nextInt() - 1;
+                        } catch (InputMismatchException e) {
+                            scanner.nextLine();
+                            System.out.println(">>> ERRO: ID inválido! <<<\n");
+                            continue;
+                        }
+
+                        if (idDesejado >= 0 && idDesejado < prodNome.length) {
+                            if (prodNome[idDesejado] != null) {
+                                System.out.println(">>> AVISO: O ID " + (idDesejado + 1) + " já está sendo utilizado por '" + prodNome[idDesejado] + "'!");
+                                System.out.println(">>> O que é permitido: Escolher uma posição vazia.");
+                                System.out.println(">>> Exemplo correto: 5. Tente novamente. <<<\n");
                                 scanner.nextLine();
-                                System.out.println(">>> ERRO: ID inválido! <<<\n");
                                 continue;
                             }
 
-                            if (idDesejado >= 0 && idDesejado < 20) {
-                                if (prodNome[idDesejado] != null) {
-                                    System.out.println(">>> AVISO: O ID " + (idDesejado + 1) + " já está sendo utilizado por '" + prodNome[idDesejado] + "'!");
-                                    System.out.println(">>> O que é permitido: Escolher uma posição vazia.");
-                                    System.out.println(">>> Exemplo correto: 5. Tente novamente. <<<\n");
-                                    scanner.nextLine();
-                                    continue;
+                            scanner.nextLine(); 
+                            System.out.print("NOME DO PRODUTO [Exemplo correto: VITAMINA C]: ");
+                            String nomeNovoProd = scanner.nextLine().trim();
+
+                            boolean nomeDuplicado = false;
+                            for (int p = 0; p < totalProdutos; p++) {
+                                if (prodNome[p] != null && prodNome[p].equalsIgnoreCase(nomeNovoProd)) {
+                                    nomeDuplicado = true;
+                                    break;
                                 }
-
-                                scanner.nextLine(); 
-                                System.out.print("NOME DO PRODUTO [Exemplo correto: VITAMINA C]: ");
-                                String nomeNovoProd = scanner.nextLine().trim();
-
-                                boolean nomeDuplicado = false;
-                                for (int p = 0; p < totalProdutos; p++) {
-                                    if (prodNome[p] != null && prodNome[p].equalsIgnoreCase(nomeNovoProd)) {
-                                        nomeDuplicado = true;
-                                        break;
-                                    }
-                                }
-
-                                if (nomeDuplicado) {
-                                    System.out.println(">>> ERRO: O nome do produto '" + nomeNovoProd + "' já existe no sistema!");
-                                    System.out.println(">>> O que é permitido: Digitar um nome exclusivo.");
-                                    System.out.println(">>> Exemplo correto: CREATINA PREMIUM. Tente novamente. <<<\n");
-                                } else {
-                                    prodNome[idDesejado] = nomeNovoProd;
-                                    System.out.print("PREÇO DE VENDA SUGERIDO (R$) [Exemplo correto: 49.90]: "); prodPrecos[idDesejado] = scanner.nextDouble();
-                                    prodPrecoOriginal[idDesejado] = prodPrecos[idDesejado];
-                                    System.out.print("ESTOQUE INICIAL [Exemplo correto: 50]: "); prodEstoque[idDesejado] = scanner.nextInt();
-                                    scanner.nextLine();
-                                    System.out.print("NCM [Exemplo correto: 2106.90.30]: "); prodNcm[idDesejado] = scanner.nextLine();
-
-                                    if (idDesejado >= totalProdutos) {
-                                        totalProdutos = idDesejado + 1;
-                                    }
-                                    System.out.println(">>> PRODUTO CADASTRADO NO ID " + (idDesejado + 1) + "! <<<");
-                                }
-                            } else {
-                                System.out.println(">>> ERRO: ID inválido! O valor deve estar entre 1 e 20.");
-                                System.out.println(">>> O que é permitido: Números inteiros de 1 a 20.");
-                                System.out.println(">>> Exemplo correto: 5. Tente novamente. <<<\n");
                             }
+
+                            if (nomeDuplicado) {
+                                System.out.println(">>> ERRO: O nome do produto '" + nomeNovoProd + "' já existe no sistema!");
+                                System.out.println(">>> O que é permitido: Digitar um nome exclusivo.");
+                                System.out.println(">>> Exemplo correto: CREATINA PREMIUM. Tente novamente. <<<\n");
+                            } else {
+                                prodNome[idDesejado] = nomeNovoProd;
+                                System.out.print("PREÇO DE VENDA SUGERIDO (R$) [Exemplo correto: 49.90]: "); prodPrecos[idDesejado] = scanner.nextDouble();
+                                prodPrecoOriginal[idDesejado] = prodPrecos[idDesejado];
+                                System.out.print("ESTOQUE INICIAL [Exemplo correto: 50]: "); prodEstoque[idDesejado] = scanner.nextInt();
+                                scanner.nextLine();
+                                System.out.print("NCM [Exemplo correto: 2106.90.30]: "); prodNcm[idDesejado] = scanner.nextLine();
+
+                                if (idDesejado >= totalProdutos) {
+                                    totalProdutos = idDesejado + 1;
+                                }
+                                System.out.println(">>> PRODUTO CADASTRADO NO ID " + (idDesejado + 1) + "! <<<");
+                            }
+                        } else {
+                            System.out.println(">>> ERRO: ID inválido! O valor deve estar entre 1 e 20.");
+                            System.out.println(">>> O que é permitido: Números inteiros de 1 a 20.");
+                            System.out.println(">>> Exemplo correto: 5. Tente novamente. <<<\n");
                         }
                     } else if (opcaoMenu == 4) {
                         if (totalProdutos > 0) {
                             System.out.println("\n--- AJUSTE DE PREÇOS E DESCONTOS ---");
                             for (int i = 0; i < totalProdutos; i++) {
                                 if (prodNome[i] != null) {
-                                    System.out.println("ID: " + (i + 1) + " | " + prodNome[i] + " | Preço Atual: R$ " + String.format("%.2f", prodPrecos[i]));
+                                    System.out.println("ID: " + (i + 1) + " | " + prodNome[i] + " | Preço Atual: " + formatarMoeda(prodPrecos[i]));
                                 }
                             }
                             System.out.print("DIGITE O ID DO PRODUTO [Exemplo correto: 1]: ");
@@ -935,15 +1030,15 @@ public class prototo {
                             if (funcNome[f] != null) {
                                 String statusPagto = funcPago[f] ? "[JÁ PAGO]" : "[PENDENTE]";
                                 String alertaMedia = verificarAlertaMediaSalarial(funcCargo[f], funcSalario[f]);
-                                System.out.printf("ID: %s | %s (%s) - R$ %.2f %s %s\n", 
-                                        funcId[f], funcNome[f], funcCargo[f], funcSalario[f], statusPagto, alertaMedia);
+                                System.out.printf("ID: %s | %s (%s) - %s %s %s\n", 
+                                        funcId[f], funcNome[f], funcCargo[f], formatarMoeda(funcSalario[f]), statusPagto, alertaMedia);
                                 if (!funcPago[f]) {
                                     folhaPendenteTotal += funcSalario[f];
                                 }
                             }
                         }
                         System.out.println("--------------------------------------------------");
-                        System.out.printf("VALOR TOTAL PENDENTE DE PAGAMENTO: R$ %.2f\n", folhaPendenteTotal);
+                        System.out.println("VALOR TOTAL PENDENTE DE PAGAMENTO: " + formatarMoeda(folhaPendenteTotal));
                         System.out.println("(*) NOTA PARA O FINANCEIRO: Salários [ACIMA] ou [ABAIXO] da média exigem ");
                         System.out.println("    verificação de justificativa (Ex: comissões, horas extras ou tempo de casa).");
 
@@ -993,7 +1088,7 @@ public class prototo {
                             }
                         }
                         System.out.println("\n--- NOTA FISCAL DE SAÍDA (EXERCÍCIO " + anoExercicioPadrao + ") ---");
-                        System.out.printf("VALOR BRUTO: R$ %.2f | TRIBUTOS ESTIMADOS: R$ %.2f\n", totNota, totImp);
+                        System.out.println("VALOR BRUTO: " + formatarMoeda(totNota) + " | TRIBUTOS ESTIMADOS: " + formatarMoeda(totImp));
                     } else if (opcaoMenu == 9) {
                         double lucroBruto = totalReceitaVendas - totalGastosEstoque;
                         double lucroOperacional = lucroBruto - totalSalariosPagos;
@@ -1003,17 +1098,17 @@ public class prototo {
                         System.out.println("\n==================================================");
                         System.out.println("      BALANÇO FINANCEIRO E DEMONSTRATIVO DRE      ");
                         System.out.println("==================================================");
-                        System.out.printf(" (★) SALDO ATUAL EM CAIXA DA LOJA: R$ %.2f\n", saldoCaixaLoja);
-                        System.out.printf(" (+) Receita Bruta de Vendas: R$ %.2f\n", totalReceitaVendas);
-                        System.out.printf(" (-) Custos de Abastecimento/Estoque: R$ %.2f\n", totalGastosEstoque);
+                        System.out.println(" (★) SALDO ATUAL EM CAIXA DA LOJA: " + formatarMoeda(saldoCaixaLoja));
+                        System.out.println(" (+) Receita Bruta de Vendas: " + formatarMoeda(totalReceitaVendas));
+                        System.out.println(" (-) Custos de Abastecimento/Estoque: " + formatarMoeda(totalGastosEstoque));
                         System.out.println("--------------------------------------------------");
-                        System.out.printf(" (=) LUCRO BRUTO DA LOJA: R$ %.2f\n", lucroBruto);
-                        System.out.printf(" (-) Custos de Folha de Pagamento: R$ %.2f\n", totalSalariosPagos);
+                        System.out.println(" (=) LUCRO BRUTO DA LOJA: " + formatarMoeda(lucroBruto));
+                        System.out.println(" (-) Custos de Folha de Pagamento: " + formatarMoeda(totalSalariosPagos));
                         System.out.println("--------------------------------------------------");
-                        System.out.printf(" (=) Lucro Operacional Antes dos Impostos: R$ %.2f\n", lucroOperacional);
-                        System.out.printf(" (-) Impostos sobre o Lucro (IRPJ/CSLL ~15%%): R$ %.2f\n", impostosSobreLucro);
+                        System.out.println(" (=) Lucro Operacional Antes dos Impostos: " + formatarMoeda(lucroOperacional));
+                        System.out.println(" (-) Impostos sobre o Lucro (IRPJ/CSLL ~15%): " + formatarMoeda(impostosSobreLucro));
                         System.out.println("--------------------------------------------------");
-                        System.out.printf(" (★) LUCRO LÍQUIDO FINAL DA LOJA: R$ %.2f\n", lucroLiquidoFinal);
+                        System.out.println(" (★) LUCRO LÍQUIDO FINAL DA LOJA: " + formatarMoeda(lucroLiquidoFinal));
                         System.out.println("==================================================");
                     } else if (opcaoMenu == 10) {
                         System.out.println("\n==================================================");
@@ -1023,8 +1118,8 @@ public class prototo {
                             if (funcNome[f] != null) {
                                 String statusPg = funcPago[f] ? "Salário Pago" : "Salário Pendente";
                                 String alertaMedia = verificarAlertaMediaSalarial(funcCargo[f], funcSalario[f]);
-                                System.out.printf("ID: %s | NOME: %s | CARGO: %s | CPF: %s | SALÁRIO: R$ %.2f | Status: %s %s\n", 
-                                        funcId[f], funcNome[f], funcCargo[f], funcCpf[f], funcSalario[f], statusPg, alertaMedia);
+                                System.out.printf("ID: %s | NOME: %s | CARGO: %s | CPF: %s | SALÁRIO: %s | Status: %s %s\n", 
+                                        funcId[f], funcNome[f], funcCargo[f], funcCpf[f], formatarMoeda(funcSalario[f]), statusPg, alertaMedia);
                             }
                         }
                         System.out.println("==================================================");
