@@ -1,8 +1,9 @@
 import java.util.InputMismatchException;
 import java.util.Scanner;
+import java.util.Random;
 
-public class SistemaTributavelCompleto {
-
+public class prototo {
+//SistemaTributavelCompleto
     /* =========================================================================
        MÓDULO TRIBUTÁRIO E DE MATRIZ FISCAL (LUCRO REAL / NCM / CEST / CFOP / CST)
        ========================================================================= */
