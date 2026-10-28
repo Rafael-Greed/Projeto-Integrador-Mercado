@@ -191,7 +191,7 @@ public class prototo {
     }
 
     /* =========================================================================
-       MÉTODO PRINCIPAL (CONTROLE DE FLUXO E MENOS)
+       MÉTODO PRINCIPAL (CONTROLE DE FLUXO E MENUS)
        ========================================================================= */
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -199,34 +199,56 @@ public class prototo {
           /* ===============================================================================================================
              TABELA DE AUDITORIA COMPLETA: ERROS ENCONTRADOS, CAUSAS E CORREÇÕES IMPLEMENTADAS NO SISTEMA
              ===============================================================================================================
-             +-------------------------------+----------------------------------+------------------------------------------+
-             | Erro / Problema Identificado  | Causa Raiz                       | Correção Implementada                    |
-             +-------------------------------+----------------------------------+------------------------------------------+
-             | Identificação Abrupta no      | O programa exigia o Nome e o CPF | Adiantamento condicional: o cliente      |
-             | Painel do Cliente             | imediatamente ao entrar na opção | navega pelo catálogo e só é solicitado   |
-             |                               | 1, antes de qualquer navegação.  | ao interagir com carrinho/compra.        |
-             +-------------------------------+----------------------------------+------------------------------------------+
-             | Falhas na Folha de Pagamento  | Ausência de controle individual  | Inclusão do vetor booleano `funcPago[]`  |
-             |                               | de quitação salarial (risco de   | vinculado a cada funcionário para        |
-             |                               | pagamentos em dobro).            | auditar pagamentos individuais.          |
-             +-------------------------------+----------------------------------+------------------------------------------+
-             | Falta de Exemplos nas         | Mensagens de erro puramente      | Padronização de todas as mensagens com   |
-             | Entradas de Dados             | genéricas sem orientar formato.  | exemplos textuais claros (`[Exemplo...]`)|
-             +-------------------------------+----------------------------------+------------------------------------------+
-             | Carrinho Limitado e Dupla     | Ausência de rotinas de remoção e | Implementação de menu de revisão com     |
-             | Baixa de Estoque              | ajuste de qtde; abatimento duplo.| remoção, alteração e baixa única no final.|
-             +-------------------------------+----------------------------------+------------------------------------------+
-             | Validação Frágil de CPF       | O sistema conferia apenas se a   | Implementação do algoritmo da Receita    |
-             |                               | string tinha 11 caracteres.      | Federal (Módulo 11) com cálculo de DVs.  |
-             +-------------------------------+----------------------------------+------------------------------------------+
-             | Perda de Dados no Cadastro    | O cadastro no checkout era       | Inclusão de rotina de persistência para  |
-             | Tardio                        | descartado após a compra.        | salvar permanentemente no array.         |
-             +-------------------------------+----------------------------------+------------------------------------------+
-             | Estouro de Limite de Vetores  | Inserção de dados além da        | Implementação de barreiras de proteção   |
-             | (*ArrayIndexOutOfBounds*)     | capacidade máxima dos arrays.    | (*Bounds Checking*) em todos os cadastros|
-             +-------------------------------+----------------------------------+------------------------------------------+ */
+             +-------------------------------------+------------------------------------------+------------------------------------------+
+             | Erro / Problema Identificado        | Causa Raiz                               | Correção Implementada                    |
+             +-------------------------------------+------------------------------------------+------------------------------------------+
+             | Identificação Abrupta no            | O programa exigia o Nome e o CPF         | Adiantamento condicional: o cliente      |
+             | Painel do Cliente                   | imediatamente ao entrar na opção         | navega pelo catálogo e só é solicitado   |
+             |                                     | 1, antes de qualquer navegação.          | ao interagir com carrinho/compra.        |
+             +-------------------------------------+------------------------------------------+------------------------------------------+
+             | Falhas na Folha de Pagamento        | Ausência de controle individual          | Inclusão do vetor booleano `funcPago[]`  |
+             |                                     | de quitação salarial (risco de           | vinculado a cada funcionário para        |
+             |                                     | pagamentos em dobro).                    | auditar pagamentos individuais.          |
+             +-------------------------------------+------------------------------------------+------------------------------------------+
+             | Falta de Exemplos nas               | Mensagens de erro puramente              | Padronização de todas as mensagens com   |
+             | Entradas de Dados                   | genéricas sem orientar formato.          | exemplos textuais claros (`[Exemplo...]`)|
+             +-------------------------------------+------------------------------------------+------------------------------------------+
+             | Carrinho Limitado e Dupla           | Ausência de rotinas de remoção e         | Implementação de menu de revisão com     |
+             | Baixa de Estoque                    | ajuste de qtde; abatimento duplo.        | remoção, alteração e baixa única no final.|
+             +-------------------------------------+------------------------------------------+------------------------------------------+
+             | Validação Frágil de CPF             | O sistema conferia apenas se a           | Implementação do algoritmo da Receita    |
+             |                                     | string tinha 11 caracteres.              | Federal (Módulo 11) com cálculo de DVs.  |
+             +-------------------------------------+------------------------------------------+------------------------------------------+
+             | Perda de Dados no Cadastro          | O cadastro no checkout era               | Inclusão de rotina de persistência para  |
+             | Tardio                              | descartado após a compra.                | salvar permanentemente no array.         |
+             +-------------------------------------+------------------------------------------+------------------------------------------+
+             | Estouro de Limite de Vetores        | Inserção de dados além da                | Implementação de barreiras de proteção   |
+             | (*ArrayIndexOutOfBounds*)           | capacidade máxima dos arrays.            | (*Bounds Checking*) em todos os cadastros|
+             +-------------------------------------+------------------------------------------+------------------------------------------+
+             | Senha do Cliente Nunca Validada     | Ao encontrar CPF já cadastrado, o        | Implementada leitura e comparação real   |
+             | (BUG CRÍTICO DE SEGURANÇA)          | sistema pedia a senha mas descartava     | da senha digitada com cliSenhaArr[].     |
+             |                                     | o valor digitado sem comparar.           | Acesso só é liberado com senha correta.  |
+             +-------------------------------------+------------------------------------------+------------------------------------------+
+             | Sexo e Data de Nascimento           | Nos dois pontos de cadastro de cliente   | Agora os valores digitados pelo usuário  |
+             | eram descartados                    | (cadastro antecipado e no checkout),     | são realmente capturados e armazenados   |
+             |                                     | o sistema lia com nextLine() e           | nos arrays cliSexoArr[] e                |
+             |                                     | descartava o conteúdo, gravando          | cliDataNascArr[].                        |
+             |                                     | valores fixos ("M" e "01/01/2000").      |                                          |
+             +-------------------------------------+------------------------------------------+------------------------------------------+
+             =============================================================================================================== */
+
+        // ==================================================================================
+        // CADASTROS PRÉ-EXISTENTES (DADOS INICIAIS DO SISTEMA PARA TESTES E DEMONSTRAÇÃO)
+        // ==================================================================================
+        // Estes dados são carregados automaticamente na inicialização do programa.
+        // Servem para permitir testes imediatos sem necessidade de cadastrar tudo do zero.
+        // ==================================================================================
 
         // Arrays de Funcionários (Capacidade máxima: 10)
+        // Pré-cadastrados:
+        // [0] F01 - CARLOS GERENTE      | CPF: 35111584834 | Cargo: GERENTE    | Senha: admin123 | Salário: R$ 5500,00
+        // [1] F02 - ANA OPERADORA       | CPF: 71493628030 | Cargo: OPERADOR   | Senha: op123    | Salário: R$ 2200,00
+        // [2] F03 - MARINA FINANCEIRO   | CPF: 52998224725 | Cargo: FINANCEIRO | Senha: fin123   | Salário: R$ 4800,00
         String[] funcId = new String[10];
         String[] funcNome = new String[10];
         String[] funcCpf = new String[10];
@@ -242,6 +264,8 @@ public class prototo {
         totalFuncionarios = 3;
 
         // Clientes (Capacidade máxima: 10)
+        // Pré-cadastrado:
+        // [0] MARIO SILVA | CPF: 11144477735 | Senha: cli123 | Sexo: M | Nascimento: 10/05/1995 | UF: SP | CEP: 04753060
         String[] cliNomeArr = new String[10];
         String[] cliCpfArr = new String[10];
         String[] cliSenhaArr = new String[10];
@@ -261,6 +285,21 @@ public class prototo {
         totalClientes = 1;
 
         // Produtos (Capacidade máxima: 20)
+        // Pré-cadastrados (14 produtos de suplementos, bebidas e vestuário esportivo):
+        // [0]  WHEY PROTEIN ISOLADO          | R$ 120,00 | Estoque: 50  | NCM: 2106.90.30
+        // [1]  BEBIDA ISOTÔNICA 500ML        | R$  8,50  | Estoque: 100 | NCM: 2202.99.00 (PIS/COFINS zero)
+        // [2]  CAMISA ESPORTIVA DRY-FIT      | R$ 59,90  | Estoque: 30  | NCM: 6109.90.00
+        // [3]  TÊNIS DE CORRIDA PERFORMANCE  | R$ 249,90 | Estoque: 15  | NCM: 6404.11.00
+        // [4]  CREATINA MONOHIDRATADA 250G   | R$ 89,90  | Estoque: 40  | NCM: 2106.90.90
+        // [5]  BARRA DE PROTEÍNA CHOCOLATE   | R$  9,00  | Estoque: 120 | NCM: 2106.90.30
+        // [6]  ENERGÉTICO LATA 473ML         | R$ 11,00  | Estoque: 80  | NCM: 2202.99.00 (PIS/COFINS zero)
+        // [7]  ÁGUA MINERAL 500ML SEM GÁS    | R$  3,50  | Estoque: 200 | NCM: 2201.10.00
+        // [8]  BERMUDA TÉRMICA COMPRESSÃO    | R$ 79,90  | Estoque: 25  | NCM: 6112.19.00
+        // [9]  MEIAS ESPORTIVAS CANO ALTO    | R$ 34,90  | Estoque: 50  | NCM: 6115.96.00
+        // [10] CHINELO SLIDE ANATÔMICO       | R$ 69,90  | Estoque: 30  | NCM: 6402.20.00
+        // [11] MOCHILA ESPORTIVA IMPERMEÁVEL | R$ 159,90 | Estoque: 20  | NCM: 4202.92.00
+        // [12] GARRAFA SQUEEZE 1L INOX       | R$ 49,90  | Estoque: 45  | NCM: 7323.93.00
+        // [13] LUVA DE TREINO MUSCULAÇÃO     | R$ 45,00  | Estoque: 35  | NCM: 4203.29.00
         String[] prodNome = new String[20];
         String[] prodNcm = new String[20];
         String[] prodCest = new String[20];
@@ -289,6 +328,8 @@ public class prototo {
         totalProdutos = 14;
 
         // Fornecedores (Capacidade máxima: 5)
+        // Pré-cadastrado:
+        // [0] SUPLEMAX DISTRIBUIDORA LTDA | CNPJ: 12345678000190 | UF: SP | Produto: WHEY PROTEIN ISOLADO | Custo: R$ 80,00 | Lucro pretendido: 50%
         String[] fornNome = new String[5]; 
         String[] fornCnpj = new String[5]; 
         String[] fornUf = new String[5]; 
@@ -390,13 +431,37 @@ public class prototo {
                         }
 
                         if (clienteIdx != -1) {
+                            // ===== CORREÇÃO DO BUG CRÍTICO DE SEGURANÇA =====
+                            // Agora a senha é realmente lida e comparada com a senha cadastrada
                             System.out.println(">>> CPF JÁ CADASTRADO NO SISTEMA (" + cliNomeArr[clienteIdx] + ")! <<<");
-                            System.out.print("DIGITE SUA SENHA DE ACESSO [Exemplo correto: cli123]: ");
-                            scanner.nextLine(); 
-                            cliNome = cliNomeArr[clienteIdx];
-                            cliUf = cliUfArr[clienteIdx];
-                            cliCep = cliCepArr[clienteIdx];
-                            clienteCadastrado = true;
+                            boolean senhaCorreta = false;
+                            int tentativasSenha = 3;
+
+                            while (tentativasSenha > 0 && !senhaCorreta) {
+                                System.out.print("DIGITE SUA SENHA DE ACESSO [Exemplo correto: cli123]: ");
+                                String senhaDigitada = scanner.nextLine().trim();
+
+                                if (cliSenhaArr[clienteIdx].equals(senhaDigitada)) {
+                                    senhaCorreta = true;
+                                    cliNome = cliNomeArr[clienteIdx];
+                                    cliUf = cliUfArr[clienteIdx];
+                                    cliCep = cliCepArr[clienteIdx];
+                                    clienteCadastrado = true;
+                                    System.out.println(">>> SENHA CORRETA! Acesso liberado. <<<");
+                                } else {
+                                    tentativasSenha--;
+                                    if (tentativasSenha > 0) {
+                                        System.out.println(">>> SENHA INCORRETA! Restam " + tentativasSenha + " tentativa(s). <<<");
+                                    } else {
+                                        System.out.println(">>> NÚMERO MÁXIMO DE TENTATIVAS EXCEDIDO! Retornando ao menu do cliente. <<<\n");
+                                    }
+                                }
+                            }
+
+                            if (!senhaCorreta) {
+                                // Se errou a senha 3 vezes, volta ao menu do cliente sem identificar
+                                continue;
+                            }
                         } else {
                             System.out.println(">>> CPF não encontrado no cadastro. O que deseja fazer? <<<");
                             System.out.println("1 - Realizar cadastro completo agora");
@@ -412,9 +477,19 @@ public class prototo {
                             }
 
                             if (optCliNovo == 1) {
-                                System.out.print("SEXO [Exemplo correto: M]: "); scanner.nextLine();
-                                System.out.print("DATA DE NASCIMENTO [Exemplo correto: 10/05/1995]: "); scanner.nextLine();
-                                System.out.print("UF DE RESIDÊNCIA [Exemplo correto: SP]: "); cliUf = scanner.nextLine().toUpperCase();
+                                // ===== CORREÇÃO: Agora captura realmente sexo e data de nascimento =====
+                                System.out.print("SEXO [Exemplo correto: M]: ");
+                                String sexoInformado = scanner.nextLine().trim().toUpperCase();
+                                if (sexoInformado.isEmpty()) sexoInformado = "NÃO INFORMADO";
+
+                                System.out.print("DATA DE NASCIMENTO [Exemplo correto: 10/05/1995]: ");
+                                String dataNascInformada = scanner.nextLine().trim();
+                                if (dataNascInformada.isEmpty()) dataNascInformada = "01/01/2000";
+
+                                System.out.print("UF DE RESIDÊNCIA [Exemplo correto: SP]: ");
+                                cliUf = scanner.nextLine().trim().toUpperCase();
+                                if (cliUf.isEmpty()) cliUf = "SP";
+
                                 cliCep = lerCepValido(scanner);
                                 String cliSenha = geradorSenhaAleatoriaSistema();
                                 System.out.println(">>> SENHA GERADA PARA PRÓXIMOS ACESSOS: " + cliSenha + " <<<");
@@ -423,8 +498,8 @@ public class prototo {
                                     cliNomeArr[totalClientes] = cliNome;
                                     cliCpfArr[totalClientes] = cliCpf;
                                     cliSenhaArr[totalClientes] = cliSenha;
-                                    cliSexoArr[totalClientes] = "M";
-                                    cliDataNascArr[totalClientes] = "01/01/2000";
+                                    cliSexoArr[totalClientes] = sexoInformado;          // Agora grava o valor real
+                                    cliDataNascArr[totalClientes] = dataNascInformada;  // Agora grava o valor real
                                     cliUfArr[totalClientes] = cliUf;
                                     cliCepArr[totalClientes] = cliCep;
                                     totalClientes++;
@@ -549,9 +624,19 @@ public class prototo {
                                         System.out.println(" Receita Federal, precisamos requisitar seu endereço e dados.");
                                         System.out.println("--------------------------------------------------");
                                         
-                                        System.out.print("INFORME SEU SEXO [Exemplo correto: M]: "); String sexoCli = scanner.nextLine();
-                                        System.out.print("DATA DE NASCIMENTO [Exemplo correto: 10/05/1995]: "); String nascCli = scanner.nextLine();
-                                        System.out.print("UF DE RESIDÊNCIA [Exemplo correto: SP]: "); cliUf = scanner.nextLine().toUpperCase();
+                                        // ===== CORREÇÃO: Agora captura realmente sexo e data de nascimento no checkout =====
+                                        System.out.print("INFORME SEU SEXO [Exemplo correto: M]: ");
+                                        String sexoCli = scanner.nextLine().trim().toUpperCase();
+                                        if (sexoCli.isEmpty()) sexoCli = "NÃO INFORMADO";
+
+                                        System.out.print("DATA DE NASCIMENTO [Exemplo correto: 10/05/1995]: ");
+                                        String nascCli = scanner.nextLine().trim();
+                                        if (nascCli.isEmpty()) nascCli = "01/01/2000";
+
+                                        System.out.print("UF DE RESIDÊNCIA [Exemplo correto: SP]: ");
+                                        cliUf = scanner.nextLine().trim().toUpperCase();
+                                        if (cliUf.isEmpty()) cliUf = "SP";
+
                                         cliCep = lerCepValido(scanner);
                                         String cliSenhaGerada = geradorSenhaAleatoriaSistema();
 
@@ -559,8 +644,8 @@ public class prototo {
                                             cliNomeArr[totalClientes] = cliNome;
                                             cliCpfArr[totalClientes] = cliCpf;
                                             cliSenhaArr[totalClientes] = cliSenhaGerada;
-                                            cliSexoArr[totalClientes] = sexoCli;
-                                            cliDataNascArr[totalClientes] = nascCli;
+                                            cliSexoArr[totalClientes] = sexoCli;       // Agora grava o valor real
+                                            cliDataNascArr[totalClientes] = nascCli;   // Agora grava o valor real
                                             cliUfArr[totalClientes] = cliUf;
                                             cliCepArr[totalClientes] = cliCep;
                                             totalClientes++;
