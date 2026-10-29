@@ -172,11 +172,10 @@ FIM
 FIM_ALGORITMO
 
 ============================================================
-MÓDULO 4 — MÓDULO TRIBUTÁRIO (SIMULAÇÃO DIDÁTICA; NÃO USAR PARA APURAÇÃO REAL)
+MÓDULO 4 — MÓDULO TRIBUTÁRIO (SIMULAÇÃO DIDÁTICA)
 ============================================================
 
 ALGORITMO BuscarAliquotaICMS(NCM, UF_ORIGEM, UF_DESTINO, ANO)
-// ALÍQUOTAS SIMPLIFICADAS PARA FINS DIDÁTICOS; NÃO REPRESENTAM REGRAS FISCAIS COMPLETAS.
 INÍCIO
   |SE UF_ORIGEM = UF_DESTINO ENTÃO
   ||SE ANO >= 2027 ENTÃO
@@ -237,7 +236,7 @@ FIM
 FIM_ALGORITMO
 
 ============================================================
-MÓDULO 5 — VALIDAÇÕES DE ENTRADA E CPF (MÓDULO 11 DA RECEITA FEDERAL)
+MÓDULO 5 — VALIDAÇÕES DE ENTRADA E CPF (MÓDULO 11 RECEITA FEDERAL)
 ============================================================
 
 ALGORITMO GerarSenhaAleatoriaSistema()
@@ -836,7 +835,7 @@ FIM
 FIM_ALGORITMO
 
 ============================================================
-MÓDULOS 10 A 21 — MÓDULOS DE EXECUÇÃO DAS TAREFAS ADMINISTRATIVAS
+MÓDULO 10 — CADASTRO DE NOVO FUNCIONÁRIO
 ============================================================
 
 ALGORITMO CadastrarFuncionario()
@@ -881,6 +880,10 @@ INÍCIO
 FIM
 FIM_ALGORITMO
 
+============================================================
+MÓDULO 11 — CADASTRO E GESTÃO DE FORNECEDORES
+============================================================
+
 ALGORITMO CadastrarFornecedor()
 DECLARE I NUMÉRICO
 DECLARE TEMP_NOME, TEMP_CNPJ, TEMP_UF, TEMP_PROD TEXTO
@@ -921,7 +924,12 @@ INÍCIO
   ||LUCRO_PRETENDIDO[TOTAL_FORNECEDORES] <- TEMP_MARGEM
   ||ESCREVA ">>> FORNECEDOR CADASTRADO COM SUCESSO! <<<"
   |FIM
+FIM
 FIM_ALGORITMO
+
+============================================================
+MÓDULO 12 — CADASTRO DE PRODUTO E FICHA FISCAL
+============================================================
 
 ALGORITMO CadastrarProduto()
 DECLARE ID_DESEJADO, P, QTDE_USADOS NUMÉRICO
@@ -979,6 +987,10 @@ INÍCIO
 FIM
 FIM_ALGORITMO
 
+============================================================
+MÓDULO 13 — AJUSTE DE PREÇOS E APLICAÇÃO DE DESCONTOS
+============================================================
+
 ALGORITMO AjustarPrecoEDesconto()
 DECLARE I, ID_PR, TIPO_ALT NUMÉRICO
 DECLARE NOVO_PRECO, DESC NUMÉRICO
@@ -1022,6 +1034,10 @@ INÍCIO
   |SENÃO ESCREVA ">>> NENHUM PRODUTO CADASTRADO NO SISTEMA! <<<"
 FIM
 FIM_ALGORITMO
+
+============================================================
+MÓDULO 14 — MOVIMENTAÇÃO DE ESTOQUE E CUSTOS OPERACIONAIS
+============================================================
 
 ALGORITMO MovimentarEstoque()
 DECLARE I, POS_ITEM, QTDE_MOVER, F_IDX NUMÉRICO
@@ -1071,6 +1087,10 @@ INÍCIO
   |FIM
 FIM
 FIM_ALGORITMO
+
+============================================================
+MÓDULO 15 — GESTÃO DE FOLHA SALARIAL
+============================================================
 
 ALGORITMO GerenciarFolhaSalarial()
 DECLARE F, OPT_CICLO NUMÉRICO
@@ -1127,6 +1147,10 @@ INÍCIO
 FIM
 FIM_ALGORITMO
 
+============================================================
+MÓDULO 16 — CONFIGURAÇÃO DO ANO FISCAL
+============================================================
+
 ALGORITMO AlterarAnoFiscal()
 DECLARE NOVO_ANO NUMÉRICO
 INÍCIO
@@ -1141,6 +1165,10 @@ INÍCIO
   ||ESCREVA ">>> ERRO: Ano inválido. Informe um ano entre 2026 e 2100. <<<"
 FIM
 FIM_ALGORITMO
+
+============================================================
+MÓDULO 17 — EMISSÃO DE NOTA FISCAL DE SAÍDA (SIMULAÇÃO)
+============================================================
 
 ALGORITMO EmitirNotaFiscalSaida()
 DECLARE UF_DEST TEXTO
@@ -1186,6 +1214,10 @@ INÍCIO
 FIM
 FIM_ALGORITMO
 
+============================================================
+MÓDULO 18 — PAINEL FINANCEIRO E BALANÇO DE CAIXA
+============================================================
+
 ALGORITMO ExibirBalancoFinanceiro()
 DECLARE RESULTADO_SIMPLIFICADO NUMÉRICO
 INÍCIO
@@ -1202,6 +1234,10 @@ INÍCIO
   |ESCREVA "=================================================="
 FIM
 FIM_ALGORITMO
+
+============================================================
+MÓDULO 19 — LISTAGEM DE FUNCIONÁRIOS CADASTRADOS
+============================================================
 
 ALGORITMO ListarFuncionarios()
 DECLARE F NUMÉRICO
@@ -1224,6 +1260,10 @@ INÍCIO
 FIM
 FIM_ALGORITMO
 
+============================================================
+MÓDULO 20 — ALTERAÇÃO DE SENHA DO FUNCIONÁRIO
+============================================================
+
 ALGORITMO AlterarSenhaFuncionario(FUNC_LOGADO)
 DECLARE SENHA_ATUAL, NOVA_SENHA TEXTO
 INÍCIO
@@ -1244,3 +1284,16 @@ INÍCIO
   |SENÃO ESCREVA ">>> ERRO: Senha atual incorreta! A alteração foi cancelada. <<<"
 FIM
 FIM_ALGORITMO
+
+============================================================
+MÓDULO 21 — ENCERRAMENTO E LIMPEZA DE SESSÃO
+============================================================
+
+ALGORITMO EncerrarSessao()
+INÍCIO
+  |ESCREVA "=================================================="
+  |ESCREVA "  SESSÃO ENCERRADA. RETORNANDO AO MENU PRINCIPAL. "
+  |ESCREVA "=================================================="
+FIM
+FIM_ALGORITMO
+
