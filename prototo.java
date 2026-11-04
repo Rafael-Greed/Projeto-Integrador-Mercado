@@ -246,8 +246,8 @@ public class prototo {
 
         // Arrays de Funcionários (Capacidade máxima: 10)
         // Pré-cadastrados:
-        // [0] F01 - CARLOS GERENTE      | CPF: 35111584834 | Cargo: GERENTE    | Senha: admin123 | Salário: R$ 5500,00
-        // [1] F02 - ANA OPERADORA       | CPF: 71493628030 | Cargo: OPERADOR   | Senha: op123    | Salário: R$ 2200,00
+        // [0] F01 - CARLOS GERENTE      | CPF: 80695789554 | Cargo: GERENTE    | Senha: admin123 | Salário: R$ 5500,00
+        // [1] F02 - ANA OPERADORA       | CPF: 89246912950 | Cargo: OPERADOR   | Senha: op123    | Salário: R$ 2200,00
         // [2] F03 - MARINA FINANCEIRO   | CPF: 52998224725 | Cargo: FINANCEIRO | Senha: fin123   | Salário: R$ 4800,00
         String[] funcId = new String[10];
         String[] funcNome = new String[10];
@@ -258,8 +258,8 @@ public class prototo {
         boolean[] funcPago = new boolean[10]; 
         int totalFuncionarios = 0;
 
-        funcId[0] = "F01"; funcNome[0] = "CARLOS GERENTE"; funcCpf[0] = "35111584834"; funcCargo[0] = "GERENTE"; funcSenha[0] = "admin123"; funcSalario[0] = 5500.00; funcPago[0] = false;
-        funcId[1] = "F02"; funcNome[1] = "ANA OPERADORA"; funcCpf[1] = "71493628030"; funcCargo[1] = "OPERADOR"; funcSenha[1] = "op123"; funcSalario[1] = 2200.00; funcPago[1] = false;
+        funcId[0] = "F01"; funcNome[0] = "CARLOS GERENTE"; funcCpf[0] = "80695789554"; funcCargo[0] = "GERENTE"; funcSenha[0] = "admin123"; funcSalario[0] = 5500.00; funcPago[0] = false;
+        funcId[1] = "F02"; funcNome[1] = "ANA OPERADORA"; funcCpf[1] = "89246912950"; funcCargo[1] = "OPERADOR"; funcSenha[1] = "op123"; funcSalario[1] = 2200.00; funcPago[1] = false;
         funcId[2] = "F03"; funcNome[2] = "MARINA FINANCEIRO"; funcCpf[2] = "52998224725"; funcCargo[2] = "FINANCEIRO"; funcSenha[2] = "fin123"; funcSalario[2] = 4800.00; funcPago[2] = false;
         totalFuncionarios = 3;
 
