@@ -7,7 +7,7 @@ import java.util.Scanner;
 public class prototo {
 
     /* =========================================================================
-       [MÓDULO 1] TRIBUTÁRIO E DE MATRIZ FISCAL (RECEITA FEDERAL)
+       [MÓDULO 1] TRIBUTÁRIO E DE MATRIZ FISCAL (RECEITA FEDERAL / 2026-2027)
        ========================================================================= */
     public static double aliquotaIcmsInterno2026 = 0.18;
     public static double aliquotaIcmsInterno2027 = 0.19; 
@@ -28,7 +28,7 @@ public class prototo {
     }
 
     /* =========================================================================
-       [MÓDULO 2] SEGURANÇA E UTILITÁRIOS (STRING API)
+       [MÓDULO 2] UTILITÁRIOS
        ========================================================================= */
     public static String geradorSenhaAleatoriaSistema() {
         String caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$";
@@ -45,7 +45,7 @@ public class prototo {
     }
 
     /* =========================================================================
-       [MÓDULO 3] VALIDAÇÃO RÍGIDA COM SAÍDA DE EMERGÊNCIA GLOBAL
+       [MÓDULO 3] VALIDAÇÃO RIGOROSA COM CARACTERES ESPECIAIS E SAÍDA DE EMERGÊNCIA
        ========================================================================= */
     public static String lerTextoApenasLetras(Scanner scanner, String mensagem) {
         String entrada = "";
@@ -62,7 +62,7 @@ public class prototo {
                     System.out.println("⚠️  [Aviso]: O campo não pode ficar vazio.");
                     System.out.println("💡 [Dica]: Digite '0' ou 'SAIR' para cancelar e voltar.\n");
                 } else if (!entrada.matches("^[a-zA-ZáàâãéèêíïóôõúüçÁÀÂÃÉÈÊÍÏÓÔÕÚÜÇ\\s]+$")) {
-                    System.out.println("❌ [Erro]: Este campo aceita apenas letras e espaços.");
+                    System.out.println("❌ [Erro]: Este campo aceita apenas letras, espaços e acentuação.");
                     System.out.println("💡 [Dica]: Digite '0' ou 'SAIR' para cancelar e voltar.\n");
                 } else {
                     break;
@@ -94,7 +94,7 @@ public class prototo {
                     break;
                 } else {
                     System.out.println("❌ [Erro]: UF inválida! Digite uma sigla de estado válida.");
-                    System.out.println("💡 [Dica de Emergência]: Digite '0' para voltar ao menu anterior.\n");
+                    System.out.println("💡 [Dica de Emergência]: Digite '0' ou 'SAIR' para voltar.\n");
                 }
             } catch (Exception e) {
                 System.out.println("❌ [Erro]: Falha na validação da UF.\n");
@@ -111,17 +111,15 @@ public class prototo {
                 String entrada = scanner.nextLine().trim();
                 
                 if (entrada.equalsIgnoreCase("0") || entrada.equalsIgnoreCase("SAIR")) {
-                    return -999; // Sinalizador universal de retorno/cancelamento
+                    return -999;
                 }
 
-                String apenasNumeros = entrada.replaceAll("[^0-9]", "");
-                
-                if (apenasNumeros.isEmpty()) {
-                    System.out.println("❌ [Erro]: Digite apenas números inteiros válidos.");
+                if (!entrada.matches("^[0-9]+$")) {
+                    System.out.println("❌ [Erro]: Digite apenas números inteiros positivos válidos.");
                     System.out.println("💡 [Dica]: Digite '0' para voltar.\n");
                     continue;
                 }
-                valor = Integer.parseInt(apenasNumeros);
+                valor = Integer.parseInt(entrada);
                 break;
             } catch (Exception e) {
                 System.out.println("❌ [Erro]: Entrada inválida. Digite apenas números.");
@@ -143,8 +141,8 @@ public class prototo {
                 }
 
                 valor = Double.parseDouble(entrada);
-                if (valor < 0) {
-                    System.out.println("❌ [Erro]: O valor não pode ser negativo.");
+                if (!Double.isFinite(valor) || valor < 0) {
+                    System.out.println("❌ [Erro]: O valor deve ser um número finito e não negativo.");
                     System.out.println("💡 [Dica]: Digite '0' para voltar.\n");
                     continue;
                 }
@@ -172,7 +170,7 @@ public class prototo {
 
                 if (cpf.length() != 11 || cpf.matches("^(.)\\1{10}$")) {
                     System.out.println("❌ [Erro]: CPF inválido. Deve conter exatamente 11 dígitos.");
-                    System.out.println("🚨 [Aviso de Saída]: Digite '0' ou 'SAIR' a qualquer momento para abortar e voltar.\n");
+                    System.out.println("🚨 [Aviso]: Digite '0' ou 'SAIR' para abortar.\n");
                     continue;
                 }
 
@@ -192,8 +190,7 @@ public class prototo {
                 if (dv1 == Character.getNumericValue(cpf.charAt(9)) && dv2 == Character.getNumericValue(cpf.charAt(10))) {
                     break;
                 } else {
-                    System.out.println("❌ [Erro]: Dígitos verificadores do CPF incorretos.");
-                    System.out.println("🚨 [Aviso de Saída]: Digite '0' ou 'SAIR' a qualquer momento para abortar e voltar.\n");
+                    System.out.println("❌ [Erro]: Dígitos verificadores do CPF incorretos.\n");
                 }
             } catch (Exception e) {
                 System.out.println("❌ [Erro]: Falha ao validar o CPF.\n");
@@ -217,7 +214,7 @@ public class prototo {
 
                 if (cnpj.length() != 14 || cnpj.matches("^(.)\\1{13}$")) {
                     System.out.println("❌ [Erro]: CNPJ inválido. Deve conter 14 dígitos.");
-                    System.out.println("🚨 [Aviso de Saída]: Digite '0' ou 'SAIR' a qualquer momento para abortar e voltar.\n");
+                    System.out.println("🚨 [Aviso]: Digite '0' ou 'SAIR' para abortar.\n");
                     continue;
                 }
 
@@ -241,40 +238,13 @@ public class prototo {
                 if (dv1 == Character.getNumericValue(cnpj.charAt(12)) && dv2 == Character.getNumericValue(cnpj.charAt(13))) {
                     break;
                 } else {
-                    System.out.println("❌ [Erro]: Dígitos verificadores do CNPJ incorretos.");
-                    System.out.println("🚨 [Aviso de Saída]: Digite '0' ou 'SAIR' a qualquer momento para abortar e voltar.\n");
+                    System.out.println("❌ [Erro]: Dígitos verificadores do CNPJ incorretos.\n");
                 }
             } catch (Exception e) {
                 System.out.println("❌ [Erro]: Falha ao validar o CNPJ.\n");
             }
         }
         return cnpj;
-    }
-
-    public static String lerCepValido(Scanner scanner) {
-        String cep = "";
-        while (true) {
-            try {
-                System.out.print("Digite o CEP (8 números) [0 ou SAIR para voltar]: ");
-                String entrada = scanner.nextLine().trim();
-
-                if (entrada.equalsIgnoreCase("0") || entrada.equalsIgnoreCase("SAIR")) {
-                    return "CANCELAR";
-                }
-
-                cep = entrada.replaceAll("[^0-9]", "");
-
-                if (cep.length() != 8) {
-                    System.out.println("❌ [Erro]: CEP inválido. Deve conter 8 dígitos.");
-                    System.out.println("🚨 [Aviso de Saída]: Digite '0' ou 'SAIR' a qualquer momento para abortar e voltar.\n");
-                } else {
-                    break;
-                }
-            } catch (Exception e) {
-                System.out.println("❌ [Erro]: Falha na leitura do CEP.\n");
-            }
-        }
-        return cep;
     }
 
     public static double obterSalarioPadraoCargo(String cargo) {
@@ -286,7 +256,7 @@ public class prototo {
     public static void exibirCabecalho() {
         System.out.println("\n================================================================");
         System.out.println("            Bem vindo ao Protei Creat                           ");
-        System.out.println("          SISTEMA DE GESTÃO TRIBUTÁVEL E ESTOQUE - L'ESTOQUE    ");
+        System.out.println("     SISTEMA DE GESTÃO TRIBUTÁRIA E ESTOQUE - L'ESTOQUE         ");
         System.out.println("================================================================");
     }
 
@@ -294,18 +264,18 @@ public class prototo {
        [MÓDULO] GESTÃO DE FUNCIONÁRIOS
        ========================================================================= */
     public static void menuGerenciarFuncionarios(Scanner scanner, List<String> funcId, List<String> funcNome, List<String> funcCpf, 
-                                                 List<String> funcCargo, List<String> funcSenha, List<Double> funcSalario, 
-                                                 List<Boolean> funcPago) {
+                                                   List<String> funcCargo, List<String> funcSenha, List<Double> funcSalario, 
+                                                   List<Boolean> funcPago) {
         boolean rodando = true;
         while (rodando) {
             System.out.println("\n================================================================");
-            System.out.println("                   PAINEL: GESTÃO DE FUNCIONÁRIOS               ");
+            System.out.println("                    PAINEL: GESTÃO DE FUNCIONÁRIOS              ");
             System.out.println("================================================================");
             System.out.println("[1] Listar funcionários cadastrados");
             System.out.println("[2] Cadastrar novo funcionário");
             System.out.println("[3] Alterar salário de um funcionário");
             System.out.println("[4] Excluir funcionário");
-            System.out.println("[5] Voltar ao menu administrativo anterior");
+            System.out.println("[5] Voltar ao menu anterior");
             System.out.println("================================================================");
 
             int op = lerInteiroValido(scanner, "Selecione uma opção (0 para voltar): ");
@@ -370,7 +340,7 @@ public class prototo {
                 }
             } else if (op == 3) {
                 System.out.println("\n================================================================");
-                System.out.println("               ATUALIZAÇÃO DE SALÁRIO DE FUNCIONÁRIO            ");
+                System.out.println("             ATUALIZAÇÃO DE SALÁRIO DE FUNCIONÁRIO              ");
                 System.out.println("================================================================");
                 for (int i = 0; i < funcNome.size(); i++) {
                     System.out.printf("[%d] %s (%s) - Salário: %s\n", (i + 1), funcNome.get(i), funcCargo.get(i), formatarMoeda(funcSalario.get(i)));
@@ -389,11 +359,18 @@ public class prototo {
             } else if (op == 4) {
                 System.out.println("\n--- LISTA DE FUNCIONÁRIOS PARA EXCLUSÃO ---");
                 for (int i = 0; i < funcNome.size(); i++) {
-                    System.out.printf("[%d] ID: %s | %s\n", (i + 1), funcId.get(i), funcNome.get(i));
+                    System.out.printf("[%d] ID: %s | %s (%s)\n", (i + 1), funcId.get(i), funcNome.get(i), funcCargo.get(i));
                 }
                 int idx = lerInteiroValido(scanner, "\nInforme o número (índice) do funcionário que deseja excluir (0 para voltar): ") - 1;
                 if (idx == -1000) continue;
                 if (idx >= 0 && idx < funcNome.size()) {
+                    if (funcCargo.get(idx).equalsIgnoreCase("GERENTE")) {
+                        long totalGerentes = funcCargo.stream().filter(c -> c.equalsIgnoreCase("GERENTE")).count();
+                        if (totalGerentes <= 1) {
+                            System.out.println("❌ [Erro]: Não é permitido excluir o único gerente restante no sistema!\n");
+                            continue;
+                        }
+                    }
                     funcId.remove(idx);
                     funcNome.remove(idx);
                     funcCpf.remove(idx);
@@ -413,18 +390,18 @@ public class prototo {
        [MÓDULO] GESTÃO DE FORNECEDORES
        ========================================================================= */
     public static void menuGerenciarFornecedores(Scanner scanner, List<String> fornNome, List<String> fornCnpj, List<String> fornUf, 
-                                                 List<String> fornProdutoFornecido, List<Double> fornPrecoPago, 
-                                                 List<Double> fornLucroPretendidoPct) {
+                                                   List<String> fornProdutoFornecido, List<Double> fornPrecoPago, 
+                                                   List<Double> fornLucroPretendidoPct, List<Boolean> fornPago) {
         boolean rodando = true;
         while (rodando) {
             System.out.println("\n================================================================");
-            System.out.println("                   PAINEL: GESTÃO DE FORNECEDORES               ");
+            System.out.println("                    PAINEL: GESTÃO DE FORNECEDORES              ");
             System.out.println("================================================================");
             System.out.println("[1] Listar fornecedores cadastrados");
             System.out.println("[2] Cadastrar novo fornecedor");
             System.out.println("[3] Alterar preço de custo do fornecedor");
             System.out.println("[4] Excluir fornecedor");
-            System.out.println("[5] Voltar ao menu administrativo anterior");
+            System.out.println("[5] Voltar ao menu anterior");
             System.out.println("================================================================");
 
             int op = lerInteiroValido(scanner, "Selecione uma opção (0 para voltar): ");
@@ -436,8 +413,8 @@ public class prototo {
                 System.out.println("                 LISTA DE FORNECEDORES ATIVOS                   ");
                 System.out.println("================================================================");
                 for (int i = 0; i < fornNome.size(); i++) {
-                    System.out.printf("[%d] Razão Social: %s | CNPJ: %s | UF: %s | Produto: %s\n",
-                            (i + 1), fornNome.get(i), fornCnpj.get(i), fornUf.get(i), fornProdutoFornecido.get(i));
+                    System.out.printf("[%d] Razão Social: %s | CNPJ: %s | UF: %s | Produto: %s | Custo: %s\n",
+                            (i + 1), fornNome.get(i), fornCnpj.get(i), fornUf.get(i), fornProdutoFornecido.get(i), formatarMoeda(fornPrecoPago.get(i)));
                 }
                 System.out.println("================================================================");
             } else if (op == 2) {
@@ -472,6 +449,7 @@ public class prototo {
                     fornProdutoFornecido.add(prod);
                     fornPrecoPago.add(custo);
                     fornLucroPretendidoPct.add(lucro);
+                    fornPago.add(false);
 
                     System.out.println("✅ Sucesso! Fornecedor cadastrado.\n");
                 } catch (Exception e) {
@@ -479,7 +457,7 @@ public class prototo {
                 }
             } else if (op == 3) {
                 System.out.println("\n================================================================");
-                System.out.println("               ATUALIZAÇÃO DE CUSTO DE FORNECEDOR               ");
+                System.out.println("             ATUALIZAÇÃO DE CUSTO DE FORNECEDOR                 ");
                 System.out.println("================================================================");
                 for (int i = 0; i < fornNome.size(); i++) {
                     System.out.printf("[%d] %s (Custo: %s)\n", (i + 1), fornNome.get(i), formatarMoeda(fornPrecoPago.get(i)));
@@ -509,6 +487,7 @@ public class prototo {
                     fornProdutoFornecido.remove(idx);
                     fornPrecoPago.remove(idx);
                     fornLucroPretendidoPct.remove(idx);
+                    fornPago.remove(idx);
                     System.out.println("✅ Sucesso! Fornecedor removido.\n");
                 } else {
                     System.out.println("❌ [Erro]: Fornecedor não encontrado.\n");
@@ -518,16 +497,18 @@ public class prototo {
     }
 
     /* =========================================================================
-       [MÓDULO] FINANCEIRO, ESTOQUE, TRIBUTOS E CENTRAL DE PAGAMENTOS
+       [MÓDULO] FINANCEIRO, ESTOQUE E TRIBUTOS
        ========================================================================= */
     public static void menuFinanceiroEOperacional(Scanner scanner, List<String> prodNome, List<String> prodNcm, List<Double> prodPrecos, 
-                                                  List<Double> prodPrecoOriginal, List<Integer> prodEstoque, 
-                                                  List<String> funcNome, List<String> funcCargo, List<Double> funcSalario, List<Boolean> funcPago,
-                                                  List<String> fornNome, List<String> fornProdutoFornecido, List<Double> fornPrecoPago, List<Boolean> fornPago,
-                                                  double saldoCaixaLoja, double totalGastosEstoque, double totalReceitaVendas, 
-                                                  double totalSalariosPagos, double totalFornecedoresPagos, double impostosPendentesTotal, 
-                                                  int anoExercicioPadrao, String ufOrigem) {
+                                                   List<Double> prodPrecoOriginal, List<Integer> prodEstoque, 
+                                                   List<Double> caixaGlobalRef, List<Double> gastosEstoqueRef,
+                                                   List<Double> receitaVendasRef, List<Double> cmvRef,
+                                                   List<Double> salariosPagosRef, List<Double> fornecedoresPagosRef,
+                                                   List<Double> impostosPendentesRef, List<Boolean> funcPago, List<Boolean> fornPago,
+                                                   List<Double> funcSalario, List<Double> fornPrecoPago, int[] anoFiscalRef) {
         boolean rodando = true;
+        final int LIMITE_MAXIMO_PRODUTOS = 20;
+
         while (rodando) {
             System.out.println("\n================================================================");
             System.out.println("             PAINEL: FINANCEIRO, ESTOQUE E TRIBUTOS             ");
@@ -540,7 +521,7 @@ public class prototo {
             System.out.println("[6] Exibir balanço financeiro e demonstrativo DRE");
             System.out.println("[7] Central de Pagamentos (Salários, Fornecedores e Impostos)");
             System.out.println("[8] Excluir produto do catálogo");
-            System.out.println("[9] Voltar ao menu administrativo anterior");
+            System.out.println("[9] Voltar ao menu anterior");
             System.out.println("================================================================");
 
             int op = lerInteiroValido(scanner, "Selecione uma opção (0 para voltar): ");
@@ -549,7 +530,7 @@ public class prototo {
                 rodando = false;
             } else if (op == 1) {
                 System.out.println("\n================================================================");
-                System.out.println("                  CATÁLOGO DE PRODUTOS E TRIBUTOS               ");
+                System.out.println("                 CATÁLOGO DE PRODUTOS E TRIBUTOS                ");
                 System.out.println("================================================================");
                 for (int i = 0; i < prodNome.size(); i++) {
                     if (prodNome.get(i) != null) {
@@ -560,13 +541,18 @@ public class prototo {
                 System.out.println("================================================================");
             } else if (op == 2) {
                 try {
+                    long produtosAtivos = prodNome.stream().filter(p -> p != null).count();
+                    if (produtosAtivos >= LIMITE_MAXIMO_PRODUTOS) {
+                        System.out.println("❌ [Erro]: Limite máximo de " + LIMITE_MAXIMO_PRODUTOS + " produtos atingido!\n");
+                        continue;
+                    }
+
                     int idPr = lerInteiroValido(scanner, "Informe o ID/Posição desejada para o produto (0 para voltar): ") - 1;
                     if (idPr == -1000) continue;
 
                     if (idPr >= 0) {
-                        System.out.print("Nome do produto [Ex: Vitamina C] (0 para voltar): ");
-                        String nProd = scanner.nextLine().trim().toUpperCase();
-                        if (nProd.equals("0") || nProd.equalsIgnoreCase("SAIR")) continue;
+                        String nProd = lerTextoApenasLetras(scanner, "Nome do produto [Ex: VITAMINA C] (0 para voltar): ");
+                        if (nProd.equals("CANCELAR")) continue;
 
                         if (prodNome.contains(nProd)) {
                             System.out.println("❌ [Erro]: Produto já cadastrado.\n");
@@ -582,6 +568,10 @@ public class prototo {
                         System.out.print("Código NCM [Ex: 2106.90.30] (0 para voltar): "); 
                         String ncmVal = scanner.nextLine().trim();
                         if (ncmVal.equals("0") || ncmVal.equalsIgnoreCase("SAIR")) continue;
+                        if (ncmVal.isEmpty()) {
+                            System.out.println("❌ [Erro]: O NCM é obrigatório.\n");
+                            continue;
+                        }
 
                         while (prodNome.size() <= idPr) {
                             prodNome.add(null);
@@ -604,7 +594,7 @@ public class prototo {
             } else if (op == 3) {
                 if (!prodNome.isEmpty()) {
                     System.out.println("\n================================================================");
-                    System.out.println("                  TABELA DE PREÇOS ATUAIS                       ");
+                    System.out.println("                   TABELA DE PREÇOS ATUAIS                      ");
                     System.out.println("================================================================");
                     for (int i = 0; i < prodNome.size(); i++) {
                         if (prodNome.get(i) != null) {
@@ -612,218 +602,117 @@ public class prototo {
                         }
                     }
                     System.out.println("================================================================");
-                    int idPr = lerInteiroValido(scanner, "Informe o ID do produto para alterar preço (0 para voltar): ") - 1;
+                    int idPr = lerInteiroValido(scanner, "Informe o ID do produto para alteração de preço (0 para voltar): ") - 1;
                     if (idPr == -1000) continue;
                     if (idPr >= 0 && idPr < prodNome.size() && prodNome.get(idPr) != null) {
-                        double nP = lerDoubleValido(scanner, "Informe o novo preço fixo (R$): ");
-                        if (nP == -999.0) continue;
-                        prodPrecos.set(idPr, nP);
-                        System.out.println("✅ Sucesso! Preço alterado.\n");
+                        double novoPreco = lerDoubleValido(scanner, "Novo preço de venda (R$): ");
+                        if (novoPreco == -999.0) continue;
+                        prodPrecos.set(idPr, novoPreco);
+                        System.out.println("✅ Sucesso! Preço atualizado.\n");
+                    } else {
+                        System.out.println("❌ [Erro]: Produto não encontrado.\n");
                     }
+                } else {
+                    System.out.println("⚠️ [Aviso]: Nenhum produto cadastrado.\n");
                 }
             } else if (op == 4) {
+                System.out.println("\n--- MOVIMENTAÇÃO DE ESTOQUE E COMPRAS ---");
                 for (int i = 0; i < prodNome.size(); i++) {
                     if (prodNome.get(i) != null) {
-                        System.out.println("ID: " + (i + 1) + " | " + prodNome.get(i) + " | Estoque atual: " + prodEstoque.get(i));
+                        System.out.printf("[%d] %s (Estoque atual: %d)\n", (i + 1), prodNome.get(i), prodEstoque.get(i));
                     }
                 }
-                int pI = lerInteiroValido(scanner, "\nInforme o ID do produto para reposição (0 para voltar): ") - 1;
-                if (pI == -1000) continue;
-                if (pI >= 0 && pI < prodNome.size() && prodNome.get(pI) != null) {
-                    int qE = lerInteiroValido(scanner, "Quantidade de entrada no estoque (0 para voltar): ");
-                    if (qE == -999) continue;
-                    double cT = lerDoubleValido(scanner, "Custo total pago pelo lote (R$): ");
-                    if (cT == -999.0) continue;
-                    prodEstoque.set(pI, prodEstoque.get(pI) + qE);
-                    System.out.println("✅ Sucesso! Estoque abastecido.\n");
+                int idx = lerInteiroValido(scanner, "Selecione o produto (0 para voltar): ") - 1;
+                if (idx == -1000) continue;
+                if (idx >= 0 && idx < prodNome.size() && prodNome.get(idx) != null) {
+                    int qtd = lerInteiroValido(scanner, "Quantidade a adicionar ao estoque: ");
+                    if (qtd == -999) continue;
+                    prodEstoque.set(idx, prodEstoque.get(idx) + qtd);
+                    double custoUnitarioEstimado = 35.00;
+                    double custoTotalCompra = qtd * custoUnitarioEstimado;
+                    gastosEstoqueRef.set(0, gastosEstoqueRef.get(0) + custoTotalCompra);
+                    caixaGlobalRef.set(0, caixaGlobalRef.get(0) - custoTotalCompra);
+                    System.out.println("✅ Estoque atualizado! Custo debitado do caixa: " + formatarMoeda(custoTotalCompra) + "\n");
+                } else {
+                    System.out.println("❌ [Erro]: Produto inválido.\n");
                 }
             } else if (op == 5) {
-                int novoAno = lerInteiroValido(scanner, "Informe o novo ano fiscal de referência [Ex: 2027] (0 para voltar): ");
-                if (novoAno != -999) {
-                    anoExercicioPadrao = novoAno;
-                    System.out.println("✅ Sucesso! Ano fiscal alterado para " + anoExercicioPadrao + ".\n");
+                int anoCfg = lerInteiroValido(scanner, "Digite o ano fiscal (2026 ou 2027): ");
+                if (anoCfg == 2026 || anoCfg == 2027) {
+                    anoFiscalRef[0] = anoCfg;
+                    System.out.println("✅ Ano fiscal configurado para: " + anoFiscalRef[0] + "\n");
+                } else {
+                    System.out.println("❌ [Erro]: Ano inválido. Utilize 2026 ou 2027.\n");
                 }
             } else if (op == 6) {
-                double lucroBruto = totalReceitaVendas - totalGastosEstoque;
-                double lucroOperacional = lucroBruto - totalSalariosPagos;
-                double impostosSobreLucro = (lucroOperacional > 0) ? (lucroOperacional * 0.15) : 0.0;
-                double lucroLiquidoFinal = lucroOperacional - impostosSobreLucro;
-
+                double lucroBrutoReal = receitaVendasRef.get(0) - cmvRef.get(0);
                 System.out.println("\n================================================================");
-                System.out.println("            DEMONSTRATIVO DO RESULTADO DO EXERCÍCIO (DRE)       ");
+                System.out.println("            BALANÇO FINANCEIRO E DEMONSTRATIVO DRE              ");
                 System.out.println("================================================================");
-                System.out.println(" (★) Saldo atual em caixa: " + formatarMoeda(saldoCaixaLoja));
-                System.out.println(" (+) Receita bruta de vendas: " + formatarMoeda(totalReceitaVendas));
-                System.out.println(" (-) Custos totais de estoque: " + formatarMoeda(totalGastosEstoque));
-                System.out.println("----------------------------------------------------------------");
-                System.out.println(" (=) Lucro Bruto: " + formatarMoeda(lucroBruto));
-                System.out.println(" (-) Gastos com folha salarial: " + formatarMoeda(totalSalariosPagos));
-                System.out.println("----------------------------------------------------------------");
-                System.out.println(" (=) Lucro Operacional: " + formatarMoeda(lucroOperacional));
-                System.out.println(" (-) Provisão de Impostos (~15%): " + formatarMoeda(impostosSobreLucro));
-                System.out.println("----------------------------------------------------------------");
-                System.out.println(" (★) LUCRO LÍQUIDO FINAL: " + formatarMoeda(lucroLiquidoFinal));
+                System.out.printf(" Saldo em Caixa:             %s\n", formatarMoeda(caixaGlobalRef.get(0)));
+                System.out.printf(" (+) Receita de Vendas:      %s\n", formatarMoeda(receitaVendasRef.get(0)));
+                System.out.printf(" (-) CMV (Custo Merc. Vend.):%s\n", formatarMoeda(cmvRef.get(0)));
+                System.out.printf(" (=) Lucro Bruto Operacional:%s\n", formatarMoeda(lucroBrutoReal));
+                System.out.printf(" (-) Total Gastos Estoque:   %s\n", formatarMoeda(gastosEstoqueRef.get(0)));
+                System.out.printf(" (-) Salários Pagos:         %s\n", formatarMoeda(salariosPagosRef.get(0)));
+                System.out.printf(" (-) Fornecedores Pagos:     %s\n", formatarMoeda(fornecedoresPagosRef.get(0)));
+                System.out.printf(" (-) Impostos Pendentes:     %s\n", formatarMoeda(impostosPendentesRef.get(0)));
                 System.out.println("================================================================");
             } else if (op == 7) {
-                boolean pagando = true;
-                while (pagando) {
-                    System.out.println("\n================================================================");
-                    System.out.println("         CENTRAL DE PAGAMENTOS E OBRIGAÇÕES FINANCEIRAS         ");
-                    System.out.println("================================================================");
-                    System.out.println(" (★) Saldo atual em caixa: " + formatarMoeda(saldoCaixaLoja));
-                    
-                    double folhaPend = 0.0;
+                System.out.println("\n================================================================");
+                System.out.println("          CENTRAL DE PAGAMENTOS E OBRIGAÇÕES FISCAIS            ");
+                System.out.println("================================================================");
+                System.out.println("[1] Pagar Salários de Funcionários");
+                System.out.println("[2] Pagar Fornecedores");
+                System.out.println("[3] Pagar Impostos Pendentes (ICMS/PIS/COFINS)");
+                int subOp = lerInteiroValido(scanner, "Escolha uma opção (0 para voltar): ");
+
+                if (subOp == 1) {
+                    double totalSal = 0.0;
                     for (int i = 0; i < funcSalario.size(); i++) {
-                        if (!funcPago.get(i)) folhaPend += funcSalario.get(i);
+                        if (!funcPago.get(i)) {
+                            totalSal += funcSalario.get(i);
+                            funcPago.set(i, true);
+                        }
                     }
-                    double fornPend = 0.0;
+                    salariosPagosRef.set(0, salariosPagosRef.get(0) + totalSal);
+                    caixaGlobalRef.set(0, caixaGlobalRef.get(0) - totalSal);
+                    System.out.println("✅ Salários quitados! Total pago: " + formatarMoeda(totalSal) + "\n");
+                } else if (subOp == 2) {
+                    double totalForn = 0.0;
                     for (int i = 0; i < fornPrecoPago.size(); i++) {
-                        if (!fornPago.get(i)) fornPend += fornPrecoPago.get(i);
+                        if (!fornPago.get(i)) {
+                            totalForn += fornPrecoPago.get(i);
+                            fornPago.set(i, true);
+                        }
                     }
-
-                    System.out.println(" 🔴 Total de Salários Pendentes: " + formatarMoeda(folhaPend));
-                    System.out.println(" 🔴 Total de Fornecedores Pendentes: " + formatarMoeda(fornPend));
-                    System.out.println(" 🔴 Total de Impostos Pendentes: " + formatarMoeda(impostosPendentesTotal));
-                    System.out.println("----------------------------------------------------------------");
-                    System.out.println("[1] Pagar Salários (Listar, Pagar Específico ou Todos)");
-                    System.out.println("[2] Pagar Fornecedores (Listar, Pagar Específico ou Todos)");
-                    System.out.println("[3] Pagar Impostos da Receita Federal");
-                    System.out.println("[4] Voltar ao menu financeiro anterior");
-                    System.out.println("================================================================");
-
-                    int opPag = lerInteiroValido(scanner, "Selecione uma opção (0 para voltar): ");
-
-                    if (opPag == 4 || opPag == -999) {
-                        pagando = false;
-                    } else if (opPag == 1) {
-                        System.out.println("\n================================================================");
-                        System.out.println("                   PAGAMENTO DE SALÁRIOS                        ");
-                        System.out.println("================================================================");
-                        for (int i = 0; i < funcNome.size(); i++) {
-                            String st = funcPago.get(i) ? "PAGO ✅" : "PENDENTE ❌";
-                            System.out.printf("[%d] %s (%s) - Valor: %s [%s]\n", (i + 1), funcNome.get(i), funcCargo.get(i), formatarMoeda(funcSalario.get(i)), st);
-                        }
-                        System.out.println("================================================================");
-                        System.out.println("[1] Pagar funcionário específico | [2] Pagar todos de uma vez | [3] Voltar");
-                        int subS = lerInteiroValido(scanner, "Escolha uma opção (0 para voltar): ");
-                        if (subS == -999 || subS == 3) continue;
-                        
-                        if (subS == 1) {
-                            int idxF = lerInteiroValido(scanner, "Informe o número (ID) do funcionário (0 para voltar): ") - 1;
-                            if (idxF == -1000) continue;
-                            if (idxF >= 0 && idxF < funcNome.size()) {
-                                if (funcPago.get(idxF)) {
-                                    System.out.println("ℹ️ Este salário já foi quitado.");
-                                } else {
-                                    double val = funcSalario.get(idxF);
-                                    if (saldoCaixaLoja >= val) {
-                                        saldoCaixaLoja -= val;
-                                        totalSalariosPagos += val;
-                                        funcPago.set(idxF, true);
-                                        System.out.println("✅ Salário de " + funcNome.get(idxF) + " pago com sucesso!");
-                                    } else {
-                                        System.out.println("❌ [Erro]: Caixa insuficiente.");
-                                    }
-                                }
-                            } else {
-                                System.out.println("❌ [Erro]: Funcionário inválido.");
-                            }
-                        } else if (subS == 2) {
-                            if (folhaPend <= 0) {
-                                System.out.println("ℹ️ Não há salários pendentes.");
-                            } else if (saldoCaixaLoja >= folhaPend) {
-                                saldoCaixaLoja -= folhaPend;
-                                totalSalariosPagos += folhaPend;
-                                for (int i = 0; i < funcPago.size(); i++) {
-                                    funcPago.set(i, true);
-                                }
-                                System.out.println("✅ Todos os salários pendentes foram quitados com sucesso!");
-                            } else {
-                                System.out.println("❌ [Erro]: Caixa insuficiente para quitar a folha completa.");
-                            }
-                        }
-                    } else if (opPag == 2) {
-                        System.out.println("\n================================================================");
-                        System.out.println("                 PAGAMENTO DE FORNECEDORES                      ");
-                        System.out.println("================================================================");
-                        for (int i = 0; i < fornNome.size(); i++) {
-                            String st = fornPago.get(i) ? "PAGO ✅" : "PENDENTE ❌";
-                            System.out.printf("[%d] %s - Produto: %s - Valor Custo: %s [%s]\n", (i + 1), fornNome.get(i), fornProdutoFornecido.get(i), formatarMoeda(fornPrecoPago.get(i)), st);
-                        }
-                        System.out.println("================================================================");
-                        System.out.println("[1] Pagar fornecedor específico | [2] Pagar todos de uma vez | [3] Voltar");
-                        int subF = lerInteiroValido(scanner, "Escolha uma opção (0 para voltar): ");
-                        if (subF == -999 || subF == 3) continue;
-
-                        if (subF == 1) {
-                            int idxFor = lerInteiroValido(scanner, "Informe o número (ID) do fornecedor (0 para voltar): ") - 1;
-                            if (idxFor == -1000) continue;
-                            if (idxFor >= 0 && idxFor < fornNome.size()) {
-                                if (fornPago.get(idxFor)) {
-                                    System.out.println("ℹ️ Este fornecedor já foi pago.");
-                                } else {
-                                    double valF = fornPrecoPago.get(idxFor);
-                                    if (saldoCaixaLoja >= valF) {
-                                        saldoCaixaLoja -= valF;
-                                        totalFornecedoresPagos += valF;
-                                        fornPago.set(idxFor, true);
-                                        System.out.println("✅ Fornecedor " + fornNome.get(idxFor) + " pago com sucesso!");
-                                    } else {
-                                        System.out.println("❌ [Erro]: Caixa insuficiente.");
-                                    }
-                                }
-                            } else {
-                                System.out.println("❌ [Erro]: Fornecedor inválido.");
-                            }
-                        } else if (subF == 2) {
-                            if (fornPend <= 0) {
-                                System.out.println("ℹ️ Não há fornecedores pendentes.");
-                            } else if (saldoCaixaLoja >= fornPend) {
-                                saldoCaixaLoja -= fornPend;
-                                totalFornecedoresPagos += fornPend;
-                                for (int i = 0; i < fornPago.size(); i++) {
-                                    fornPago.set(i, true);
-                                }
-                                System.out.println("✅ Todos os fornecedores pendentes foram pagos com sucesso!");
-                            } else {
-                                System.out.println("❌ [Erro]: Caixa insuficiente para quitar todos os fornecedores.");
-                            }
-                        }
-                    } else if (opPag == 3) {
-                        System.out.println("\n--- QUITAÇÃO DE IMPOSTOS ---");
-                        System.out.println("Total de Impostos Pendentes: " + formatarMoeda(impostosPendentesTotal));
-                        if (impostosPendentesTotal <= 0) {
-                            System.out.println("ℹ️ Não há impostos pendentes para pagamento.");
-                        } else {
-                            System.out.print("Deseja quitar os impostos agora? [S/N] (0 para voltar): ");
-                            String respImp = scanner.nextLine().trim();
-                            if (respImp.equalsIgnoreCase("0") || respImp.equalsIgnoreCase("SAIR")) continue;
-                            if (respImp.equalsIgnoreCase("S")) {
-                                if (saldoCaixaLoja >= impostosPendentesTotal) {
-                                    saldoCaixaLoja -= impostosPendentesTotal;
-                                    impostosPendentesTotal = 0.0;
-                                    System.out.println("✅ Impostos quitados com sucesso junto à Receita Federal!");
-                                } else {
-                                    System.out.println("❌ [Erro]: Caixa insuficiente para quitar os impostos.");
-                                }
-                            }
-                        }
+                    fornecedoresPagosRef.set(0, fornecedoresPagosRef.get(0) + totalForn);
+                    caixaGlobalRef.set(0, caixaGlobalRef.get(0) - totalForn);
+                    System.out.println("✅ Fornecedores quitados! Total pago: " + formatarMoeda(totalForn) + "\n");
+                } else if (subOp == 3) {
+                    if (impostosPendentesRef.get(0) > 0) {
+                        caixaGlobalRef.set(0, caixaGlobalRef.get(0) - impostosPendentesRef.get(0));
+                        System.out.println("✅ Impostos quitados! Total pago: " + formatarMoeda(impostosPendentesRef.get(0)) + "\n");
+                        impostosPendentesRef.set(0, 0.0);
+                    } else {
+                        System.out.println(">>> Não há impostos pendentes no momento. <<<\n");
                     }
                 }
             } else if (op == 8) {
-                System.out.println("\n--- LISTA DE PRODUTOS PARA EXCLUSÃO ---");
+                System.out.println("\n--- EXCLUIR PRODUTO DO CATÁLOGO ---");
                 for (int i = 0; i < prodNome.size(); i++) {
                     if (prodNome.get(i) != null) {
                         System.out.printf("[%d] %s\n", (i + 1), prodNome.get(i));
                     }
                 }
-                int idx = lerInteiroValido(scanner, "\nInforme o número (ID) do produto que deseja excluir (0 para voltar): ") - 1;
+                int idx = lerInteiroValido(scanner, "Informe o número do produto que deseja remover (0 para voltar): ") - 1;
                 if (idx == -1000) continue;
                 if (idx >= 0 && idx < prodNome.size() && prodNome.get(idx) != null) {
-                    prodNome.set(idx, null);
-                    prodNcm.set(idx, "");
-                    prodPrecos.set(idx, 0.0);
-                    prodEstoque.set(idx, 0);
+                    prodNome.remove(idx);
+                    prodNcm.remove(idx);
+                    prodPrecos.remove(idx);
+                    prodPrecoOriginal.remove(idx);
+                    prodEstoque.remove(idx);
                     System.out.println("✅ Sucesso! Produto removido do catálogo.\n");
                 } else {
                     System.out.println("❌ [Erro]: Produto não encontrado.\n");
@@ -833,482 +722,246 @@ public class prototo {
     }
 
     /* =========================================================================
-       MÉTODO PRINCIPAL (MAIN)
+       [MÓDULO DE LOJA / CLIENTE] CATÁLOGO DIRETO + PAGAMENTO E IDENTIFICAÇÃO NO FINAL
+       ========================================================================= */
+    public static void fluxoModuloCliente(Scanner scanner, List<String> prodNome, List<Double> prodPrecos, 
+                                          List<Integer> prodEstoque, List<Double> caixaGlobalRef, 
+                                          List<Double> receitaVendasRef, List<Double> cmvRef) {
+        boolean comprando = true;
+        double valorTotalCarrinho = 0.0;
+        List<String> itensCarrinho = new ArrayList<>();
+        List<Integer> qtdCarrinho = new ArrayList<>();
+        List<Double> subtotalCarrinho = new ArrayList<>();
+
+        while (comprando) {
+            System.out.println("\n================================================================");
+            System.out.println("              L'ESTOQUE - CATÁLOGO DE PRODUTOS                  ");
+            System.out.println("================================================================");
+            for (int i = 0; i < prodNome.size(); i++) {
+                if (prodNome.get(i) != null) {
+                    System.out.printf("[%d] %s | Preço: %s | Estoque Disp: %d\n",
+                            (i + 1), prodNome.get(i), formatarMoeda(prodPrecos.get(i)), prodEstoque.get(i));
+                }
+            }
+            System.out.println("----------------------------------------------------------------");
+            System.out.println("[99] Finalizar Compra / Ir para Pagamento");
+            System.out.println("[0] Voltar ao Menu Principal");
+            System.out.println("================================================================");
+
+            int escolha = lerInteiroValido(scanner, "Escolha o número do produto para comprar (ou 99 para finalizar): ");
+
+            if (escolha == 0 || escolha == -999) {
+                return;
+            } else if (escolha == 99) {
+                if (itensCarrinho.isEmpty()) {
+                    System.out.println("⚠️ [Aviso]: Seu carrinho está vazio!\n");
+                    continue;
+                }
+                
+                System.out.println("\n================================================================");
+                System.out.println("                 FINALIZAÇÃO DA COMPRA                          ");
+                System.out.println("================================================================");
+                System.out.println("Resumo do Carrinho:");
+                for (int i = 0; i < itensCarrinho.size(); i++) {
+                    System.out.printf("- %s (Qtd: %d) -> Subtotal: %s\n", itensCarrinho.get(i), qtdCarrinho.get(i), formatarMoeda(subtotalCarrinho.get(i)));
+                }
+                System.out.printf("VALOR TOTAL: %s\n", formatarMoeda(valorTotalCarrinho));
+                System.out.println("----------------------------------------------------------------");
+                
+                System.out.print("Deseja confirmar a compra e proceder para o pagamento? (S/N): ");
+                String conf = scanner.nextLine().trim();
+                if (!conf.equalsIgnoreCase("S")) {
+                    System.out.println("[INFO] Operação de compra cancelada.\n");
+                    continue;
+                }
+
+                System.out.println("\n--- IDENTIFICAÇÃO DO CLIENTE ---");
+                String cpfCliente = lerCpfValido(scanner);
+                if (cpfCliente.equals("CANCELAR")) continue;
+
+                System.out.println("\n--- ESCOLHA A FORMA DE PAGAMENTO ---");
+                System.out.println("[1] Dinheiro / PIX (À vista)");
+                System.out.println("[2] Cartão de Crédito / Débito");
+                int formaPagto = lerInteiroValido(scanner, "Selecione a opção de pagamento: ");
+
+                if (formaPagto == 1 || formaPagto == 2) {
+                    caixaGlobalRef.set(0, caixaGlobalRef.get(0) + valorTotalCarrinho);
+                    receitaVendasRef.set(0, receitaVendasRef.get(0) + valorTotalCarrinho);
+                    
+                    double custoEstimadoItem = 30.00;
+                    double totalCmvVenda = 0;
+                    for(int q : qtdCarrinho) {
+                        totalCmvVenda += (q * custoEstimadoItem);
+                    }
+                    cmvRef.set(0, cmvRef.get(0) + totalCmvVenda);
+
+                    System.out.println("\n================================================================");
+                    System.out.println("✅ PAGAMENTO APROVADO! COMPRA REALIZADA COM SUCESSO.");
+                    System.out.printf("Total Pago: %s | Forma: %s\n", formatarMoeda(valorTotalCarrinho), (formaPagto == 1 ? "PIX/Dinheiro" : "Cartão"));
+                    System.out.println("Obrigado por comprar no Protei Creat / L'Estoque!");
+                    System.out.println("================================================================");
+                    return;
+                } else {
+                    System.out.println("❌ [Erro]: Forma de pagamento inválida. Compra não concluída.\n");
+                }
+
+            } else {
+                int idx = escolha - 1;
+                if (idx >= 0 && idx < prodNome.size() && prodNome.get(idx) != null) {
+                    int estoqueAtual = prodEstoque.get(idx);
+                    if (estoqueAtual <= 0) {
+                        System.out.println("❌ [Erro]: Produto esgotado em estoque!\n");
+                        continue;
+                    }
+
+                    int qtdDesejada = lerInteiroValido(scanner, "Digite a quantidade desejada: ");
+                    if (qtdDesejada <= 0) continue;
+
+                    if (qtdDesejada > estoqueAtual) {
+                        System.out.println("❌ [Erro]: Quantidade solicitada maior do que o estoque disponível (" + estoqueAtual + ").\n");
+                        continue;
+                    }
+
+                    prodEstoque.set(idx, estoqueAtual - qtdDesejada);
+                    double subtotal = qtdDesejada * prodPrecos.get(idx);
+                    
+                    itensCarrinho.add(prodNome.get(idx));
+                    qtdCarrinho.add(qtdDesejada);
+                    subtotalCarrinho.add(subtotal);
+                    valorTotalCarrinho += subtotal;
+
+                    System.out.println("✅ " + qtdDesejada + "x " + prodNome.get(idx) + " adicionado(s) ao carrinho!\n");
+                } else {
+                    System.out.println("❌ [Erro]: Produto inválido.\n");
+                }
+            }
+        }
+    }
+
+    /* =========================================================================
+       [MÓDULO PRINCIPAL] MENU PRINCIPAL E AUTENTICAÇÃO ADMINISTRATIVA
        ========================================================================= */
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
         List<String> funcId = new ArrayList<>(Arrays.asList("F01", "F02", "F03"));
-        List<String> funcNome = new ArrayList<>(Arrays.asList("CARLOS GERENTE", "ANA OPERADORA", "MARINA FINANCEIRO"));
-        List<String> funcCpf = new ArrayList<>(Arrays.asList("80695789554", "89246912950", "52998224725"));
+        List<String> funcNome = new ArrayList<>(Arrays.asList("ANA SILVA", "BRUNO LIMA", "CAMILA SOUZA"));
+        List<String> funcCpf = new ArrayList<>(Arrays.asList("52998224725", "12345678909", "98765432100"));
         List<String> funcCargo = new ArrayList<>(Arrays.asList("GERENTE", "OPERADOR", "FINANCEIRO"));
-        List<String> funcSenha = new ArrayList<>(Arrays.asList("admin123", "op123", "fin123"));
+        List<String> funcSenha = new ArrayList<>(Arrays.asList("admin123", "op456", "fin789"));
         List<Double> funcSalario = new ArrayList<>(Arrays.asList(5500.00, 2200.00, 4800.00));
         List<Boolean> funcPago = new ArrayList<>(Arrays.asList(false, false, false));
 
-        List<String> cliNomeArr = new ArrayList<>(Arrays.asList("MARIO SILVA"));
-        List<String> cliCpfArr = new ArrayList<>(Arrays.asList("11144477735"));
-        List<String> cliSenhaArr = new ArrayList<>(Arrays.asList("cli123"));
-        List<String> cliSexoArr = new ArrayList<>(Arrays.asList("M"));
-        List<String> cliDataNascArr = new ArrayList<>(Arrays.asList("10/05/1995"));
-        List<String> cliUfArr = new ArrayList<>(Arrays.asList("SP"));
-        List<String> cliCepArr = new ArrayList<>(Arrays.asList("04753060"));
+        List<String> fornNome = new ArrayList<>(Arrays.asList("SUPLEMAX LTDA", "VITAFIT DISTRIBUIDORA"));
+        List<String> fornCnpj = new ArrayList<>(Arrays.asList("12345678000190", "98765432000110"));
+        List<String> fornUf = new ArrayList<>(Arrays.asList("SP", "RJ"));
+        List<String> fornProdutoFornecido = new ArrayList<>(Arrays.asList("WHEY PROTEIN", "CREATINA"));
+        List<Double> fornPrecoPago = new ArrayList<>(Arrays.asList(4500.00, 3200.00));
+        List<Double> fornLucroPretendidoPct = new ArrayList<>(Arrays.asList(40.0, 35.0));
+        List<Boolean> fornPago = new ArrayList<>(Arrays.asList(false, false));
 
-        List<String> prodNome = new ArrayList<>(Arrays.asList(
-            "WHEY PROTEIN ISOLADO", "BEBIDA ISOTÔNICA 500ML", "CAMISA ESPORTIVA DRY-FIT", 
-            "TÊNIS DE CORRIDA PERFORMANCE", "CREATINA MONOHIDRATADA 250G", "BARRA DE PROTEÍNA CHOCOLATE", 
-            "ENERGÉTICO LATA 473ML", "ÁGUA MINERAL 500ML SEM GÁS", "BERMUDA TÉRMICA COMPRESSÃO", 
-            "MEIAS ESPORTIVAS CANO ALTO (3UN)", "CHINELO SLIDE ANATÔMICO", "MOCHILA ESPORTIVA IMPERMEÁVEL", 
-            "GARRAFA SQUEEZE 1L INOX", "LUVA DE TREINO MUSCULAÇÃO"
-        ));
-        List<String> prodNcm = new ArrayList<>(Arrays.asList(
-            "2106.90.30", "2202.99.00", "6109.90.00", "6404.11.00", "2106.90.90", 
-            "2106.90.30", "2202.99.00", "2201.10.00", "6112.19.00", "6115.96.00", 
-            "6402.20.00", "4202.92.00", "7323.93.00", "4203.29.00"
-        ));
-        List<Double> prodPrecos = new ArrayList<>(Arrays.asList(
-            120.00, 8.50, 59.90, 249.90, 89.90, 9.00, 11.00, 3.50, 79.90, 34.90, 69.90, 159.90, 49.90, 45.00
-        ));
-        List<Double> prodPrecoOriginal = new ArrayList<>(Arrays.asList(
-            120.00, 10.00, 59.90, 299.90, 89.90, 10.00, 11.00, 3.50, 89.90, 34.90, 69.90, 179.90, 49.90, 50.00
-        ));
-        List<Integer> prodEstoque = new ArrayList<>(Arrays.asList(
-            50, 100, 30, 15, 40, 120, 80, 200, 25, 50, 30, 20, 45, 35
-        ));
+        List<String> prodNome = new ArrayList<>(Arrays.asList("WHEY PROTEIN 1KG", "CREATINA 300G"));
+        List<String> prodNcm = new ArrayList<>(Arrays.asList("2106.90.30", "2106.90.90"));
+        List<Double> prodPrecos = new ArrayList<>(Arrays.asList(120.00, 80.00));
+        List<Double> prodPrecoOriginal = new ArrayList<>(Arrays.asList(120.00, 80.00));
+        List<Integer> prodEstoque = new ArrayList<>(Arrays.asList(50, 40));
 
-        List<String> fornNome = new ArrayList<>(Arrays.asList("SUPLEMAX DISTRIBUIDORA LTDA"));
-        List<String> fornCnpj = new ArrayList<>(Arrays.asList("12345678000190"));
-        List<String> fornUf = new ArrayList<>(Arrays.asList("SP"));
-        List<String> fornProdutoFornecido = new ArrayList<>(Arrays.asList("WHEY PROTEIN ISOLADO"));
-        List<Double> fornPrecoPago = new ArrayList<>(Arrays.asList(80.00));
-        List<Double> fornLucroPretendidoPct = new ArrayList<>(Arrays.asList(50.0));
-        List<Boolean> fornPago = new ArrayList<>(Arrays.asList(false));
+        List<Double> caixaGlobal = new ArrayList<>(Arrays.asList(100000.00));
+        List<Double> gastosEstoque = new ArrayList<>(Arrays.asList(15000.00));
+        List<Double> receitaVendas = new ArrayList<>(Arrays.asList(0.0));
+        List<Double> cmv = new ArrayList<>(Arrays.asList(0.0));
+        List<Double> salariosPagos = new ArrayList<>(Arrays.asList(0.0));
+        List<Double> fornecedoresPagos = new ArrayList<>(Arrays.asList(0.0));
+        List<Double> impostosPendentes = new ArrayList<>(Arrays.asList(1250.00));
+        int[] anoFiscal = {2026};
 
-        double saldoCaixaLoja = 100000.00;   
-        double totalGastosEstoque = 15000.00; 
-        double totalReceitaVendas = 0.0;     
-        double totalSalariosPagos = 0.0;     
-        double totalFornecedoresPagos = 0.0;
-        double impostosPendentesTotal = 1250.00; 
-
-        String ufOrigem = "SP";
-        int anoExercicioPadrao = 2026;
+        exibirCabecalho();
 
         boolean sistemaAtivo = true;
         while (sistemaAtivo) {
-            exibirCabecalho();
-            System.out.println("SELECIONE O SEU PERFIL DE ACESSO:");
-            System.out.println("[1] CLIENTE (Catálogo de compras e carrinho)");
-            System.out.println("[2] FUNCIONÁRIO (Painel administrativo e login)");
-            System.out.println("[3] SAIR DO SISTEMA");
+            System.out.println("\n================================================================");
+            System.out.println("                 MENU PRINCIPAL DE ACESSO                       ");
+            System.out.println("================================================================");
+            System.out.println("[1] Acessar como Cliente (Ver Produtos e Comprar Direto)");
+            System.out.println("[2] Acessar Painel Administrativo / Funcionários (Login)");
+            System.out.println("[3] Sair do Sistema");
+            System.out.println("================================================================");
 
-            int perfilAcesso = lerInteiroValido(scanner, "\nDigite a opção desejada: ");
+            int opcaoInicial = lerInteiroValido(scanner, "Selecione uma opção: ");
 
-            if (perfilAcesso == 3 || perfilAcesso == -999) {
-                sistemaAtivo = false;
-                break;
-            } else if (perfilAcesso < 1 || perfilAcesso > 2) {
-                System.out.println("❌ [Erro]: Opção inválida.\n");
-                continue;
-            }
+            if (opcaoInicial == 1) {
+                fluxoModuloCliente(scanner, prodNome, prodPrecos, prodEstoque, caixaGlobal, receitaVendas, cmv);
+            } else if (opcaoInicial == 2) {
+                boolean autenticado = false;
+                String cargoLogado = "";
 
-            /* =========================================================================
-               FLUXO DO CLIENTE
-               ========================================================================= */
-            if (perfilAcesso == 1) {
-                String cliNome = "";
-                String cliCpf = "";
-                String cliUf = "SP";
-                String cliCep = "04753060";
-                boolean clienteIdentificado = false;
-                boolean clienteCadastrado = false;
+                System.out.println("\n=== AUTENTICAÇÃO ADMINISTRATIVA ===");
+                for (int tentativa = 1; tentativa <= 3; tentativa++) {
+                    System.out.print("ID Funcional (Ex: F01) [0 para voltar]: ");
+                    String idInput = scanner.nextLine().trim().toUpperCase();
+                    if (idInput.equals("0") || idInput.equalsIgnoreCase("SAIR")) break;
 
-                List<Integer> carrinhoProdIndex = new ArrayList<>();
-                List<Integer> carrinhoQtde = new ArrayList<>();
+                    System.out.print("Senha: ");
+                    String senhaInput = scanner.nextLine().trim();
 
-                boolean loopCliente = true;
-                while (loopCliente) {
-                    System.out.println("\n================================================================");
-                    System.out.println("                    PAINEL DO CLIENTE                           ");
-                    System.out.println("================================================================");
-                    System.out.println("[1] Visualizar catálogo de produtos");
-                    System.out.println("[2] Adicionar produto ao carrinho de compras");
-                    System.out.println("[3] Visualizar carrinho / Revisar / Finalizar compra");
-                    System.out.println("[4] Voltar à página anterior (Trocar perfil)");
-                    System.out.println("[5] Voltar ao início do sistema");
-                    System.out.println("================================================================");
-
-                    int opcaoCliente = lerInteiroValido(scanner, "Selecione uma opção (0 para voltar): ");
-
-                    if (opcaoCliente == 4 || opcaoCliente == -999) {
-                        break; 
-                    } else if (opcaoCliente == 5) {
-                        loopCliente = false;
-                        continue; 
-                    }
-
-                    if ((opcaoCliente == 2 || opcaoCliente == 3) && !clienteIdentificado) {
-                        System.out.println("\n================================================================");
-                        System.out.println("                   IDENTIFICAÇÃO DO CLIENTE                     ");
-                        System.out.println("================================================================");
-                        cliNome = lerTextoApenasLetras(scanner, "Nome completo [Ex: Maria Souza] (0 para voltar): ");
-                        if (cliNome.equals("CANCELAR")) continue;
-
-                        cliCpf = lerCpfValido(scanner);
-                        if (cliCpf.equals("CANCELAR")) continue;
-                        System.out.println("================================================================");
-
-                        int clienteIdx = cliCpfArr.indexOf(cliCpf);
-
-                        if (clienteIdx != -1) {
-                            System.out.println("ℹ️  CPF já cadastrado (" + cliNomeArr.get(clienteIdx) + ").");
-                            boolean senhaCorreta = false;
-                            int tentativasSenha = 3;
-
-                            while (tentativasSenha > 0 && !senhaCorreta) {
-                                System.out.print("Digite sua senha de acesso (0 para voltar): ");
-                                String senhaDigitada = scanner.nextLine().trim();
-
-                                if (senhaDigitada.equals("0") || senhaDigitada.equalsIgnoreCase("SAIR")) {
-                                    senhaCorreta = false;
-                                    break;
-                                }
-
-                                if (cliSenhaArr.get(clienteIdx).equals(senhaDigitada)) {
-                                    senhaCorreta = true;
-                                    cliNome = cliNomeArr.get(clienteIdx);
-                                    cliUf = cliUfArr.get(clienteIdx);
-                                    cliCep = cliCepArr.get(clienteIdx);
-                                    clienteCadastrado = true;
-                                    System.out.println("✅ Senha correta! Acesso liberado.");
-                                } else {
-                                    tentativasSenha--;
-                                    if (tentativasSenha > 0) {
-                                        System.out.println("❌ Senha incorreta. Restam " + tentativasSenha + " tentativa(s).");
-                                    } else {
-                                        System.out.println("❌ Limite de tentativas excedido.\n");
-                                    }
-                                }
-                            }
-                            if (!senhaCorreta) continue;
-                        } else {
-                            int optCliNovo = lerInteiroValido(scanner, "CPF não cadastrado. [1 - Cadastrar agora | 2 - Comprar sem cadastro] (0 para voltar): ");
-                            if (optCliNovo == -999) continue;
-
-                            if (optCliNovo == 1) {
-                                System.out.println("\n================================================================");
-                                System.out.println("                 CADASTRO RÁPIDO DO CLIENTE                     ");
-                                System.out.println("================================================================");
-                                String sexoCli = lerTextoApenasLetras(scanner, "Sexo [Ex: M ou F] (0 para voltar): ");
-                                if (sexoCli.equals("CANCELAR")) continue;
-
-                                System.out.print("Data de nascimento [Ex: 10/05/1995] (0 para voltar): ");
-                                String nascCli = scanner.nextLine().trim();
-                                if (nascCli.equals("0") || nascCli.equalsIgnoreCase("SAIR")) continue;
-
-                                cliUf = lerUfValida(scanner, "UF de residência [Ex: SP]: ");
-                                if (cliUf.equals("CANCELAR")) continue;
-
-                                cliCep = lerCepValido(scanner);
-                                if (cliCep.equals("CANCELAR")) continue;
-
-                                String cliSenha = geradorSenhaAleatoriaSistema();
-                                System.out.println("================================================================");
-                                System.out.println("🔑 Senha gerada para futuros acessos: " + cliSenha);
-
-                                cliNomeArr.add(cliNome);
-                                cliCpfArr.add(cliCpf);
-                                cliSenhaArr.add(cliSenha);
-                                cliSexoArr.add(sexoCli);
-                                cliDataNascArr.add(nascCli.isEmpty() ? "01/01/2000" : nascCli);
-                                cliUfArr.add(cliUf);
-                                cliCepArr.add(cliCep);
-                                clienteCadastrado = true;
-                            } else {
-                                clienteCadastrado = false;
-                            }
-                        }
-                        clienteIdentificado = true;
-                        System.out.println("\n👋 Bem-vindo(a), " + cliNome.toUpperCase() + "!");
-                    }
-
-                    if (opcaoCliente == 1) {
-                        System.out.println("\n================================================================");
-                        System.out.println("                  CATÁLOGO DE PRODUTOS DISPONÍVEIS              ");
-                        System.out.println("================================================================");
-                        for (int i = 0; i < prodNome.size(); i++) {
-                            if (prodNome.get(i) != null) {
-                                String statusEstoque = (prodEstoque.get(i) > 0) ? " | Estoque: " + prodEstoque.get(i) : " | [ESGOTADO]";
-                                String tagOferta = (prodPrecos.get(i) < prodPrecoOriginal.get(i)) ? " ** [OFERTA] **" : "";
-                                System.out.println("ID: " + (i + 1) + " | " + prodNome.get(i) + " | Preço: " + formatarMoeda(prodPrecos.get(i)) + tagOferta + statusEstoque);
-                            }
-                        }
-                        System.out.println("================================================================");
-                    } else if (opcaoCliente == 2) {
-                        System.out.println("\n================================================================");
-                        System.out.println("               ADICIONAR PRODUTO AO CARRINHO                    ");
-                        System.out.println("================================================================");
-                        boolean temProd = false;
-                        for (int i = 0; i < prodNome.size(); i++) {
-                            if (prodNome.get(i) != null && prodEstoque.get(i) > 0) {
-                                System.out.println("ID: " + (i + 1) + " | " + prodNome.get(i) + " - " + formatarMoeda(prodPrecos.get(i)) + " (Disp: " + prodEstoque.get(i) + ")");
-                                temProd = true;
-                            }
-                        }
-                        System.out.println("================================================================");
-
-                        if (!temProd) {
-                            System.out.println("ℹ️  Nenhum produto disponível em estoque.");
-                        } else {
-                            int posItem = lerInteiroValido(scanner, "Digite o ID do produto desejado (0 para voltar): ") - 1;
-                            if (posItem == -1000) continue;
-
-                            if (posItem >= 0 && posItem < prodNome.size() && prodNome.get(posItem) != null && prodEstoque.get(posItem) > 0) {
-                                int qtde = lerInteiroValido(scanner, "Digite a quantidade desejada (0 para voltar): ");
-                                if (qtde == -999) continue;
-
-                                if (qtde > 0 && qtde <= prodEstoque.get(posItem)) {
-                                    carrinhoProdIndex.add(posItem);
-                                    carrinhoQtde.add(qtde);
-                                    System.out.println("✅ Produto adicionado ao carrinho!");
-                                } else {
-                                    System.out.println("❌ [Erro]: Quantidade inválida ou superior ao estoque (" + prodEstoque.get(posItem) + ").");
-                                }
-                            } else {
-                                System.out.println("❌ [Erro]: ID inválido.");
-                            }
-                        }
-                    } else if (opcaoCliente == 3) {
-                        if (carrinhoProdIndex.isEmpty()) {
-                            System.out.println("\nℹ️  Seu carrinho de compras está vazio.");
-                        } else {
-                            boolean revisando = true;
-                            while (revisando) {
-                                double valCarrinho = 0.0;
-                                System.out.println("\n================================================================");
-                                System.out.println("                 REVISÃO DO CARRINHO DE COMPRAS                 ");
-                                System.out.println("================================================================");
-                                for (int i = 0; i < carrinhoProdIndex.size(); i++) {
-                                    int idxP = carrinhoProdIndex.get(i);
-                                    double valItem = prodPrecos.get(idxP) * carrinhoQtde.get(i);
-                                    valCarrinho += valItem;
-                                    System.out.printf("[%d] %s | Qtde: %d | Unitário: %s | Subtotal: %s\n", 
-                                            (i + 1), prodNome.get(idxP), carrinhoQtde.get(i), formatarMoeda(prodPrecos.get(idxP)), formatarMoeda(valItem));
-                                }
-                                System.out.println("----------------------------------------------------------------");
-                                System.out.println("VALOR TOTAL DO CARRINHO: " + formatarMoeda(valCarrinho));
-                                System.out.println("================================================================");
-
-                                System.out.println("[1] Concluir compra | [2] Alterar quantidade | [3] Remover item | [4] Voltar");
-                                System.out.println("================================================================");
-                                int acao = lerInteiroValido(scanner, "Escolha uma opção (0 para voltar): ");
-                                if (acao == -999 || acao == 4) {
-                                    revisando = false;
-                                    continue;
-                                }
-
-                                if (acao == 1) {
-                                    if (!clienteCadastrado) {
-                                        System.out.println("\n================================================================");
-                                        System.out.println("             CADASTRO RÁPIDO PARA FATURAMENTO                   ");
-                                        System.out.println("================================================================");
-                                        String sexoC = lerTextoApenasLetras(scanner, "Sexo [Ex: M] (0 para voltar): ");
-                                        if (sexoC.equals("CANCELAR")) continue;
-
-                                        System.out.print("Data de nascimento [Ex: 10/05/1995] (0 para voltar): "); 
-                                        String nascC = scanner.nextLine().trim();
-                                        if (nascC.equals("0") || nascC.equalsIgnoreCase("SAIR")) continue;
-
-                                        cliUf = lerUfValida(scanner, "UF de residência [Ex: SP]: ");
-                                        if (cliUf.equals("CANCELAR")) continue;
-
-                                        cliCep = lerCepValido(scanner);
-                                        if (cliCep.equals("CANCELAR")) continue;
-
-                                        String senhaGerada = geradorSenhaAleatoriaSistema();
-                                        System.out.println("================================================================");
-
-                                        cliNomeArr.add(cliNome);
-                                        cliCpfArr.add(cliCpf);
-                                        cliSenhaArr.add(senhaGerada);
-                                        cliSexoArr.add(sexoC);
-                                        cliDataNascArr.add(nascC.isEmpty() ? "01/01/2000" : nascC);
-                                        cliUfArr.add(cliUf);
-                                        cliCepArr.add(cliCep);
-                                        clienteCadastrado = true;
-                                        System.out.println("🔑 Cadastro efetivado! Senha: " + senhaGerada);
-                                    }
-
-                                    int pagto = lerInteiroValido(scanner, "Forma de Pagamento [1 - PIX (10% Desc) | 2 - Crédito à Vista | 3 - Parcelado 3x (+5%)] (0 para voltar): ");
-                                    if (pagto == -999) continue;
-
-                                    double valFinal = valCarrinho;
-                                    if (pagto == 1) valFinal *= 0.90;
-                                    else if (pagto == 3) valFinal *= 1.05;
-
-                                    revisando = false;
-                                    totalReceitaVendas += valFinal;
-                                    saldoCaixaLoja += valFinal;
-
-                                    for (int i = 0; i < carrinhoProdIndex.size(); i++) {
-                                        int idxP = carrinhoProdIndex.get(i);
-                                        prodEstoque.set(idxP, prodEstoque.get(idxP) - carrinhoQtde.get(i));
-                                    }
-
-                                    System.out.println("\n================================================================");
-                                    System.out.println("                 NOTA FISCAL EMITIDA COM SUCESSO                ");
-                                    System.out.println("================================================================");
-                                    System.out.println("Cliente: " + cliNome.toUpperCase());
-                                    System.out.println("Valor Final Pago: " + formatarMoeda(valFinal));
-                                    System.out.println("================================================================");
-                                    carrinhoProdIndex.clear();
-                                    carrinhoQtde.clear();
-                                } else if (acao == 2) {
-                                    int idxA = lerInteiroValido(scanner, "Número do item no carrinho para alterar (0 para voltar): ") - 1;
-                                    if (idxA == -1000) continue;
-                                    if (idxA >= 0 && idxA < carrinhoProdIndex.size()) {
-                                        int nQtde = lerInteiroValido(scanner, "Nova quantidade desejada: ");
-                                        if (nQtde == -999) continue;
-                                        int idxP = carrinhoProdIndex.get(idxA);
-                                        if (nQtde > 0 && nQtde <= prodEstoque.get(idxP)) {
-                                            carrinhoQtde.set(idxA, nQtde);
-                                            System.out.println("✅ Quantidade atualizada.");
-                                        } else {
-                                            System.out.println("❌ [Erro]: Estoque insuficiente.");
-                                        }
-                                    }
-                                } else if (acao == 3) {
-                                    int idxR = lerInteiroValido(scanner, "Número do item para remover do carrinho (0 para voltar): ") - 1;
-                                    if (idxR == -1000) continue;
-                                    if (idxR >= 0 && idxR < carrinhoProdIndex.size()) {
-                                        carrinhoProdIndex.remove(idxR);
-                                        carrinhoQtde.remove(idxR);
-                                        System.out.println("✅ Item removido.");
-                                    }
-                                }
-                            }
-                        }
+                    int index = funcId.indexOf(idInput);
+                    if (index != -1 && funcSenha.get(index).equals(senhaInput)) {
+                        autenticado = true;
+                        cargoLogado = funcCargo.get(index);
+                        System.out.println("\n✅ Login bem-sucedido! Bem-vindo(a), " + funcNome.get(index) + " (" + cargoLogado + ").\n");
+                        break;
+                    } else {
+                        System.out.println("❌ Credenciais inválidas. Tentativa " + tentativa + " de 3.\n");
                     }
                 }
 
-            /* =========================================================================
-               FLUXO DO FUNCIONÁRIO (PAINEL ADMINISTRATIVO UNIFICADO)
-               ========================================================================= */
-            } else if (perfilAcesso == 2) {
-                System.out.println("\n----------------------------------------------------------------");
-                System.out.println("                   LOGIN DO FUNCIONÁRIO                         ");
-                System.out.println("----------------------------------------------------------------");
-                String cpfLogin = lerCpfValido(scanner);
-                if (cpfLogin.equals("CANCELAR")) continue;
-
-                int funcLogadoIndex = funcCpf.indexOf(cpfLogin);
-
-                if (funcLogadoIndex == -1) {
-                    System.out.println("❌ [Erro]: CPF não cadastrado.\n");
+                if (!autenticado) {
+                    System.out.println(">>> Retornando ao menu principal. <<<\n");
                     continue;
                 }
 
-                int tentativas = 3;
-                boolean acessoLiberado = false;
-                while (tentativas > 0) {
-                    System.out.print("Digite sua senha de funcionário (0 para voltar): ");
-                    String senhaL = scanner.nextLine().trim();
-
-                    if (senhaL.equals("0") || senhaL.equalsIgnoreCase("SAIR")) {
-                        break;
-                    }
-
-                    if (funcSenha.get(funcLogadoIndex).equals(senhaL)) {
-                        acessoLiberado = true;
-                        break;
-                    } else {
-                        tentativas--;
-                        System.out.println("❌ Senha incorreta. Restam " + tentativas + " tentativa(s).");
-                    }
-                }
-
-                if (!acessoLiberado) continue;
-
-                String cargoAtual = funcCargo.get(funcLogadoIndex);
-                System.out.println("\n👋 Bem-vindo(a), " + funcNome.get(funcLogadoIndex) + " [" + cargoAtual + "]!");
-
-                boolean loopAdmin = true;
-                while (loopAdmin) {
+                boolean adminAtivo = true;
+                while (adminAtivo) {
                     System.out.println("\n================================================================");
-                    System.out.println("               MENU ADMINISTRATIVO UNIFICADO                    ");
+                    System.out.println("                 PAINEL ADMINISTRATIVO (" + cargoLogado + ")      ");
                     System.out.println("================================================================");
-                    System.out.println("[1] Gestão de Funcionários (Cadastrar, Listar, Alterar, Excluir)");
-                    System.out.println("[2] Gestão de Fornecedores (Cadastrar, Listar, Alterar, Excluir)");
-                    System.out.println("[3] Gestão Financeira, Produtos, Estoque e Central de Pagamentos");
-                    System.out.println("[4] Emitir nota fiscal de saída");
-                    System.out.println("[5] Alterar minha senha de acesso");
-                    System.out.println("[6] Voltar à página anterior (Trocar perfil)");
-                    System.out.println("[7] Voltar ao início do sistema");
+                    if (cargoLogado.equalsIgnoreCase("GERENTE")) {
+                        System.out.println("[1] Gerenciar Funcionários");
+                        System.out.println("[2] Gerenciar Fornecedores");
+                        System.out.println("[3] Painel Financeiro, Estoque e Tributos");
+                    } else if (cargoLogado.equalsIgnoreCase("FINANCEIRO")) {
+                        System.out.println("[2] Gerenciar Fornecedores");
+                        System.out.println("[3] Painel Financeiro, Estoque e Tributos");
+                    } else {
+                        System.out.println("(Operador sem permissões administrativas adicionais)");
+                    }
+                    System.out.println("[4] Sair do Painel Administrativo");
                     System.out.println("================================================================");
 
-                    int opcaoMenu = lerInteiroValido(scanner, "Selecione uma opção (0 para voltar): ");
+                    int opAdmin = lerInteiroValido(scanner, "Selecione uma opção: ");
 
-                    if (opcaoMenu == 6 || opcaoMenu == -999) {
-                        break; 
-                    } else if (opcaoMenu == 7) {
-                        loopAdmin = false;
-                        continue; 
-                    }
-
-                    if (opcaoMenu == 1 && !cargoAtual.equals("GERENTE")) {
-                        System.out.println("\n⛔ [Acesso Negado]: Apenas gerentes gerenciam funcionários.");
-                        continue;
-                    }
-                    if (opcaoMenu == 3 && cargoAtual.equals("OPERADOR")) {
-                        System.out.println("\n⛔ [Acesso Negado]: Operadores não acessam o painel financeiro.");
-                        continue;
-                    }
-
-                    if (opcaoMenu == 1) {
+                    if (opAdmin == 1 && cargoLogado.equalsIgnoreCase("GERENTE")) {
                         menuGerenciarFuncionarios(scanner, funcId, funcNome, funcCpf, funcCargo, funcSenha, funcSalario, funcPago);
-                    } else if (opcaoMenu == 2) {
-                        menuGerenciarFornecedores(scanner, fornNome, fornCnpj, fornUf, fornProdutoFornecido, fornPrecoPago, fornLucroPretendidoPct);
-                    } else if (opcaoMenu == 3) {
-                        menuFinanceiroEOperacional(scanner, prodNome, prodNcm, prodPrecos, prodPrecoOriginal, prodEstoque, 
-                                                   funcNome, funcCargo, funcSalario, funcPago, fornNome, fornProdutoFornecido, fornPrecoPago, fornPago,
-                                                   saldoCaixaLoja, totalGastosEstoque, totalReceitaVendas, totalSalariosPagos, 
-                                                   totalFornecedoresPagos, impostosPendentesTotal, anoExercicioPadrao, ufOrigem);
-                    } else if (opcaoMenu == 4) {
-                        String ufD = lerUfValida(scanner, "Informe a UF de destino [Ex: RJ]: ");
-                        if (ufD.equals("CANCELAR")) continue;
-                        double tN = 0, tI = 0;
-                        for (int i = 0; i < prodNome.size(); i++) {
-                            if (prodNome.get(i) != null) {
-                                double vI = prodPrecos.get(i) * prodEstoque.get(i);
-                                tN += vI;
-                                tI += calcularImpostoItem(vI, buscarAliquotaIcms(prodNcm.get(i), ufOrigem, ufD, anoExercicioPadrao));
-                            }
-                        }
-                        System.out.println("\n--- PRÉVIA DA NOTA FISCAL DE SAÍDA ---");
-                        System.out.println("Valor Bruto Total: " + formatarMoeda(tN));
-                        System.out.println("Total de Tributos Calculados: " + formatarMoeda(tI));
-                    } else if (opcaoMenu == 5) {
-                        System.out.print("Digite sua senha atual (0 para voltar): ");
-                        String sA = scanner.nextLine().trim();
-                        if (sA.equals("0") || sA.equalsIgnoreCase("SAIR")) continue;
-                        if (funcSenha.get(funcLogadoIndex).equals(sA)) {
-                            System.out.print("Digite a nova senha: ");
-                            String nS = scanner.nextLine().trim();
-                            if (!nS.isEmpty()) {
-                                funcSenha.set(funcLogadoIndex, nS);
-                                System.out.println("✅ Sucesso! Senha alterada.");
-                            }
-                        } else {
-                            System.out.println("❌ [Erro]: Senha incorreta.");
-                        }
+                    } else if (opAdmin == 2 && !cargoLogado.equalsIgnoreCase("OPERADOR")) {
+                        menuGerenciarFornecedores(scanner, fornNome, fornCnpj, fornUf, fornProdutoFornecido, fornPrecoPago, fornLucroPretendidoPct, fornPago);
+                    } else if (opAdmin == 3 && !cargoLogado.equalsIgnoreCase("OPERADOR")) {
+                        menuFinanceiroEOperacional(scanner, prodNome, prodNcm, prodPrecos, prodPrecoOriginal, prodEstoque,
+                                caixaGlobal, gastosEstoque, receitaVendas, cmv, salariosPagos, fornecedoresPagos, impostosPendentes,
+                                funcPago, fornPago, funcSalario, fornPrecoPago, anoFiscal);
+                    } else if (opAdmin == 4 || opAdmin == -999) {
+                        adminAtivo = false;
+                    } else {
+                        System.out.println("❌ Opção inválida ou não autorizada para o seu cargo!\n");
                     }
                 }
+
+            } else if (opcaoInicial == 3 || opcaoInicial == -999) {
+                sistemaAtivo = false;
+                System.out.println("\n[INFO] Encerrando o sistema Protei Creat. Obrigado por utilizar!\n");
+            } else {
+                System.out.println("❌ Opção inválida! Tente novamente.\n");
             }
         }
-        System.out.println("\n===============================================================");
-        System.out.println("          Obrigado por usar o Protei Creat                      ");
-        System.out.println("                  SESSÃO ENCERRADA.                             ");
-        System.out.println("================================================================");
         scanner.close();
     }
 }

@@ -6,6 +6,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "Prototipo2",
+            "request": "launch",
+            "mainClass": "Prototipo2",
+            "projectName": "Projeto-Integrador-Mercado_51518fbe"
+        },
+        {
+            "type": "java",
             "name": "prototo",
             "request": "launch",
             "mainClass": "prototo",
