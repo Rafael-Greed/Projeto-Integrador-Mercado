@@ -45,7 +45,7 @@ public class prototo {
     }
 
     /* =========================================================================
-       [MÓDULO 3] VALIDAÇÃO RÍGIDA DE TIPOS, DOCUMENTOS E UFs
+       [MÓDULO 3] VALIDAÇÃO RÍGIDA COM SAÍDA DE EMERGÊNCIA GLOBAL
        ========================================================================= */
     public static String lerTextoApenasLetras(Scanner scanner, String mensagem) {
         String entrada = "";
@@ -54,10 +54,16 @@ public class prototo {
                 System.out.print(mensagem);
                 entrada = scanner.nextLine().trim();
 
+                if (entrada.equalsIgnoreCase("0") || entrada.equalsIgnoreCase("SAIR")) {
+                    return "CANCELAR";
+                }
+
                 if (entrada.isEmpty()) {
-                    System.out.println("⚠️  [Aviso]: O campo não pode ficar vazio. Tente novamente.\n");
+                    System.out.println("⚠️  [Aviso]: O campo não pode ficar vazio.");
+                    System.out.println("💡 [Dica]: Digite '0' ou 'SAIR' para cancelar e voltar.\n");
                 } else if (!entrada.matches("^[a-zA-ZáàâãéèêíïóôõúüçÁÀÂÃÉÈÊÍÏÓÔÕÚÜÇ\\s]+$")) {
-                    System.out.println("❌ [Erro]: Este campo aceita apenas letras e espaços.\n");
+                    System.out.println("❌ [Erro]: Este campo aceita apenas letras e espaços.");
+                    System.out.println("💡 [Dica]: Digite '0' ou 'SAIR' para cancelar e voltar.\n");
                 } else {
                     break;
                 }
@@ -80,10 +86,15 @@ public class prototo {
                 System.out.print(mensagem);
                 uf = scanner.nextLine().trim().toUpperCase();
 
+                if (uf.equalsIgnoreCase("0") || uf.equalsIgnoreCase("SAIR")) {
+                    return "CANCELAR";
+                }
+
                 if (ufsValidas.contains(uf)) {
                     break;
                 } else {
-                    System.out.println("❌ [Erro]: UF inválida! Digite uma sigla de estado brasileira válida (Ex: SP, RJ).\n");
+                    System.out.println("❌ [Erro]: UF inválida! Digite uma sigla de estado válida.");
+                    System.out.println("💡 [Dica de Emergência]: Digite '0' para voltar ao menu anterior.\n");
                 }
             } catch (Exception e) {
                 System.out.println("❌ [Erro]: Falha na validação da UF.\n");
@@ -98,16 +109,23 @@ public class prototo {
             try {
                 System.out.print(mensagem);
                 String entrada = scanner.nextLine().trim();
+                
+                if (entrada.equalsIgnoreCase("0") || entrada.equalsIgnoreCase("SAIR")) {
+                    return -999; // Sinalizador universal de retorno/cancelamento
+                }
+
                 String apenasNumeros = entrada.replaceAll("[^0-9]", "");
                 
                 if (apenasNumeros.isEmpty()) {
-                    System.out.println("❌ [Erro]: Digite apenas números inteiros válidos.\n");
+                    System.out.println("❌ [Erro]: Digite apenas números inteiros válidos.");
+                    System.out.println("💡 [Dica]: Digite '0' para voltar.\n");
                     continue;
                 }
                 valor = Integer.parseInt(apenasNumeros);
                 break;
             } catch (Exception e) {
-                System.out.println("❌ [Erro]: Entrada inválida. Digite apenas números.\n");
+                System.out.println("❌ [Erro]: Entrada inválida. Digite apenas números.");
+                System.out.println("💡 [Dica]: Digite '0' para voltar.\n");
             }
         }
         return valor;
@@ -119,14 +137,21 @@ public class prototo {
             try {
                 System.out.print(mensagem);
                 String entrada = scanner.nextLine().trim().replace(",", ".");
+                
+                if (entrada.equalsIgnoreCase("0") || entrada.equalsIgnoreCase("SAIR")) {
+                    return -999.0;
+                }
+
                 valor = Double.parseDouble(entrada);
                 if (valor < 0) {
-                    System.out.println("❌ [Erro]: O valor não pode ser negativo.\n");
+                    System.out.println("❌ [Erro]: O valor não pode ser negativo.");
+                    System.out.println("💡 [Dica]: Digite '0' para voltar.\n");
                     continue;
                 }
                 break;
             } catch (Exception e) {
-                System.out.println("❌ [Erro]: Formato numérico inválido (exemplo correto: 49.90).\n");
+                System.out.println("❌ [Erro]: Formato numérico inválido (exemplo correto: 49.90).");
+                System.out.println("💡 [Dica]: Digite '0' para voltar.\n");
             }
         }
         return valor;
@@ -136,11 +161,18 @@ public class prototo {
         String cpf = "";
         while (true) {
             try {
-                System.out.print("Digite o CPF (Apenas 11 números) [Ex: 80695789554]: ");
-                cpf = scanner.nextLine().trim().replaceAll("[^0-9]", "");
+                System.out.print("Digite o CPF (11 números) [0 ou SAIR para voltar]: ");
+                String entrada = scanner.nextLine().trim();
+
+                if (entrada.equalsIgnoreCase("0") || entrada.equalsIgnoreCase("SAIR")) {
+                    return "CANCELAR";
+                }
+
+                cpf = entrada.replaceAll("[^0-9]", "");
 
                 if (cpf.length() != 11 || cpf.matches("^(.)\\1{10}$")) {
-                    System.out.println("❌ [Erro]: CPF inválido. Deve conter 11 dígitos.\n");
+                    System.out.println("❌ [Erro]: CPF inválido. Deve conter exatamente 11 dígitos.");
+                    System.out.println("🚨 [Aviso de Saída]: Digite '0' ou 'SAIR' a qualquer momento para abortar e voltar.\n");
                     continue;
                 }
 
@@ -160,7 +192,8 @@ public class prototo {
                 if (dv1 == Character.getNumericValue(cpf.charAt(9)) && dv2 == Character.getNumericValue(cpf.charAt(10))) {
                     break;
                 } else {
-                    System.out.println("❌ [Erro]: Dígitos verificadores do CPF incorretos.\n");
+                    System.out.println("❌ [Erro]: Dígitos verificadores do CPF incorretos.");
+                    System.out.println("🚨 [Aviso de Saída]: Digite '0' ou 'SAIR' a qualquer momento para abortar e voltar.\n");
                 }
             } catch (Exception e) {
                 System.out.println("❌ [Erro]: Falha ao validar o CPF.\n");
@@ -173,11 +206,18 @@ public class prototo {
         String cnpj = "";
         while (true) {
             try {
-                System.out.print("Digite o CNPJ (Apenas 14 números) [Ex: 12345678000190]: ");
-                cnpj = scanner.nextLine().trim().replaceAll("[^0-9]", "");
+                System.out.print("Digite o CNPJ (14 números) [0 ou SAIR para voltar]: ");
+                String entrada = scanner.nextLine().trim();
+
+                if (entrada.equalsIgnoreCase("0") || entrada.equalsIgnoreCase("SAIR")) {
+                    return "CANCELAR";
+                }
+
+                cnpj = entrada.replaceAll("[^0-9]", "");
 
                 if (cnpj.length() != 14 || cnpj.matches("^(.)\\1{13}$")) {
-                    System.out.println("❌ [Erro]: CNPJ inválido. Deve conter 14 dígitos.\n");
+                    System.out.println("❌ [Erro]: CNPJ inválido. Deve conter 14 dígitos.");
+                    System.out.println("🚨 [Aviso de Saída]: Digite '0' ou 'SAIR' a qualquer momento para abortar e voltar.\n");
                     continue;
                 }
 
@@ -201,7 +241,8 @@ public class prototo {
                 if (dv1 == Character.getNumericValue(cnpj.charAt(12)) && dv2 == Character.getNumericValue(cnpj.charAt(13))) {
                     break;
                 } else {
-                    System.out.println("❌ [Erro]: Dígitos verificadores do CNPJ incorretos.\n");
+                    System.out.println("❌ [Erro]: Dígitos verificadores do CNPJ incorretos.");
+                    System.out.println("🚨 [Aviso de Saída]: Digite '0' ou 'SAIR' a qualquer momento para abortar e voltar.\n");
                 }
             } catch (Exception e) {
                 System.out.println("❌ [Erro]: Falha ao validar o CNPJ.\n");
@@ -214,11 +255,18 @@ public class prototo {
         String cep = "";
         while (true) {
             try {
-                System.out.print("Digite o CEP (Apenas 8 números) [Ex: 04753060]: ");
-                cep = scanner.nextLine().trim().replaceAll("[^0-9]", "");
+                System.out.print("Digite o CEP (8 números) [0 ou SAIR para voltar]: ");
+                String entrada = scanner.nextLine().trim();
+
+                if (entrada.equalsIgnoreCase("0") || entrada.equalsIgnoreCase("SAIR")) {
+                    return "CANCELAR";
+                }
+
+                cep = entrada.replaceAll("[^0-9]", "");
 
                 if (cep.length() != 8) {
-                    System.out.println("❌ [Erro]: CEP inválido. Deve conter 8 dígitos.\n");
+                    System.out.println("❌ [Erro]: CEP inválido. Deve conter 8 dígitos.");
+                    System.out.println("🚨 [Aviso de Saída]: Digite '0' ou 'SAIR' a qualquer momento para abortar e voltar.\n");
                 } else {
                     break;
                 }
@@ -260,9 +308,9 @@ public class prototo {
             System.out.println("[5] Voltar ao menu administrativo anterior");
             System.out.println("================================================================");
 
-            int op = lerInteiroValido(scanner, "Selecione uma opção: ");
+            int op = lerInteiroValido(scanner, "Selecione uma opção (0 para voltar): ");
 
-            if (op == 5) {
+            if (op == 5 || op == -999) {
                 rodando = false;
             } else if (op == 1) {
                 System.out.println("\n================================================================");
@@ -276,23 +324,29 @@ public class prototo {
                 System.out.println("================================================================");
             } else if (op == 2) {
                 try {
-                    System.out.print("ID Funcional Exclusivo [Ex: F04]: "); 
+                    System.out.print("ID Funcional Exclusivo [Ex: F04] (0 para voltar): "); 
                     String novoId = scanner.nextLine().trim().toUpperCase();
+
+                    if (novoId.equals("0") || novoId.equalsIgnoreCase("SAIR")) continue;
 
                     if (funcId.contains(novoId)) {
                         System.out.println("❌ [Erro]: Este ID já está em uso.\n");
                         continue;
                     }
 
-                    String novoNome = lerTextoApenasLetras(scanner, "Nome completo [Ex: Carlos Souza]: ");
+                    String novoNome = lerTextoApenasLetras(scanner, "Nome completo [Ex: Carlos Souza] (0 para voltar): ");
+                    if (novoNome.equals("CANCELAR")) continue;
+
                     String novoCpf = lerCpfValido(scanner);
+                    if (novoCpf.equals("CANCELAR")) continue;
 
                     if (funcCpf.contains(novoCpf)) {
                         System.out.println("❌ [Erro]: Este CPF já está cadastrado.\n");
                         continue;
                     }
 
-                    int cOpt = lerInteiroValido(scanner, "Cargo [1 - Gerente | 2 - Operador | 3 - Financeiro]: ");
+                    int cOpt = lerInteiroValido(scanner, "Cargo [1 - Gerente | 2 - Operador | 3 - Financeiro] (0 para voltar): ");
+                    if (cOpt == -999) continue;
                     
                     String cargoDefinido = "OPERADOR";
                     if (cOpt == 1) cargoDefinido = "GERENTE";
@@ -322,9 +376,11 @@ public class prototo {
                     System.out.printf("[%d] %s (%s) - Salário: %s\n", (i + 1), funcNome.get(i), funcCargo.get(i), formatarMoeda(funcSalario.get(i)));
                 }
                 System.out.println("================================================================");
-                int idx = lerInteiroValido(scanner, "Informe o número (índice) do funcionário: ") - 1;
+                int idx = lerInteiroValido(scanner, "Informe o número (índice) do funcionário (0 para voltar): ") - 1;
+                if (idx == -1000) continue; 
                 if (idx >= 0 && idx < funcNome.size()) {
                     double nSal = lerDoubleValido(scanner, "Informe o novo valor do salário (R$): ");
+                    if (nSal == -999.0) continue;
                     funcSalario.set(idx, nSal);
                     System.out.println("✅ Sucesso! Salário atualizado.\n");
                 } else {
@@ -335,7 +391,8 @@ public class prototo {
                 for (int i = 0; i < funcNome.size(); i++) {
                     System.out.printf("[%d] ID: %s | %s\n", (i + 1), funcId.get(i), funcNome.get(i));
                 }
-                int idx = lerInteiroValido(scanner, "Informe o número (índice) do funcionário que deseja excluir: ") - 1;
+                int idx = lerInteiroValido(scanner, "\nInforme o número (índice) do funcionário que deseja excluir (0 para voltar): ") - 1;
+                if (idx == -1000) continue;
                 if (idx >= 0 && idx < funcNome.size()) {
                     funcId.remove(idx);
                     funcNome.remove(idx);
@@ -370,9 +427,9 @@ public class prototo {
             System.out.println("[5] Voltar ao menu administrativo anterior");
             System.out.println("================================================================");
 
-            int op = lerInteiroValido(scanner, "Selecione uma opção: ");
+            int op = lerInteiroValido(scanner, "Selecione uma opção (0 para voltar): ");
 
-            if (op == 5) {
+            if (op == 5 || op == -999) {
                 rodando = false;
             } else if (op == 1) {
                 System.out.println("\n================================================================");
@@ -385,8 +442,11 @@ public class prototo {
                 System.out.println("================================================================");
             } else if (op == 2) {
                 try {
-                    String nomeForn = lerTextoApenasLetras(scanner, "Razão Social / Nome [Ex: Suplemax Ltda]: ");
+                    String nomeForn = lerTextoApenasLetras(scanner, "Razão Social / Nome [Ex: Suplemax Ltda] (0 para voltar): ");
+                    if (nomeForn.equals("CANCELAR")) continue;
+
                     String cnpjForn = lerCnpjValido(scanner);
+                    if (cnpjForn.equals("CANCELAR")) continue;
 
                     if (fornCnpj.contains(cnpjForn)) {
                         System.out.println("❌ [Erro]: Este CNPJ já está cadastrado.\n");
@@ -394,11 +454,17 @@ public class prototo {
                     }
 
                     String uf = lerUfValida(scanner, "UF de origem [Ex: SP]: ");
-                    System.out.print("Produto fornecido [Ex: Whey Protein]: "); 
+                    if (uf.equals("CANCELAR")) continue;
+
+                    System.out.print("Produto fornecido [Ex: Whey Protein] (0 para voltar): "); 
                     String prod = scanner.nextLine().trim().toUpperCase();
+                    if (prod.equals("0") || prod.equalsIgnoreCase("SAIR")) continue;
                     
                     double custo = lerDoubleValido(scanner, "Preço pago ao fornecedor (Custo R$): ");
+                    if (custo == -999.0) continue;
+
                     double lucro = lerDoubleValido(scanner, "Lucro pretendido para o mercado (%): ");
+                    if (lucro == -999.0) continue;
 
                     fornNome.add(nomeForn);
                     fornCnpj.add(cnpjForn);
@@ -419,9 +485,11 @@ public class prototo {
                     System.out.printf("[%d] %s (Custo: %s)\n", (i + 1), fornNome.get(i), formatarMoeda(fornPrecoPago.get(i)));
                 }
                 System.out.println("================================================================");
-                int idx = lerInteiroValido(scanner, "Informe o número (índice) do fornecedor: ") - 1;
+                int idx = lerInteiroValido(scanner, "Informe o número (índice) do fornecedor (0 para voltar): ") - 1;
+                if (idx == -1000) continue;
                 if (idx >= 0 && idx < fornNome.size()) {
                     double nCusto = lerDoubleValido(scanner, "Informe o novo preço de custo (R$): ");
+                    if (nCusto == -999.0) continue;
                     fornPrecoPago.set(idx, nCusto);
                     System.out.println("✅ Sucesso! Preço de custo atualizado.\n");
                 } else {
@@ -432,7 +500,8 @@ public class prototo {
                 for (int i = 0; i < fornNome.size(); i++) {
                     System.out.printf("[%d] %s | CNPJ: %s\n", (i + 1), fornNome.get(i), fornCnpj.get(i));
                 }
-                int idx = lerInteiroValido(scanner, "Informe o número (índice) do fornecedor que deseja excluir: ") - 1;
+                int idx = lerInteiroValido(scanner, "\nInforme o número (índice) do fornecedor que deseja excluir (0 para voltar): ") - 1;
+                if (idx == -1000) continue;
                 if (idx >= 0 && idx < fornNome.size()) {
                     fornNome.remove(idx);
                     fornCnpj.remove(idx);
@@ -474,9 +543,9 @@ public class prototo {
             System.out.println("[9] Voltar ao menu administrativo anterior");
             System.out.println("================================================================");
 
-            int op = lerInteiroValido(scanner, "Selecione uma opção: ");
+            int op = lerInteiroValido(scanner, "Selecione uma opção (0 para voltar): ");
 
-            if (op == 9) {
+            if (op == 9 || op == -999) {
                 rodando = false;
             } else if (op == 1) {
                 System.out.println("\n================================================================");
@@ -491,11 +560,13 @@ public class prototo {
                 System.out.println("================================================================");
             } else if (op == 2) {
                 try {
-                    int idPr = lerInteiroValido(scanner, "Informe o ID/Posição desejada para o produto: ") - 1;
+                    int idPr = lerInteiroValido(scanner, "Informe o ID/Posição desejada para o produto (0 para voltar): ") - 1;
+                    if (idPr == -1000) continue;
 
                     if (idPr >= 0) {
-                        System.out.print("Nome do produto [Ex: Vitamina C]: ");
+                        System.out.print("Nome do produto [Ex: Vitamina C] (0 para voltar): ");
                         String nProd = scanner.nextLine().trim().toUpperCase();
+                        if (nProd.equals("0") || nProd.equalsIgnoreCase("SAIR")) continue;
 
                         if (prodNome.contains(nProd)) {
                             System.out.println("❌ [Erro]: Produto já cadastrado.\n");
@@ -503,9 +574,14 @@ public class prototo {
                         }
 
                         double pVenda = lerDoubleValido(scanner, "Preço de venda (R$): ");
-                        int eIni = lerInteiroValido(scanner, "Quantidade em estoque inicial: ");
-                        System.out.print("Código NCM [Ex: 2106.90.30]: "); 
+                        if (pVenda == -999.0) continue;
+
+                        int eIni = lerInteiroValido(scanner, "Quantidade em estoque inicial (0 para voltar): ");
+                        if (eIni == -999) continue;
+
+                        System.out.print("Código NCM [Ex: 2106.90.30] (0 para voltar): "); 
                         String ncmVal = scanner.nextLine().trim();
+                        if (ncmVal.equals("0") || ncmVal.equalsIgnoreCase("SAIR")) continue;
 
                         while (prodNome.size() <= idPr) {
                             prodNome.add(null);
@@ -536,9 +612,11 @@ public class prototo {
                         }
                     }
                     System.out.println("================================================================");
-                    int idPr = lerInteiroValido(scanner, "Informe o ID do produto para alterar preço: ") - 1;
+                    int idPr = lerInteiroValido(scanner, "Informe o ID do produto para alterar preço (0 para voltar): ") - 1;
+                    if (idPr == -1000) continue;
                     if (idPr >= 0 && idPr < prodNome.size() && prodNome.get(idPr) != null) {
                         double nP = lerDoubleValido(scanner, "Informe o novo preço fixo (R$): ");
+                        if (nP == -999.0) continue;
                         prodPrecos.set(idPr, nP);
                         System.out.println("✅ Sucesso! Preço alterado.\n");
                     }
@@ -549,16 +627,22 @@ public class prototo {
                         System.out.println("ID: " + (i + 1) + " | " + prodNome.get(i) + " | Estoque atual: " + prodEstoque.get(i));
                     }
                 }
-                int pI = lerInteiroValido(scanner, "\nInforme o ID do produto para reposição: ") - 1;
+                int pI = lerInteiroValido(scanner, "\nInforme o ID do produto para reposição (0 para voltar): ") - 1;
+                if (pI == -1000) continue;
                 if (pI >= 0 && pI < prodNome.size() && prodNome.get(pI) != null) {
-                    int qE = lerInteiroValido(scanner, "Quantidade de entrada no estoque: ");
+                    int qE = lerInteiroValido(scanner, "Quantidade de entrada no estoque (0 para voltar): ");
+                    if (qE == -999) continue;
                     double cT = lerDoubleValido(scanner, "Custo total pago pelo lote (R$): ");
+                    if (cT == -999.0) continue;
                     prodEstoque.set(pI, prodEstoque.get(pI) + qE);
                     System.out.println("✅ Sucesso! Estoque abastecido.\n");
                 }
             } else if (op == 5) {
-                anoExercicioPadrao = lerInteiroValido(scanner, "Informe o novo ano fiscal de referência [Ex: 2027]: ");
-                System.out.println("✅ Sucesso! Ano fiscal alterado para " + anoExercicioPadrao + ".\n");
+                int novoAno = lerInteiroValido(scanner, "Informe o novo ano fiscal de referência [Ex: 2027] (0 para voltar): ");
+                if (novoAno != -999) {
+                    anoExercicioPadrao = novoAno;
+                    System.out.println("✅ Sucesso! Ano fiscal alterado para " + anoExercicioPadrao + ".\n");
+                }
             } else if (op == 6) {
                 double lucroBruto = totalReceitaVendas - totalGastosEstoque;
                 double lucroOperacional = lucroBruto - totalSalariosPagos;
@@ -581,7 +665,6 @@ public class prototo {
                 System.out.println(" (★) LUCRO LÍQUIDO FINAL: " + formatarMoeda(lucroLiquidoFinal));
                 System.out.println("================================================================");
             } else if (op == 7) {
-                // CENTRAL DE PAGAMENTOS DENTRO DO FINANCEIRO
                 boolean pagando = true;
                 while (pagando) {
                     System.out.println("\n================================================================");
@@ -608,9 +691,9 @@ public class prototo {
                     System.out.println("[4] Voltar ao menu financeiro anterior");
                     System.out.println("================================================================");
 
-                    int opPag = lerInteiroValido(scanner, "Selecione uma opção: ");
+                    int opPag = lerInteiroValido(scanner, "Selecione uma opção (0 para voltar): ");
 
-                    if (opPag == 4) {
+                    if (opPag == 4 || opPag == -999) {
                         pagando = false;
                     } else if (opPag == 1) {
                         System.out.println("\n================================================================");
@@ -622,10 +705,12 @@ public class prototo {
                         }
                         System.out.println("================================================================");
                         System.out.println("[1] Pagar funcionário específico | [2] Pagar todos de uma vez | [3] Voltar");
-                        int subS = lerInteiroValido(scanner, "Escolha uma opção: ");
+                        int subS = lerInteiroValido(scanner, "Escolha uma opção (0 para voltar): ");
+                        if (subS == -999 || subS == 3) continue;
                         
                         if (subS == 1) {
-                            int idxF = lerInteiroValido(scanner, "Informe o número (ID) do funcionário: ") - 1;
+                            int idxF = lerInteiroValido(scanner, "Informe o número (ID) do funcionário (0 para voltar): ") - 1;
+                            if (idxF == -1000) continue;
                             if (idxF >= 0 && idxF < funcNome.size()) {
                                 if (funcPago.get(idxF)) {
                                     System.out.println("ℹ️ Este salário já foi quitado.");
@@ -667,10 +752,12 @@ public class prototo {
                         }
                         System.out.println("================================================================");
                         System.out.println("[1] Pagar fornecedor específico | [2] Pagar todos de uma vez | [3] Voltar");
-                        int subF = lerInteiroValido(scanner, "Escolha uma opção: ");
+                        int subF = lerInteiroValido(scanner, "Escolha uma opção (0 para voltar): ");
+                        if (subF == -999 || subF == 3) continue;
 
                         if (subF == 1) {
-                            int idxFor = lerInteiroValido(scanner, "Informe o número (ID) do fornecedor: ") - 1;
+                            int idxFor = lerInteiroValido(scanner, "Informe o número (ID) do fornecedor (0 para voltar): ") - 1;
+                            if (idxFor == -1000) continue;
                             if (idxFor >= 0 && idxFor < fornNome.size()) {
                                 if (fornPago.get(idxFor)) {
                                     System.out.println("ℹ️ Este fornecedor já foi pago.");
@@ -708,8 +795,10 @@ public class prototo {
                         if (impostosPendentesTotal <= 0) {
                             System.out.println("ℹ️ Não há impostos pendentes para pagamento.");
                         } else {
-                            System.out.print("Deseja quitar os impostos agora? [S/N]: ");
-                            if (scanner.nextLine().trim().equalsIgnoreCase("S")) {
+                            System.out.print("Deseja quitar os impostos agora? [S/N] (0 para voltar): ");
+                            String respImp = scanner.nextLine().trim();
+                            if (respImp.equalsIgnoreCase("0") || respImp.equalsIgnoreCase("SAIR")) continue;
+                            if (respImp.equalsIgnoreCase("S")) {
                                 if (saldoCaixaLoja >= impostosPendentesTotal) {
                                     saldoCaixaLoja -= impostosPendentesTotal;
                                     impostosPendentesTotal = 0.0;
@@ -728,7 +817,8 @@ public class prototo {
                         System.out.printf("[%d] %s\n", (i + 1), prodNome.get(i));
                     }
                 }
-                int idx = lerInteiroValido(scanner, "\nInforme o número (ID) do produto que deseja excluir: ") - 1;
+                int idx = lerInteiroValido(scanner, "\nInforme o número (ID) do produto que deseja excluir (0 para voltar): ") - 1;
+                if (idx == -1000) continue;
                 if (idx >= 0 && idx < prodNome.size() && prodNome.get(idx) != null) {
                     prodNome.set(idx, null);
                     prodNcm.set(idx, "");
@@ -814,7 +904,7 @@ public class prototo {
 
             int perfilAcesso = lerInteiroValido(scanner, "\nDigite a opção desejada: ");
 
-            if (perfilAcesso == 3) {
+            if (perfilAcesso == 3 || perfilAcesso == -999) {
                 sistemaAtivo = false;
                 break;
             } else if (perfilAcesso < 1 || perfilAcesso > 2) {
@@ -848,9 +938,9 @@ public class prototo {
                     System.out.println("[5] Voltar ao início do sistema");
                     System.out.println("================================================================");
 
-                    int opcaoCliente = lerInteiroValido(scanner, "Selecione uma opção: ");
+                    int opcaoCliente = lerInteiroValido(scanner, "Selecione uma opção (0 para voltar): ");
 
-                    if (opcaoCliente == 4) {
+                    if (opcaoCliente == 4 || opcaoCliente == -999) {
                         break; 
                     } else if (opcaoCliente == 5) {
                         loopCliente = false;
@@ -861,8 +951,11 @@ public class prototo {
                         System.out.println("\n================================================================");
                         System.out.println("                   IDENTIFICAÇÃO DO CLIENTE                     ");
                         System.out.println("================================================================");
-                        cliNome = lerTextoApenasLetras(scanner, "Nome completo [Ex: Maria Souza]: ");
+                        cliNome = lerTextoApenasLetras(scanner, "Nome completo [Ex: Maria Souza] (0 para voltar): ");
+                        if (cliNome.equals("CANCELAR")) continue;
+
                         cliCpf = lerCpfValido(scanner);
+                        if (cliCpf.equals("CANCELAR")) continue;
                         System.out.println("================================================================");
 
                         int clienteIdx = cliCpfArr.indexOf(cliCpf);
@@ -873,8 +966,13 @@ public class prototo {
                             int tentativasSenha = 3;
 
                             while (tentativasSenha > 0 && !senhaCorreta) {
-                                System.out.print("Digite sua senha de acesso: ");
+                                System.out.print("Digite sua senha de acesso (0 para voltar): ");
                                 String senhaDigitada = scanner.nextLine().trim();
+
+                                if (senhaDigitada.equals("0") || senhaDigitada.equalsIgnoreCase("SAIR")) {
+                                    senhaCorreta = false;
+                                    break;
+                                }
 
                                 if (cliSenhaArr.get(clienteIdx).equals(senhaDigitada)) {
                                     senhaCorreta = true;
@@ -894,17 +992,26 @@ public class prototo {
                             }
                             if (!senhaCorreta) continue;
                         } else {
-                            int optCliNovo = lerInteiroValido(scanner, "CPF não cadastrado. [1 - Cadastrar agora | 2 - Comprar sem cadastro]: ");
+                            int optCliNovo = lerInteiroValido(scanner, "CPF não cadastrado. [1 - Cadastrar agora | 2 - Comprar sem cadastro] (0 para voltar): ");
+                            if (optCliNovo == -999) continue;
 
                             if (optCliNovo == 1) {
                                 System.out.println("\n================================================================");
                                 System.out.println("                 CADASTRO RÁPIDO DO CLIENTE                     ");
                                 System.out.println("================================================================");
-                                String sexoCli = lerTextoApenasLetras(scanner, "Sexo [Ex: M ou F]: ");
-                                System.out.print("Data de nascimento [Ex: 10/05/1995]: ");
+                                String sexoCli = lerTextoApenasLetras(scanner, "Sexo [Ex: M ou F] (0 para voltar): ");
+                                if (sexoCli.equals("CANCELAR")) continue;
+
+                                System.out.print("Data de nascimento [Ex: 10/05/1995] (0 para voltar): ");
                                 String nascCli = scanner.nextLine().trim();
+                                if (nascCli.equals("0") || nascCli.equalsIgnoreCase("SAIR")) continue;
+
                                 cliUf = lerUfValida(scanner, "UF de residência [Ex: SP]: ");
+                                if (cliUf.equals("CANCELAR")) continue;
+
                                 cliCep = lerCepValido(scanner);
+                                if (cliCep.equals("CANCELAR")) continue;
+
                                 String cliSenha = geradorSenhaAleatoriaSistema();
                                 System.out.println("================================================================");
                                 System.out.println("🔑 Senha gerada para futuros acessos: " + cliSenha);
@@ -953,10 +1060,12 @@ public class prototo {
                         if (!temProd) {
                             System.out.println("ℹ️  Nenhum produto disponível em estoque.");
                         } else {
-                            int posItem = lerInteiroValido(scanner, "Digite o ID do produto desejado: ") - 1;
+                            int posItem = lerInteiroValido(scanner, "Digite o ID do produto desejado (0 para voltar): ") - 1;
+                            if (posItem == -1000) continue;
 
                             if (posItem >= 0 && posItem < prodNome.size() && prodNome.get(posItem) != null && prodEstoque.get(posItem) > 0) {
-                                int qtde = lerInteiroValido(scanner, "Digite a quantidade desejada: ");
+                                int qtde = lerInteiroValido(scanner, "Digite a quantidade desejada (0 para voltar): ");
+                                if (qtde == -999) continue;
 
                                 if (qtde > 0 && qtde <= prodEstoque.get(posItem)) {
                                     carrinhoProdIndex.add(posItem);
@@ -992,18 +1101,30 @@ public class prototo {
 
                                 System.out.println("[1] Concluir compra | [2] Alterar quantidade | [3] Remover item | [4] Voltar");
                                 System.out.println("================================================================");
-                                int acao = lerInteiroValido(scanner, "Escolha uma opção: ");
+                                int acao = lerInteiroValido(scanner, "Escolha uma opção (0 para voltar): ");
+                                if (acao == -999 || acao == 4) {
+                                    revisando = false;
+                                    continue;
+                                }
 
                                 if (acao == 1) {
                                     if (!clienteCadastrado) {
                                         System.out.println("\n================================================================");
                                         System.out.println("             CADASTRO RÁPIDO PARA FATURAMENTO                   ");
                                         System.out.println("================================================================");
-                                        String sexoC = lerTextoApenasLetras(scanner, "Sexo [Ex: M]: ");
-                                        System.out.print("Data de nascimento [Ex: 10/05/1995]: "); 
+                                        String sexoC = lerTextoApenasLetras(scanner, "Sexo [Ex: M] (0 para voltar): ");
+                                        if (sexoC.equals("CANCELAR")) continue;
+
+                                        System.out.print("Data de nascimento [Ex: 10/05/1995] (0 para voltar): "); 
                                         String nascC = scanner.nextLine().trim();
+                                        if (nascC.equals("0") || nascC.equalsIgnoreCase("SAIR")) continue;
+
                                         cliUf = lerUfValida(scanner, "UF de residência [Ex: SP]: ");
+                                        if (cliUf.equals("CANCELAR")) continue;
+
                                         cliCep = lerCepValido(scanner);
+                                        if (cliCep.equals("CANCELAR")) continue;
+
                                         String senhaGerada = geradorSenhaAleatoriaSistema();
                                         System.out.println("================================================================");
 
@@ -1018,7 +1139,8 @@ public class prototo {
                                         System.out.println("🔑 Cadastro efetivado! Senha: " + senhaGerada);
                                     }
 
-                                    int pagto = lerInteiroValido(scanner, "Forma de Pagamento [1 - PIX (10% Desc) | 2 - Crédito à Vista | 3 - Parcelado 3x (+5%)]: ");
+                                    int pagto = lerInteiroValido(scanner, "Forma de Pagamento [1 - PIX (10% Desc) | 2 - Crédito à Vista | 3 - Parcelado 3x (+5%)] (0 para voltar): ");
+                                    if (pagto == -999) continue;
 
                                     double valFinal = valCarrinho;
                                     if (pagto == 1) valFinal *= 0.90;
@@ -1042,9 +1164,11 @@ public class prototo {
                                     carrinhoProdIndex.clear();
                                     carrinhoQtde.clear();
                                 } else if (acao == 2) {
-                                    int idxA = lerInteiroValido(scanner, "Número do item no carrinho para alterar: ") - 1;
+                                    int idxA = lerInteiroValido(scanner, "Número do item no carrinho para alterar (0 para voltar): ") - 1;
+                                    if (idxA == -1000) continue;
                                     if (idxA >= 0 && idxA < carrinhoProdIndex.size()) {
                                         int nQtde = lerInteiroValido(scanner, "Nova quantidade desejada: ");
+                                        if (nQtde == -999) continue;
                                         int idxP = carrinhoProdIndex.get(idxA);
                                         if (nQtde > 0 && nQtde <= prodEstoque.get(idxP)) {
                                             carrinhoQtde.set(idxA, nQtde);
@@ -1054,14 +1178,13 @@ public class prototo {
                                         }
                                     }
                                 } else if (acao == 3) {
-                                    int idxR = lerInteiroValido(scanner, "Número do item para remover do carrinho: ") - 1;
+                                    int idxR = lerInteiroValido(scanner, "Número do item para remover do carrinho (0 para voltar): ") - 1;
+                                    if (idxR == -1000) continue;
                                     if (idxR >= 0 && idxR < carrinhoProdIndex.size()) {
                                         carrinhoProdIndex.remove(idxR);
                                         carrinhoQtde.remove(idxR);
                                         System.out.println("✅ Item removido.");
                                     }
-                                } else {
-                                    revisando = false;
                                 }
                             }
                         }
@@ -1076,6 +1199,7 @@ public class prototo {
                 System.out.println("                   LOGIN DO FUNCIONÁRIO                         ");
                 System.out.println("----------------------------------------------------------------");
                 String cpfLogin = lerCpfValido(scanner);
+                if (cpfLogin.equals("CANCELAR")) continue;
 
                 int funcLogadoIndex = funcCpf.indexOf(cpfLogin);
 
@@ -1087,8 +1211,13 @@ public class prototo {
                 int tentativas = 3;
                 boolean acessoLiberado = false;
                 while (tentativas > 0) {
-                    System.out.print("Digite sua senha de funcionário: ");
-                    String senhaL = scanner.nextLine();
+                    System.out.print("Digite sua senha de funcionário (0 para voltar): ");
+                    String senhaL = scanner.nextLine().trim();
+
+                    if (senhaL.equals("0") || senhaL.equalsIgnoreCase("SAIR")) {
+                        break;
+                    }
+
                     if (funcSenha.get(funcLogadoIndex).equals(senhaL)) {
                         acessoLiberado = true;
                         break;
@@ -1110,16 +1239,16 @@ public class prototo {
                     System.out.println("================================================================");
                     System.out.println("[1] Gestão de Funcionários (Cadastrar, Listar, Alterar, Excluir)");
                     System.out.println("[2] Gestão de Fornecedores (Cadastrar, Listar, Alterar, Excluir)");
-                    System.out.println("[3] Gestão Financeira (Produtos, Estoque e Central de Pagamentos)");
+                    System.out.println("[3] Gestão Financeira, Produtos, Estoque e Central de Pagamentos");
                     System.out.println("[4] Emitir nota fiscal de saída");
                     System.out.println("[5] Alterar minha senha de acesso");
                     System.out.println("[6] Voltar à página anterior (Trocar perfil)");
                     System.out.println("[7] Voltar ao início do sistema");
                     System.out.println("================================================================");
 
-                    int opcaoMenu = lerInteiroValido(scanner, "Selecione uma opção: ");
+                    int opcaoMenu = lerInteiroValido(scanner, "Selecione uma opção (0 para voltar): ");
 
-                    if (opcaoMenu == 6) {
+                    if (opcaoMenu == 6 || opcaoMenu == -999) {
                         break; 
                     } else if (opcaoMenu == 7) {
                         loopAdmin = false;
@@ -1146,6 +1275,7 @@ public class prototo {
                                                    totalFornecedoresPagos, impostosPendentesTotal, anoExercicioPadrao, ufOrigem);
                     } else if (opcaoMenu == 4) {
                         String ufD = lerUfValida(scanner, "Informe a UF de destino [Ex: RJ]: ");
+                        if (ufD.equals("CANCELAR")) continue;
                         double tN = 0, tI = 0;
                         for (int i = 0; i < prodNome.size(); i++) {
                             if (prodNome.get(i) != null) {
@@ -1158,8 +1288,9 @@ public class prototo {
                         System.out.println("Valor Bruto Total: " + formatarMoeda(tN));
                         System.out.println("Total de Tributos Calculados: " + formatarMoeda(tI));
                     } else if (opcaoMenu == 5) {
-                        System.out.print("Digite sua senha atual: ");
-                        String sA = scanner.nextLine();
+                        System.out.print("Digite sua senha atual (0 para voltar): ");
+                        String sA = scanner.nextLine().trim();
+                        if (sA.equals("0") || sA.equalsIgnoreCase("SAIR")) continue;
                         if (funcSenha.get(funcLogadoIndex).equals(sA)) {
                             System.out.print("Digite a nova senha: ");
                             String nS = scanner.nextLine().trim();
@@ -1174,8 +1305,9 @@ public class prototo {
                 }
             }
         }
-        System.out.println("\n==============================================================");
-        System.out.println("         SESSÃO ENCERRADA. OBRIGADO POR USAR O Protei Creat     ");
+        System.out.println("\n===============================================================");
+        System.out.println("          Obrigado por usar o Protei Creat                      ");
+        System.out.println("                  SESSÃO ENCERRADA.                             ");
         System.out.println("================================================================");
         scanner.close();
     }
