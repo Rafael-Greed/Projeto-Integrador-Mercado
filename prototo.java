@@ -10,15 +10,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 
-/**
- * =============================================================================
- * SISTEMA PROTEI CREAT (L'ESTOQUE) - ARQUITETURA MODULAR CORPORATIVA
- * Auditoria de Exclusão, Revogação Imediata de Autoridade, Blindagem contra
- * Entradas Inválidas (-0, vazios, fora de faixa), Paginação (25/pág), Filtros
- * com Alertas Inteligentes, Carrinho Multi-Itens, Cadastro Rápido de Clientes,
- * Persistência em Backup/Rollback, Relatórios, Ticket Médio e Exportação em .TXT.
- * =============================================================================
- */
 public class prototo {
 
     /* #########################################################################
