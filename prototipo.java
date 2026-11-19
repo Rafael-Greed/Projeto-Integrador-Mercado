@@ -1,11 +1,10 @@
 // Permite armazenar conjuntos de constantes de um enum de forma compacta e rápida; usado em ModuloAutoridades (EnumSet<Autoridade>) para permissões por cargo/funcionário
 import java.util.EnumSet;
-
 // Mapa que mantém a ordem de inserção; usado em ModuloAutoridades (autoridadesPorId) e em exibirRelatorioVolumeComprasClientes (totaisPorCliente e pedidosPorCliente)
 import java.util.LinkedHashMap;
 // Representa um conjunto sem elementos repetidos; usado na constante UFS_BRASIL (validação de UF) e em calcularAliquotaIcmsPorOperacao (UFs do Sul/Sudeste)
 import java.util.Set;
-// Listas dinâmicas usadas nas tabelas paralelas (funcionários, fornecedores, produtos, clientes, transações), paginação, filtros e snapshots de rollback
+// Listas dinâmicas usadas nas tabelas paralelas (funcionários, fornecedores, produtos, clientes, transações), paginação e filtros
 import java.util.ArrayList;
 // Usado no main para inicializar indicadores em List<Double> de 1 elemento (ex.: Arrays.asList(200000.00)) permitindo mutação por referência
 import java.util.Arrays;
@@ -17,13 +16,13 @@ import java.util.Map;
 import java.util.Scanner;
 // Leitura linha a linha de arquivos .TXT; usado em ModuloLogDadosTxt e ModuloPersistenciaTxt para ler pré-cadastros e restaurar backup
 import java.io.BufferedReader;
-// Escrita de texto em arquivos .TXT; usado para gravar logs, pré-cadastros padrão, snapshots de rollback, backups e relatórios exportados
+// Escrita de texto em arquivos .TXT; usado para gravar logs, pré-cadastros padrão, backups e relatórios exportados
 import java.io.BufferedWriter;
 // Representa caminhos/arquivos no disco; usado para verificar existência de arquivos (.exists()) antes de ler, sobrescrever ou restaurar
 import java.io.File;
 // Fluxo de leitura de arquivo conectado ao BufferedReader ao carregar dados e logs dos arquivos .TXT
 import java.io.FileReader;
-// Fluxo de escrita de arquivo conectado ao BufferedWriter ao salvar logs, backups, rollbacks e relatórios em .TXT
+// Fluxo de escrita de arquivo conectado ao BufferedWriter ao salvar logs, backups e relatórios em .TXT
 import java.io.FileWriter;
 // Tratamento de exceções de entrada/saída (try/catch) nas operações de leitura e gravação de arquivos .TXT
 import java.io.IOException;
@@ -40,14 +39,19 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class prototipo {
 
-    // Constantes de arquivos e formatação de data/hora do sistema
+    // =========================================================================
+    // MÓDULO 0: CONSTANTES GLOBAIS E UTILITÁRIOS DE FORMATAÇÃO / VALIDAÇÃO
+    // Independente de estado de sessão ou instância; fornece constantes de
+    // arquivos, formatação monetária/data-hora, cores ANSI e regras de entrada.
+    // =========================================================================
+
+    // Constantes de nomes de arquivos e formatação temporal/monetária do sistema
     private static final String ARQUIVO_PRE_CADASTROS = "dados_pre_cadastros.txt";
     private static final String ARQUIVO_BACKUP_OFICIAL = "backup_sistema_editavel.txt";
-    private static final String ARQUIVO_ROLLBACK_AUTO = "rollback_automatico_sistema.txt";
     private static final String ARQUIVO_LOG_DADOS = "log_entradas_saidas_dados.txt";
     private static final String ARQUIVO_LOG_FILTRADO_EXPORTADO = "log_entradas_saidas_filtrado.txt";
     private static final DateTimeFormatter FORMATADOR_DATA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-   // Formata valores monetários no padrão brasileiro usando Locale.of (evita aviso de construtor depreciado no Java 19+)
+    // Formata valores monetários no padrão brasileiro usando Locale.of (evita aviso de construtor depreciado no Java 19+)
     private static final NumberFormat FORMATADOR_MOEDA_BR = NumberFormat.getCurrencyInstance(Locale.of("pt", "BR"));
 
     // Conjunto imutável com as 27 unidades federativas do Brasil para validação rápida de UF
@@ -129,7 +133,11 @@ public class prototipo {
         }
     }
 
-    // Módulo de gestão de autoridades (RBAC) por funcionário e cargo
+    // =========================================================================
+    // MÓDULO 1: AUTORIDADES (RBAC)
+    // Responsável exclusivamente por associar e consultar permissões por ID,
+    // cargo e status ativo, sem depender de interface ou arquivos externos.
+    // =========================================================================
     static class ModuloAutoridades {
         private final Map<String, EnumSet<Autoridade>> autoridadesPorId = new LinkedHashMap<>();
 
@@ -145,8 +153,7 @@ public class prototipo {
                     // Gerente recebe todas as autoridades cadastradas no enum
                     return EnumSet.allOf(Autoridade.class);
                 case "FINANCEIRO":
-
-                   // Financeiro concentra movimentações, pagamentos, estornos, relatórios e consulta de RH/estoque
+                    // Financeiro concentra movimentações, pagamentos, estornos, relatórios e consulta de RH/estoque
                     return EnumSet.of(
                             Autoridade.RH_VER_FUNCIONARIOS,
                             Autoridade.RH_VER_FOLHA_E_STATUS,
@@ -166,7 +173,6 @@ public class prototipo {
                             Autoridade.CLI_GERIR_CADASTROS,
                             Autoridade.LOG_VER_E_EXPORTAR
                     );
-
                 case "OPERADOR":
                     // Operador recebe permissões básicas de visualização de estoque/fornecedores e consulta de logs
                     return EnumSet.of(
@@ -231,7 +237,11 @@ public class prototipo {
         }
     }
 
-    // Gerencia a sessão autenticada, validando status ativo, cargo e permissões em tempo real
+    // =========================================================================
+    // MÓDULO 2: SESSÃO E VALIDAÇÃO DE ACESSO
+    // Responsável por manter a identidade do usuário logado, validar status
+    // ativo, conferir senha vigente, obter cargo vigente e checar permissões.
+    // =========================================================================
     static class ModuloSessao {
         private final String idUsuario;
         private final List<String> tabelaId;
@@ -269,6 +279,19 @@ public class prototipo {
         String obterNomeVigente() {
             int idx = indiceAtual();
             return (idx >= 0 && idx < tabelaNome.size()) ? tabelaNome.get(idx) : "DESCONHECIDO";
+        }
+
+        // Retorna o cargo vigente do usuário autenticado na tabela de funcionários
+        String obterCargoVigente() {
+            int idx = indiceAtual();
+            return (idx >= 0 && idx < tabelaCargo.size()) ? tabelaCargo.get(idx) : "SEM_CARGO";
+        }
+
+        // Confere se a senha informada corresponde à senha vigente do usuário ativo na sessão
+        boolean senhaAtualCorresponde(String senhaInformada) {
+            if (!estaAtiva() || senhaInformada == null) return false;
+            int idx = indiceAtual();
+            return idx >= 0 && idx < tabelaSenha.size() && senhaInformada.equals(tabelaSenha.get(idx));
         }
 
         // Indica se a sessão ainda está ativa e válida
@@ -314,6 +337,12 @@ public class prototipo {
             return "R$ ***.** (RESTRITO)";
         }
     }
+
+    // =========================================================================
+    // MÓDULO 3: AUDITORIA E LOGS DE DADOS / ESTOQUE
+    // Independentes entre si e desacoplados da lógica de negócios: registram
+    // auditoria interna, log de entradas/saídas em .TXT e histórico de estoque.
+    // =========================================================================
 
     // Registra eventos de auditoria com carimbo de data/hora e consulta filtrada
     static class ModuloAuditoria {
@@ -421,7 +450,11 @@ public class prototipo {
         }
     }
 
-    // Controla o saldo global de caixa, lançamentos financeiros e logs de movimento de dados
+    // =========================================================================
+    // MÓDULO 4: CAIXA E LANÇAMENTOS FINANCEIROS
+    // Controla o saldo global, entradas/saídas financeiras e registro no log
+    // de movimentação de dados sem depender de telas ou persistência em .TXT.
+    // =========================================================================
     static class ModuloCaixa {
         private final List<Double> saldoGlobal;
         private final List<String> transacaoTipo;
@@ -508,32 +541,18 @@ public class prototipo {
         }
     }
 
-    // Gerencia leitura de pré-cadastros, snapshots de rollback e backups editáveis em .TXT
+    // =========================================================================
+    // MÓDULO 5: PERSISTÊNCIA EM ARQUIVO .TXT
+    // Responsável por carregar pré-cadastros, gravar backups editáveis e
+    // restaurar o backup oficial sem manter campos de snapshot não utilizados.
+    // =========================================================================
     static class ModuloPersistenciaTxt {
         private final String arquivoPreCadastros;
         private final String arquivoBackupOficial;
-        private final String arquivoRollbackAuto;
 
-        // Snapshots em memória para rollback rápido durante operações
-        private List<String> snapFuncId = new ArrayList<>();
-        private List<String> snapFuncNome = new ArrayList<>();
-        private List<String> snapFuncCpf = new ArrayList<>();
-        private List<String> snapFuncCargo = new ArrayList<>();
-        private List<String> snapFuncSenha = new ArrayList<>();
-        private List<Double> snapFuncSalario = new ArrayList<>();
-        private List<Boolean> snapFuncPago = new ArrayList<>();
-        private List<String> snapFuncStatus = new ArrayList<>();
-        private List<String> snapFuncMotivo = new ArrayList<>();
-        private List<String> snapProdNome = new ArrayList<>();
-        private List<String> snapProdNcm = new ArrayList<>();
-        private List<Double> snapProdPreco = new ArrayList<>();
-        private List<Integer> snapProdQtd = new ArrayList<>();
-        private double snapSaldoCaixa = 200000.00;
-
-        ModuloPersistenciaTxt(String arquivoPreCadastros, String arquivoBackupOficial, String arquivoRollbackAuto) {
+        ModuloPersistenciaTxt(String arquivoPreCadastros, String arquivoBackupOficial) {
             this.arquivoPreCadastros = arquivoPreCadastros;
             this.arquivoBackupOficial = arquivoBackupOficial;
-            this.arquivoRollbackAuto = arquivoRollbackAuto;
         }
 
         String obterNomeArquivoBackup() {
@@ -677,57 +696,13 @@ public class prototipo {
             return true;
         }
 
-        // Captura snapshot em memória e grava arquivo de rollback automático
-        void executarRollbackAutomatico(
-                ModuloAutoridades moduloAutoridades,
-                List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
-                List<String> tabelaFuncCargo, List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario,
-                List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
-                List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
-                List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
-                List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga,
-                List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda,
-                List<Integer> tabelaProdQtdEstoque, List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
-                List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos,
-                List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
-                ModuloCaixa caixa) {
-
-            snapFuncId = new ArrayList<>(tabelaFuncId);
-            snapFuncNome = new ArrayList<>(tabelaFuncNome);
-            snapFuncCpf = new ArrayList<>(tabelaFuncCpf);
-            snapFuncCargo = new ArrayList<>(tabelaFuncCargo);
-            snapFuncSenha = new ArrayList<>(tabelaFuncSenha);
-            snapFuncSalario = new ArrayList<>(tabelaFuncSalario);
-            snapFuncPago = new ArrayList<>(tabelaFuncPago);
-            snapFuncStatus = new ArrayList<>(tabelaFuncStatus);
-            snapFuncMotivo = new ArrayList<>(tabelaFuncMotivoInativo);
-            snapProdNome = new ArrayList<>(tabelaProdNome);
-            snapProdNcm = new ArrayList<>(tabelaProdNcm);
-            snapProdPreco = new ArrayList<>(tabelaProdPrecoVenda);
-            snapProdQtd = new ArrayList<>(tabelaProdQtdEstoque);
-            snapSaldoCaixa = (caixa != null) ? caixa.obterSaldo() : snapSaldoCaixa;
-
-            try (BufferedWriter bw = new BufferedWriter(new FileWriter(arquivoRollbackAuto))) {
-                bw.write("# Snapshot automático de rollback - " + LocalDateTime.now().format(FORMATADOR_DATA_HORA) + "\n");
-                bw.write("SALDO_CAIXA=" + snapSaldoCaixa + "\n");
-                bw.write("FUNCIONARIOS=" + snapFuncId.size() + "\n");
-                bw.write("PRODUTOS=" + snapProdNome.size() + "\n");
-            } catch (IOException ignored) {}
-        }
-
-        // Grava o arquivo de backup editável com funcionários, autoridades, produtos e caixa
+        // Grava o arquivo de backup editável com funcionários (incluindo senha), produtos e caixa
         boolean salvarBackupEditavel(
-                ModuloAutoridades moduloAutoridades,
                 List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
                 List<String> tabelaFuncCargo, List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario,
                 List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
-                List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
-                List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
-                List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga,
                 List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda,
-                List<Integer> tabelaProdQtdEstoque, List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
-                List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos,
-                List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
+                List<Integer> tabelaProdQtdEstoque,
                 ModuloCaixa caixa) {
 
             try (BufferedWriter bw = new BufferedWriter(new FileWriter(arquivoBackupOficial))) {
@@ -739,23 +714,23 @@ public class prototipo {
                 bw.write("[FUNCIONARIOS_INICIO]\n");
                 for (int i = 0; i < tabelaFuncId.size(); i++) {
                     bw.write(String.join(";",
-                            tabelaFuncId.get(i),
-                            tabelaFuncNome.get(i),
-                            tabelaFuncCpf.get(i),
-                            tabelaFuncCargo.get(i),
-                            tabelaFuncSenha.get(i),
+                            sanitizarCampoTxt(tabelaFuncId.get(i)),
+                            sanitizarCampoTxt(tabelaFuncNome.get(i)),
+                            sanitizarCampoTxt(tabelaFuncCpf.get(i)),
+                            sanitizarCampoTxt(tabelaFuncCargo.get(i)),
+                            sanitizarCampoTxt(tabelaFuncSenha.get(i)),
                             String.valueOf(tabelaFuncSalario.get(i)),
                             String.valueOf(tabelaFuncPago.get(i)),
-                            tabelaFuncStatus.get(i),
-                            tabelaFuncMotivoInativo.get(i)) + "\n");
+                            sanitizarCampoTxt(tabelaFuncStatus.get(i)),
+                            sanitizarCampoTxt(tabelaFuncMotivoInativo.get(i))) + "\n");
                 }
                 bw.write("[FUNCIONARIOS_FIM]\n\n");
 
                 bw.write("[PRODUTOS_INICIO]\n");
                 for (int i = 0; i < tabelaProdNome.size(); i++) {
                     bw.write(String.join(";",
-                            tabelaProdNome.get(i),
-                            tabelaProdNcm.get(i),
+                            sanitizarCampoTxt(tabelaProdNome.get(i)),
+                            sanitizarCampoTxt(tabelaProdNcm.get(i)),
                             String.valueOf(tabelaProdPrecoVenda.get(i)),
                             String.valueOf(tabelaProdQtdEstoque.get(i))) + "\n");
                 }
@@ -768,17 +743,13 @@ public class prototipo {
 
         // Exporta o backup com confirmação do usuário e registra saída/auditoria após gravar com sucesso
         void exportarComConfirmacao(
-                Scanner leitorEntrada, ModuloSessao sessao, ModuloAuditoria auditoria, ModuloAutoridades moduloAutoridades,
+                Scanner leitorEntrada, ModuloSessao sessao, ModuloAuditoria auditoria,
                 List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
                 List<String> tabelaFuncCargo, List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario,
                 List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
-                List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
-                List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
-                List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga,
                 List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda,
-                List<Integer> tabelaProdQtdEstoque, List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
-                List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos,
-                List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
+                List<Integer> tabelaProdQtdEstoque,
+                int quantidadeTransacoes,
                 ModuloCaixa caixa) {
 
             if (!sessao.exigirAutoridade(Autoridade.SIS_AUDITORIA_E_BACKUP, "Sem autoridade para exportar backup.")) return;
@@ -789,14 +760,9 @@ public class prototipo {
             }
 
             boolean gravou = salvarBackupEditavel(
-                    moduloAutoridades,
                     tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
                     tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                    tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
-                    tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
                     tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
-                    tabelaClienteCpf, tabelaClienteNome,
-                    tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
                     caixa
             );
 
@@ -805,7 +771,7 @@ public class prototipo {
                 caixa.registrarMovimentoDados(
                         "SAIDA_DADOS",
                         "Operador: " + sessao.obterNomeVigente(),
-                        "Exportação de backup para '" + arquivoBackupOficial + "' (" + tabelaTransacaoTipo.size() + " lançamentos)"
+                        "Exportação de backup para '" + arquivoBackupOficial + "' (" + quantidadeTransacoes + " lançamentos)"
                 );
                 auditoria.registrar(sessao.obterNomeVigente(), "Exportou/atualizou arquivo editável " + arquivoBackupOficial);
                 System.out.println(CoresAnsi.sucesso(" Arquivo '" + arquivoBackupOficial + "' salvo com sucesso.\n"));
@@ -820,13 +786,8 @@ public class prototipo {
                 List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
                 List<String> tabelaFuncCargo, List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario,
                 List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
-                List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
-                List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
-                List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga,
                 List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda,
-                List<Integer> tabelaProdQtdEstoque, List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
-                List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos,
-                List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
+                List<Integer> tabelaProdQtdEstoque,
                 ModuloCaixa caixa) {
 
             if (!sessao.exigirAutoridade(Autoridade.SIS_AUDITORIA_E_BACKUP, "Sem autoridade para restaurar backup.")) return;
@@ -928,12 +889,18 @@ public class prototipo {
                 caixa.registrarMovimentoDados("ENTRADA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Restauração do backup '" + arquivoBackupOficial + "'");
                 auditoria.registrar(sessao.obterNomeVigente(), "Restaurou backup oficial " + arquivoBackupOficial);
                 System.out.println(CoresAnsi.sucesso(" Backup restaurado com sucesso.\n"));
-              // Captura IOException para falhas de arquivo e IllegalArgumentException (que já inclui NumberFormatException) para formatos inválidos
+                // Captura IOException para falhas de arquivo e IllegalArgumentException (que já inclui NumberFormatException) para formatos inválidos
             } catch (IOException | IllegalArgumentException e) {
                 System.out.println(CoresAnsi.erro("Falha ao restaurar backup: " + e.getMessage() + "\n"));
             }
         }
     }
+
+    // =========================================================================
+    // MÓDULO 6: VALIDAÇÃO DE ENTRADAS E CÁLCULOS FISCAIS / FINANCEIROS
+    // Funções puras ou de I/O isolado para leitura segura de console, validação
+    // de CPF/CNPJ/UF/números e cálculo de ICMS sem acoplamento de estado.
+    // =========================================================================
 
     // Lê linha do Scanner com segurança e remove espaços das extremidades
     private static String lerLinhaSegura(Scanner leitorEntrada) {
@@ -1192,8 +1159,7 @@ public class prototipo {
     }
 
     // Calcula a alíquota de ICMS conforme UFs de origem/destino e exercício fiscal
-    // O parâmetro codigoNcmProduto fica reservado para regras tributárias específicas por NCM
-    public static double calcularAliquotaIcmsPorOperacao(String codigoNcmProduto, String ufOrigemOperacao, String ufDestinoOperacao, int anoExercicioFiscal) {
+    public static double calcularAliquotaIcmsPorOperacao(String ufOrigemOperacao, String ufDestinoOperacao, int anoExercicioFiscal) {
         String origem = (ufOrigemOperacao == null) ? "SP" : ufOrigemOperacao.trim().toUpperCase();
         String destino = (ufDestinoOperacao == null) ? origem : ufDestinoOperacao.trim().toUpperCase();
         if (origem.equals(destino)) {
@@ -1219,6 +1185,12 @@ public class prototipo {
                 return null;
         }
     }
+
+    // =========================================================================
+    // MÓDULO 7: RECURSOS HUMANOS E PERFIL DO USUÁRIO
+    // Agrupa operações de cadastro, alteração de cargo/salário, pagamento de
+    // folha, inativação/readmissão, autoridades e troca de senha em "Meu Perfil".
+    // =========================================================================
 
     // Altera o cargo de um funcionário ativo (promoção ou rebaixamento), ajusta salário e sincroniza autoridades
     private static void alterarCargoFuncionario(
@@ -1289,199 +1261,19 @@ public class prototipo {
         System.out.println(CoresAnsi.sucesso(" " + detalheEvento + ".\n"));
     }
 
-    // Recarrega pré-cadastros do .TXT preservando senhas e estoques já alterados na memória
-    private static void garantirPreCadastrosAtualizadosDoTxt(
-            ModuloPersistenciaTxt persistencia,
-            ModuloCaixa caixa,
-            ModuloAutoridades moduloAutoridades,
-            List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
-            List<String> tabelaFuncCargo, List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario,
-            List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
-            List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
-            List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
-            List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga,
-            List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda,
-            List<Integer> tabelaProdQtdEstoque, List<String> tabelaClienteCpf, List<String> tabelaClienteNome) {
-
-        // Guarda cópias das senhas e estoques em memória antes de reler o arquivo
-        List<String> idsAnteriores = new ArrayList<>(tabelaFuncId);
-        List<String> senhasAnteriores = new ArrayList<>(tabelaFuncSenha);
-        List<String> nomesProdAnteriores = new ArrayList<>(tabelaProdNome);
-        List<Integer> estoquesProdAnteriores = new ArrayList<>(tabelaProdQtdEstoque);
-
-        boolean ok = persistencia.conferirECarregarPreCadastrosExternos(
-                tabelaFuncId, tabelaFuncNome, tabelaFuncCpf,
-                tabelaFuncCargo, tabelaFuncSenha, tabelaFuncSalario,
-                tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf,
-                tabelaFornProdutoPrincipal, tabelaFornValorFatura,
-                tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
-                tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda,
-                tabelaProdQtdEstoque, tabelaClienteCpf, tabelaClienteNome
-        );
-
-        if (!ok) return;
-
-        // Restaura senhas alteradas em memória para IDs já existentes
-        for (int i = 0; i < tabelaFuncId.size(); i++) {
-            int idxAntigo = idsAnteriores.indexOf(tabelaFuncId.get(i));
-            if (idxAntigo != -1 && idxAntigo < senhasAnteriores.size()) {
-                tabelaFuncSenha.set(i, senhasAnteriores.get(idxAntigo));
-            }
-        }
-
-        // Restaura quantidades de estoque modificadas em memória para itens já existentes
-        for (int i = 0; i < tabelaProdNome.size(); i++) {
-            int idxAntigo = nomesProdAnteriores.indexOf(tabelaProdNome.get(i));
-            if (idxAntigo != -1 && idxAntigo < estoquesProdAnteriores.size()) {
-                tabelaProdQtdEstoque.set(i, estoquesProdAnteriores.get(idxAntigo));
-            }
-        }
-
-        if (moduloAutoridades != null) {
-            moduloAutoridades.sincronizarComTabelaFuncionarios(tabelaFuncId, tabelaFuncCargo, tabelaFuncStatus);
-        }
-
-        caixa.registrarMovimentoDados(
-                "ENTRADA_DADOS",
-                "Arquivo: " + ARQUIVO_PRE_CADASTROS,
-                "Leitura sob demanda de pré-cadastros (" + tabelaProdNome.size() + " itens, " + tabelaFuncId.size() + " cadastros)"
-        );
-    }
-
-    // Inicializa a base operacional com pré-cadastros, lançamentos iniciais, indicadores e backup
-    public static void popularBaseOperacional(
-            ModuloAuditoria auditoria,
-            ModuloCaixa caixa,
-            ModuloPersistenciaTxt persistencia,
-            ModuloAutoridades moduloAutoridades,
-            ModuloMovimentacaoEstoque movEstoque,
-            List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
-            List<String> tabelaFuncCargo, List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario,
-            List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
-            List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
-            List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
-            List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga,
-            List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda, List<Integer> tabelaProdQtdEstoque,
-            List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
-            List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos, List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
-            List<Double> indicadorReceitaBrutaVendas,
-            List<Double> indicadorCustoMercadoriaVendida, List<Double> indicadorTotalFornecedoresPagos,
-            List<Double> indicadorTotalSalariosPagos, List<Double> indicadorImpostosProvisionados,
-            int anoExercicioFiscal) {
-
-        garantirPreCadastrosAtualizadosDoTxt(
-                persistencia, caixa, moduloAutoridades,
-                tabelaFuncId, tabelaFuncNome, tabelaFuncCpf,
-                tabelaFuncCargo, tabelaFuncSenha, tabelaFuncSalario,
-                tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf,
-                tabelaFornProdutoPrincipal, tabelaFornValorFatura,
-                tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
-                tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda,
-                tabelaProdQtdEstoque, tabelaClienteCpf, tabelaClienteNome
-        );
-
-        tabelaTransacaoTipo.clear(); tabelaTransacaoEnvolvidos.clear(); tabelaTransacaoDescricao.clear(); tabelaTransacaoValor.clear();
-
-        caixa.registrarMovimentoDados(
-                "ENTRADA_DADOS",
-                "Arquivo: " + ARQUIVO_PRE_CADASTROS,
-                "Carga inicial de pré-cadastros externos"
-        );
-
-        double acumuladoReceitaVendas = 0.0;
-        double acumuladoImpostos = 0.0;
-
-        // Gera uma venda inicial de exemplo caso exista ao menos um produto
-        if (!tabelaProdNome.isEmpty()) {
-            int quantidadeItens = 2;
-            double valorVenda = tabelaProdPrecoVenda.get(0) * quantidadeItens;
-            double aliquotaIcms = calcularAliquotaIcmsPorOperacao(tabelaProdNcm.get(0), "SP", "SP", anoExercicioFiscal);
-            String nomeCliente = tabelaClienteNome.isEmpty() ? "CLIENTE AVULSO" : tabelaClienteNome.get(0);
-            String cpfCliente = tabelaClienteCpf.isEmpty() ? "00000000000" : tabelaClienteCpf.get(0);
-
-            tabelaTransacaoTipo.add("VENDA");
-            tabelaTransacaoEnvolvidos.add("Cliente: " + nomeCliente + " (CPF: " + cpfCliente + ") | Caixa: TERMINAL 01");
-            tabelaTransacaoDescricao.add(quantidadeItens + "x " + tabelaProdNome.get(0));
-            tabelaTransacaoValor.add(valorVenda);
-
-            if (movEstoque != null) {
-                movEstoque.registrarMovimento("SAIDA_VENDA", tabelaProdNome.get(0), -quantidadeItens, tabelaProdQtdEstoque.get(0), "Cliente: " + nomeCliente, "SISTEMA");
-            }
-
-            acumuladoReceitaVendas += valorVenda;
-            acumuladoImpostos += (valorVenda * aliquotaIcms);
-        }
-
-        String fornecedorInicial = tabelaFornRazaoSocial.isEmpty() ? "FORNECEDOR INICIAL" : tabelaFornRazaoSocial.get(0);
-        String usuarioInicial = tabelaFuncNome.isEmpty() ? "OPERADOR INICIAL" : tabelaFuncNome.get(0);
-
-        // Registra compra inicial e adiantamento de folha para compor o histórico base
-        tabelaTransacaoTipo.add("COMPRA / ABASTECIMENTO");
-        tabelaTransacaoEnvolvidos.add("Fornecedor: " + fornecedorInicial);
-        tabelaTransacaoDescricao.add("Reposição inicial de lote");
-        tabelaTransacaoValor.add(4500.00);
-
-        tabelaTransacaoTipo.add("PAGAMENTO");
-        tabelaTransacaoEnvolvidos.add("Funcionário: " + usuarioInicial);
-        tabelaTransacaoDescricao.add("Adiantamento de folha salarial");
-        tabelaTransacaoValor.add(5500.00);
-
-        // Atualiza indicadores financeiros e ajusta o saldo inicial do caixa
-        indicadorReceitaBrutaVendas.set(0, acumuladoReceitaVendas);
-        indicadorCustoMercadoriaVendida.set(0, acumuladoReceitaVendas * 0.45);
-        indicadorTotalFornecedoresPagos.set(0, 4500.00);
-        indicadorTotalSalariosPagos.set(0, 5500.00);
-        indicadorImpostosProvisionados.set(0, acumuladoImpostos);
-        caixa.definirSaldo(caixa.obterSaldo() + acumuladoReceitaVendas - 10000.00);
-
-        caixa.registrarMovimentoDados(
-                "SAIDA_DADOS",
-                "Arquivo: " + ARQUIVO_BACKUP_OFICIAL,
-                "Gravação inicial de backup editável"
-        );
-
-        // Grava o primeiro arquivo de backup editável com o estado inicial
-        persistencia.salvarBackupEditavel(
-                moduloAutoridades,
-                tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
-                tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
-                tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
-                tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
-                tabelaClienteCpf, tabelaClienteNome,
-                tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
-                caixa
-        );
-
-        auditoria.registrar("SISTEMA", "Base inicializada via '" + ARQUIVO_PRE_CADASTROS + "' e salva em '" + ARQUIVO_BACKUP_OFICIAL + "'");
-        System.out.println(CoresAnsi.sucesso(" Base inicializada (" + tabelaProdNome.size() + " itens, " + tabelaTransacaoTipo.size() + " lançamentos)."));
-        System.out.println(CoresAnsi.colorir(CoresAnsi.CIANO, " Pré-cadastros externos em: '" + ARQUIVO_PRE_CADASTROS + "'"));
-        System.out.println(CoresAnsi.colorir(CoresAnsi.CIANO, " Arquivo editável disponível: '" + ARQUIVO_BACKUP_OFICIAL + "'"));
-        System.out.println(CoresAnsi.colorir(CoresAnsi.CIANO, " Log de entradas/saídas em: '" + ARQUIVO_LOG_DADOS + "'\n"));
-    }
-
     // Exibe os dados do usuário logado e permite alterar a própria senha com persistência automática
     public static void exibirAbaMeuPerfil(
-        
             Scanner leitorEntrada,
             ModuloSessao sessao,
             ModuloAuditoria auditoria,
             ModuloCaixa caixa,
             ModuloPersistenciaTxt persistencia,
-            ModuloAutoridades moduloAutoridades,
             List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
             List<String> tabelaFuncCargo, List<String> tabelaFuncSenha,
             List<Double> tabelaFuncSalario, List<Boolean> tabelaFuncPago,
             List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
-            List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
-            List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
-            List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga,
             List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda,
-            List<Integer> tabelaProdQtdEstoque, List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
-            List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos,
-            List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor) {
+            List<Integer> tabelaProdQtdEstoque) {
 
         boolean abaPerfilAtiva = true;
         while (abaPerfilAtiva) {
@@ -1511,7 +1303,8 @@ public class prototipo {
             System.out.printf("│ Matrícula / ID   : %s\n", tabelaFuncId.get(indice));
             System.out.printf("│ Nome Completo    : %s\n", tabelaFuncNome.get(indice));
             System.out.printf("│ CPF              : %s\n", tabelaFuncCpf.get(indice));
-            System.out.printf("│ Perfil / Cargo   : %s\n", tabelaFuncCargo.get(indice));
+            // Exibe o cargo vigente obtido diretamente da sessão autenticada
+            System.out.printf("│ Perfil / Cargo   : %s\n", sessao.obterCargoVigente());
             System.out.printf("│ Status da Conta  : %s\n", (estaAtivo ? CoresAnsi.sucesso("ATIVO ") : CoresAnsi.erro("INATIVO ")));
             System.out.printf("│ Autoridade       : %s\n", (estaAtivo ? CoresAnsi.sucesso("HABILITADA") : CoresAnsi.erro("REVOGADA")));
             System.out.printf("│ Salário Base     : %s\n", sessao.exibirValorCondicional(Autoridade.FIN_VER_VALORES_SENSIVEIS, tabelaFuncSalario.get(indice)));
@@ -1532,8 +1325,8 @@ public class prototipo {
                 String senhaAtualInformada = lerLinhaSegura(leitorEntrada);
                 if (isComandoCancelamento(senhaAtualInformada)) continue;
 
-                // Confere se a senha atual informada bate com a cadastrada
-                if (!senhaAtualInformada.equals(tabelaFuncSenha.get(indice))) {
+                // Delega ao ModuloSessao a conferência da senha atual contra a tabela paralela de senhas
+                if (!sessao.senhaAtualCorresponde(senhaAtualInformada)) {
                     System.out.println(CoresAnsi.erro("Senha atual incorreta.\n"));
                     continue;
                 }
@@ -1556,7 +1349,7 @@ public class prototipo {
                 String confirmacaoSenha = lerLinhaSegura(leitorEntrada);
                 if (isComandoCancelamento(confirmacaoSenha)) continue;
 
-  if (!novaSenha.equals(confirmacaoSenha)) {
+                if (!novaSenha.equals(confirmacaoSenha)) {
                     System.out.println(CoresAnsi.erro("A confirmação não coincide com a nova senha.\n"));
                     continue;
                 }
@@ -1571,14 +1364,9 @@ public class prototipo {
 
                 // Persiste a senha atualizada automaticamente no arquivo de backup editável (.TXT)
                 boolean salvouTxt = persistencia.salvarBackupEditavel(
-                        moduloAutoridades,
                         tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
                         tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                        tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
-                        tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
                         tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
-                        tabelaClienteCpf, tabelaClienteNome,
-                        tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
                         caixa
                 );
 
@@ -1600,33 +1388,12 @@ public class prototipo {
             ModuloSessao sessao,
             ModuloAuditoria auditoria,
             ModuloCaixa caixa,
-            ModuloPersistenciaTxt persistencia,
             ModuloAutoridades moduloAutoridades,
             List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
             List<String> tabelaFuncCargo, List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario,
-            List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
-            List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
-            List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
-            List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga,
-            List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda,
-            List<Integer> tabelaProdQtdEstoque, List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
-            List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos,
-            List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor) {
+            List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo) {
 
         if (!sessao.exigirAutoridade(Autoridade.RH_GERIR_CADASTROS, "Sem autoridade para cadastrar funcionários.")) return;
-
-        // Gera ponto de rollback antes de adicionar novo registro
-        persistencia.executarRollbackAutomatico(
-                moduloAutoridades,
-                tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
-                tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
-                tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
-                tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
-                tabelaClienteCpf, tabelaClienteNome,
-                tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
-                caixa
-        );
 
         String novoIdFuncional;
         while (true) {
@@ -1692,8 +1459,6 @@ public class prototipo {
             List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga,
             List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda, List<Integer> tabelaProdQtdEstoque,
             List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
-            List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos,
-            List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
             List<Double> indicadorTotalSalariosPagos) {
 
         if (!sessao.exigirAutoridade(Autoridade.RH_VER_FUNCIONARIOS, "Sem autoridade para acessar a gestão de funcionários.")) {
@@ -1784,14 +1549,9 @@ public class prototipo {
                 System.out.println(CoresAnsi.sucesso(" Filtro de funcionários removido.\n"));
             } else if (comandoUsuario.equals("C")) {
                 cadastrarNovoFuncionarioNaTabela(
-                        leitorEntrada, sessao, auditoria, caixa, persistencia, moduloAutoridades,
+                        leitorEntrada, sessao, auditoria, caixa, moduloAutoridades,
                         tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
-                        tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                        tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
-                        tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
-                        tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
-                        tabelaClienteCpf, tabelaClienteNome,
-                        tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor
+                        tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo
                 );
             } else if (isComandoCancelamento(comandoUsuario)) navegandoLista = false;
             else if (comandoUsuario.matches("^[0-9]+$")) {
@@ -1994,7 +1754,7 @@ public class prototipo {
             } else if (acaoEscolhida == 5) {
                 if (!sessao.exigirAutoridade(Autoridade.RH_GERIR_CADASTROS, "Sem autoridade para readmitir registro.")) continue;
                 if (estaAtivo) {
-                    System.out.println(CoresAnsi.aviso("ℹ️ Registro já está ativo.\n"));
+                    System.out.println(CoresAnsi.aviso(" Registro já está ativo.\n"));
                     continue;
                 }
                 int opcaoCargo = validarELerNumeroInteiro(leitorEntrada, "Nível de acesso [1 - Gerente | 2 - Operador | 3 - Financeiro] [0 para cancelar]: ");
@@ -2057,6 +1817,12 @@ public class prototipo {
             }
         }
     }
+
+    // =========================================================================
+    // MÓDULO 8: FORNECEDORES E ABASTECIMENTO
+    // Agrupa cadastro de compras de fornecedores, entrada de estoque, edição,
+    // quitação de faturas e remoção de registros de fornecimento.
+    // =========================================================================
 
     // Auxiliar de registro de operação com fornecedor e entrada de estoque
     private static void registrarOperacaoFornecedorNaTabela(
@@ -2161,8 +1927,6 @@ public class prototipo {
             List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga,
             List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda, List<Integer> tabelaProdQtdEstoque,
             List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
-            List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos,
-            List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
             List<Double> indicadorGastosEstoque, List<Double> indicadorTotalFornecedoresPagos) {
 
         if (!sessao.exigirAutoridade(Autoridade.FORN_VER_LISTA, "Sem autoridade para visualizar fornecedores.")) {
@@ -2344,6 +2108,13 @@ public class prototipo {
         }
     }
 
+    // =========================================================================
+    // MÓDULO 9: ESTOQUE, RELATÓRIOS FINANCEIROS E LOGS
+    // Agrupa catálogo de produtos, movimentações de estoque, histórico de
+    // lançamentos, relatório de compras por cliente e visualização/exportação
+    // de logs e backups.
+    // =========================================================================
+
     // Consolida vendas por cliente, calcula ticket médio e permite exportar relatório em .TXT
     public static void exibirRelatorioVolumeComprasClientes(
             Scanner leitorEntrada, ModuloAuditoria auditoria, ModuloSessao sessao, ModuloCaixa caixa,
@@ -2465,10 +2236,9 @@ public class prototipo {
         lerLinhaSegura(leitorEntrada);
     }
 
-    // Exibe histórico paginado de lançamentos financeiros com filtro e opção de estorno
+    // Exibe histórico paginado de lançamentos financeiros com filtro e paginação
     private static void gerenciarHistoricoTransacoesPaginado(
-            Scanner leitorEntrada, ModuloSessao sessao, ModuloAuditoria auditoria, ModuloCaixa caixa,
-            ModuloMovimentacaoEstoque movEstoque, List<String> tabelaProdNome, List<Integer> tabelaProdQtdEstoque,
+            Scanner leitorEntrada, ModuloSessao sessao,
             List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos,
             List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor) {
 
@@ -2533,31 +2303,10 @@ public class prototipo {
             ModuloSessao sessao,
             ModuloAuditoria auditoria,
             ModuloCaixa caixa,
-            ModuloPersistenciaTxt persistencia,
-            ModuloAutoridades moduloAutoridades,
             ModuloMovimentacaoEstoque movEstoque,
-            List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda, List<Integer> tabelaProdQtdEstoque,
-            List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
-            List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos, List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
-            List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf, List<String> tabelaFuncCargo,
-            List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario, List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
-            List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
-            List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
-            List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga) {
+            List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda, List<Integer> tabelaProdQtdEstoque) {
 
         if (!sessao.exigirAutoridade(Autoridade.EST_GERIR_CATALOGO, "Sem autoridade para cadastrar item.")) return;
-
-        persistencia.executarRollbackAutomatico(
-                moduloAutoridades,
-                tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
-                tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
-                tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
-                tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
-                tabelaClienteCpf, tabelaClienteNome,
-                tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
-                caixa
-        );
 
         String nomeProduto = validarELerTextoLivreObrigatorio(leitorEntrada, "Nome do item [0 para cancelar]: ");
         if (nomeProduto.equals("CANCELAR")) return;
@@ -2654,22 +2403,15 @@ public class prototipo {
                         tabelaProdQtdEstoque, tabelaClienteCpf, tabelaClienteNome
                 );
                 gerenciarCatalogoProdutosPaginado(
-                        leitorEntrada, sessao, auditoria, caixa, persistencia, moduloAutoridades, movEstoque,
-                        tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
-                        tabelaClienteCpf, tabelaClienteNome,
-                        tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
-                        tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo,
-                        tabelaFuncSenha, tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                        tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf,
-                        tabelaFornProdutoPrincipal, tabelaFornValorFatura,
-                        tabelaFornMargemLucroPct, tabelaFornFaturaPaga
+                        leitorEntrada, sessao, auditoria, caixa, movEstoque,
+                        tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque
                 );
             } else if (opcaoEscolhida == 2) {
                 if (!sessao.exigirAutoridade(Autoridade.EST_VER_CATALOGO, "Sem autoridade para consultar movimentações de estoque.")) continue;
                 exibirMovimentacoesEstoquePaginado(leitorEntrada, movEstoque);
             } else if (opcaoEscolhida == 3) {
                 if (!sessao.exigirAutoridade(Autoridade.FIN_VER_VALORES_SENSIVEIS, "Sem autoridade para ver lançamentos financeiros.")) continue;
-                gerenciarHistoricoTransacoesPaginado(leitorEntrada, sessao, auditoria, caixa, movEstoque, tabelaProdNome, tabelaProdQtdEstoque, tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor);
+                gerenciarHistoricoTransacoesPaginado(leitorEntrada, sessao, tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor);
             } else if (opcaoEscolhida == 4) {
                 if (!sessao.exigirAutoridade(Autoridade.FIN_VER_VALORES_SENSIVEIS, "Sem autoridade para gerar relatório financeiro.")) continue;
                 exibirRelatorioVolumeComprasClientes(leitorEntrada, auditoria, sessao, caixa, tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor);
@@ -2691,14 +2433,11 @@ public class prototipo {
                 exibirLogAuditoriaPaginado(leitorEntrada, sessao, auditoria);
             } else if (opcaoEscolhida == 8) {
                 persistencia.exportarComConfirmacao(
-                        leitorEntrada, sessao, auditoria, moduloAutoridades,
+                        leitorEntrada, sessao, auditoria,
                         tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
                         tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                        tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
-                        tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
                         tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
-                        tabelaClienteCpf, tabelaClienteNome,
-                        tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
+                        tabelaTransacaoTipo.size(),
                         caixa
                 );
             } else if (opcaoEscolhida == 9) {
@@ -2706,11 +2445,7 @@ public class prototipo {
                         leitorEntrada, sessao, auditoria, moduloAutoridades,
                         tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
                         tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                        tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
-                        tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
                         tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
-                        tabelaClienteCpf, tabelaClienteNome,
-                        tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
                         caixa
                 );
             } else {
@@ -2837,7 +2572,7 @@ public class prototipo {
                 System.out.print("Nome do arquivo .TXT [ENTER para '" + ARQUIVO_LOG_FILTRADO_EXPORTADO + "' | 0 para cancelar]: ");
                 String nomeDigitado = lerLinhaSegura(leitorEntrada);
                 if (isComandoCancelamento(nomeDigitado)) {
-                    System.out.println(CoresAnsi.aviso("ℹ️ Exportação cancelada.\n"));
+                    System.out.println(CoresAnsi.aviso(" Exportação cancelada.\n"));
                     continue;
                 }
                 // Sanitiza caracteres inválidos de caminho e garante extensão .txt
@@ -2855,7 +2590,7 @@ public class prototipo {
                     System.out.print(CoresAnsi.aviso(" O arquivo '" + arquivoDestino + "' já existe. Deseja sobrescrever? [S/N]: "));
                     String respostaSobrescrita = lerLinhaSegura(leitorEntrada).toUpperCase();
                     if (!respostaSobrescrita.equals("S")) {
-                        System.out.println(CoresAnsi.aviso("ℹ️ Sobrescrita cancelada. O arquivo existente foi mantido.\n"));
+                        System.out.println(CoresAnsi.aviso(" Sobrescrita cancelada. O arquivo existente foi mantido.\n"));
                         continue;
                     }
                 }
@@ -2956,17 +2691,8 @@ public class prototipo {
             ModuloSessao sessao,
             ModuloAuditoria auditoria,
             ModuloCaixa caixa,
-            ModuloPersistenciaTxt persistencia,
-            ModuloAutoridades moduloAutoridades,
             ModuloMovimentacaoEstoque movEstoque,
-            List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda, List<Integer> tabelaProdQtdEstoque,
-            List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
-            List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos, List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
-            List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf, List<String> tabelaFuncCargo,
-            List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario, List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
-            List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
-            List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
-            List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga) {
+            List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda, List<Integer> tabelaProdQtdEstoque) {
 
         int paginaAtual = 1;
         final int ITENS_POR_PAGINA = 25;
@@ -3030,15 +2756,8 @@ public class prototipo {
                 System.out.println(CoresAnsi.sucesso(" Filtro do catálogo removido.\n"));
             } else if (comandoCatalogo.equals("C")) {
                 cadastrarItemCatalogoNaTabela(
-                        leitorEntrada, sessao, auditoria, caixa, persistencia, moduloAutoridades, movEstoque,
-                        tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
-                        tabelaClienteCpf, tabelaClienteNome,
-                        tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
-                        tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo,
-                        tabelaFuncSenha, tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                        tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf,
-                        tabelaFornProdutoPrincipal, tabelaFornValorFatura,
-                        tabelaFornMargemLucroPct, tabelaFornFaturaPaga
+                        leitorEntrada, sessao, auditoria, caixa, movEstoque,
+                        tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque
                 );
             } else if (isComandoCancelamento(comandoCatalogo)) {
                 navegandoCatalogo = false;
@@ -3047,6 +2766,12 @@ public class prototipo {
             }
         }
     }
+
+    // =========================================================================
+    // MÓDULO 10: PORTAL DO CLIENTE E CARRINHO DE COMPRAS
+    // Isola a vitrine paginada, reserva de itens no carrinho, consulta de
+    // histórico por CPF e fechamento de venda sem depender de estado administrativo.
+    // =========================================================================
 
     // Soma a quantidade de um produto já reservada no carrinho atual
     private static int obterQuantidadeReservadaNoCarrinho(int indiceProduto, List<Integer> carrinhoIndices, List<Integer> carrinhoQuantidades) {
@@ -3138,7 +2863,7 @@ public class prototipo {
             int novoSaldo = Math.max(0, tabelaProdQtdEstoque.get(idxProd) - qtd);
             tabelaProdQtdEstoque.set(idxProd, novoSaldo);
             double subtotal = tabelaProdPrecoVenda.get(idxProd) * qtd;
-            impostosVenda += subtotal * calcularAliquotaIcmsPorOperacao(tabelaProdNcm.get(idxProd), "SP", "SP", anoExercicioFiscal);
+            impostosVenda += subtotal * calcularAliquotaIcmsPorOperacao("SP", "SP", anoExercicioFiscal);
             if (i > 0) resumoItens.append(", ");
             resumoItens.append(qtd).append("x ").append(tabelaProdNome.get(idxProd));
             if (movEstoque != null) {
@@ -3158,14 +2883,7 @@ public class prototipo {
 
     // Portal de compras paginado e filtrável do cliente com carrinho em memória
     public static void executarPortalComprasCliente(
-            Scanner leitorEntrada, ModuloCaixa caixa, ModuloPersistenciaTxt persistencia,
-            ModuloAutoridades moduloAutoridades, ModuloMovimentacaoEstoque movEstoque,
-            List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
-            List<String> tabelaFuncCargo, List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario,
-            List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
-            List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
-            List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
-            List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga,
+            Scanner leitorEntrada, ModuloCaixa caixa, ModuloMovimentacaoEstoque movEstoque,
             List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda, List<Integer> tabelaProdQtdEstoque,
             List<Double> indicadorReceitaBrutaVendas, List<Double> indicadorCustoMercadoriaVendida, List<Double> indicadorImpostosProvisionados,
             List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
@@ -3290,6 +3008,180 @@ public class prototipo {
         }
     }
 
+    // =========================================================================
+    // MÓDULO 11: INICIALIZAÇÃO DE BASE E PAINEL ADMINISTRATIVO
+    // Coordena a carga inicial da base operacional e o roteamento entre as
+    // abas administrativas sem concentrar regras internas de cada módulo.
+    // =========================================================================
+
+    // Recarrega pré-cadastros do .TXT preservando senhas e estoques já alterados na memória
+    private static void garantirPreCadastrosAtualizadosDoTxt(
+            ModuloPersistenciaTxt persistencia,
+            ModuloCaixa caixa,
+            ModuloAutoridades moduloAutoridades,
+            List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
+            List<String> tabelaFuncCargo, List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario,
+            List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
+            List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
+            List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
+            List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga,
+            List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda,
+            List<Integer> tabelaProdQtdEstoque, List<String> tabelaClienteCpf, List<String> tabelaClienteNome) {
+
+        // Guarda cópias das senhas e estoques em memória antes de reler o arquivo
+        List<String> idsAnteriores = new ArrayList<>(tabelaFuncId);
+        List<String> senhasAnteriores = new ArrayList<>(tabelaFuncSenha);
+        List<String> nomesProdAnteriores = new ArrayList<>(tabelaProdNome);
+        List<Integer> estoquesProdAnteriores = new ArrayList<>(tabelaProdQtdEstoque);
+
+        boolean ok = persistencia.conferirECarregarPreCadastrosExternos(
+                tabelaFuncId, tabelaFuncNome, tabelaFuncCpf,
+                tabelaFuncCargo, tabelaFuncSenha, tabelaFuncSalario,
+                tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
+                tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf,
+                tabelaFornProdutoPrincipal, tabelaFornValorFatura,
+                tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
+                tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda,
+                tabelaProdQtdEstoque, tabelaClienteCpf, tabelaClienteNome
+        );
+
+        if (!ok) return;
+
+        // Restaura senhas alteradas em memória para IDs já existentes
+        for (int i = 0; i < tabelaFuncId.size(); i++) {
+            int idxAntigo = idsAnteriores.indexOf(tabelaFuncId.get(i));
+            if (idxAntigo != -1 && idxAntigo < senhasAnteriores.size()) {
+                tabelaFuncSenha.set(i, senhasAnteriores.get(idxAntigo));
+            }
+        }
+
+        // Restaura quantidades de estoque modificadas em memória para itens já existentes
+        for (int i = 0; i < tabelaProdNome.size(); i++) {
+            int idxAntigo = nomesProdAnteriores.indexOf(tabelaProdNome.get(i));
+            if (idxAntigo != -1 && idxAntigo < estoquesProdAnteriores.size()) {
+                tabelaProdQtdEstoque.set(i, estoquesProdAnteriores.get(idxAntigo));
+            }
+        }
+
+        if (moduloAutoridades != null) {
+            moduloAutoridades.sincronizarComTabelaFuncionarios(tabelaFuncId, tabelaFuncCargo, tabelaFuncStatus);
+        }
+
+        caixa.registrarMovimentoDados(
+                "ENTRADA_DADOS",
+                "Arquivo: " + ARQUIVO_PRE_CADASTROS,
+                "Leitura sob demanda de pré-cadastros (" + tabelaProdNome.size() + " itens, " + tabelaFuncId.size() + " cadastros)"
+        );
+    }
+
+    // Inicializa a base operacional com pré-cadastros, lançamentos iniciais, indicadores e backup
+    public static void popularBaseOperacional(
+            ModuloAuditoria auditoria,
+            ModuloCaixa caixa,
+            ModuloPersistenciaTxt persistencia,
+            ModuloAutoridades moduloAutoridades,
+            ModuloMovimentacaoEstoque movEstoque,
+            List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
+            List<String> tabelaFuncCargo, List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario,
+            List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
+            List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
+            List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
+            List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga,
+            List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda, List<Integer> tabelaProdQtdEstoque,
+            List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
+            List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos, List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
+            List<Double> indicadorReceitaBrutaVendas,
+            List<Double> indicadorCustoMercadoriaVendida, List<Double> indicadorTotalFornecedoresPagos,
+            List<Double> indicadorTotalSalariosPagos, List<Double> indicadorImpostosProvisionados,
+            int anoExercicioFiscal) {
+
+        garantirPreCadastrosAtualizadosDoTxt(
+                persistencia, caixa, moduloAutoridades,
+                tabelaFuncId, tabelaFuncNome, tabelaFuncCpf,
+                tabelaFuncCargo, tabelaFuncSenha, tabelaFuncSalario,
+                tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
+                tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf,
+                tabelaFornProdutoPrincipal, tabelaFornValorFatura,
+                tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
+                tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda,
+                tabelaProdQtdEstoque, tabelaClienteCpf, tabelaClienteNome
+        );
+
+        tabelaTransacaoTipo.clear(); tabelaTransacaoEnvolvidos.clear(); tabelaTransacaoDescricao.clear(); tabelaTransacaoValor.clear();
+
+        caixa.registrarMovimentoDados(
+                "ENTRADA_DADOS",
+                "Arquivo: " + ARQUIVO_PRE_CADASTROS,
+                "Carga inicial de pré-cadastros externos"
+        );
+
+        double acumuladoReceitaVendas = 0.0;
+        double acumuladoImpostos = 0.0;
+
+        // Gera uma venda inicial de exemplo caso exista ao menos um produto
+        if (!tabelaProdNome.isEmpty()) {
+            int quantidadeItens = 2;
+            double valorVenda = tabelaProdPrecoVenda.get(0) * quantidadeItens;
+            double aliquotaIcms = calcularAliquotaIcmsPorOperacao("SP", "SP", anoExercicioFiscal);
+            String nomeCliente = tabelaClienteNome.isEmpty() ? "CLIENTE AVULSO" : tabelaClienteNome.get(0);
+            String cpfCliente = tabelaClienteCpf.isEmpty() ? "00000000000" : tabelaClienteCpf.get(0);
+
+            tabelaTransacaoTipo.add("VENDA");
+            tabelaTransacaoEnvolvidos.add("Cliente: " + nomeCliente + " (CPF: " + cpfCliente + ") | Caixa: TERMINAL 01");
+            tabelaTransacaoDescricao.add(quantidadeItens + "x " + tabelaProdNome.get(0));
+            tabelaTransacaoValor.add(valorVenda);
+
+            if (movEstoque != null) {
+                movEstoque.registrarMovimento("SAIDA_VENDA", tabelaProdNome.get(0), -quantidadeItens, tabelaProdQtdEstoque.get(0), "Cliente: " + nomeCliente, "SISTEMA");
+            }
+
+            acumuladoReceitaVendas += valorVenda;
+            acumuladoImpostos += (valorVenda * aliquotaIcms);
+        }
+
+        String fornecedorInicial = tabelaFornRazaoSocial.isEmpty() ? "FORNECEDOR INICIAL" : tabelaFornRazaoSocial.get(0);
+        String usuarioInicial = tabelaFuncNome.isEmpty() ? "OPERADOR INICIAL" : tabelaFuncNome.get(0);
+
+        // Registra compra inicial e adiantamento de folha para compor o histórico base
+        tabelaTransacaoTipo.add("COMPRA / ABASTECIMENTO");
+        tabelaTransacaoEnvolvidos.add("Fornecedor: " + fornecedorInicial);
+        tabelaTransacaoDescricao.add("Reposição inicial de lote");
+        tabelaTransacaoValor.add(4500.00);
+
+        tabelaTransacaoTipo.add("PAGAMENTO");
+        tabelaTransacaoEnvolvidos.add("Funcionário: " + usuarioInicial);
+        tabelaTransacaoDescricao.add("Adiantamento de folha salarial");
+        tabelaTransacaoValor.add(5500.00);
+
+        // Atualiza indicadores financeiros e ajusta o saldo inicial do caixa
+        indicadorReceitaBrutaVendas.set(0, acumuladoReceitaVendas);
+        indicadorCustoMercadoriaVendida.set(0, acumuladoReceitaVendas * 0.45);
+        indicadorTotalFornecedoresPagos.set(0, 4500.00);
+        indicadorTotalSalariosPagos.set(0, 5500.00);
+        indicadorImpostosProvisionados.set(0, acumuladoImpostos);
+        caixa.definirSaldo(caixa.obterSaldo() + acumuladoReceitaVendas - 10000.00);
+
+        caixa.registrarMovimentoDados(
+                "SAIDA_DADOS",
+                "Arquivo: " + ARQUIVO_BACKUP_OFICIAL,
+                "Gravação inicial de backup editável"
+        );
+
+        // Grava o primeiro arquivo de backup editável com o estado inicial
+        persistencia.salvarBackupEditavel(
+                tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
+                tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
+                tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
+                caixa
+        );
+
+        auditoria.registrar("SISTEMA", "Base inicializada via '" + ARQUIVO_PRE_CADASTROS + "' e salva em '" + ARQUIVO_BACKUP_OFICIAL + "'");
+        System.out.println(CoresAnsi.sucesso(" Base inicializada (" + tabelaProdNome.size() + " itens, " + tabelaTransacaoTipo.size() + " lançamentos)."));
+        System.out.println(CoresAnsi.colorir(CoresAnsi.CIANO, " Pré-cadastros externos em: '" + ARQUIVO_PRE_CADASTROS + "'"));
+        System.out.println(CoresAnsi.colorir(CoresAnsi.CIANO, " Arquivo editável disponível: '" + ARQUIVO_BACKUP_OFICIAL + "'"));
+        System.out.println(CoresAnsi.colorir(CoresAnsi.CIANO, " Log de entradas/saídas em: '" + ARQUIVO_LOG_DADOS + "'\n"));
+    }
+
     // Painel principal do usuário autenticado, exibindo opções conforme autoridades ativas
     public static void exibirMenuPainelAdministrativo(
             Scanner leitorEntrada,
@@ -3337,17 +3229,13 @@ public class prototipo {
             int opcaoPainel = validarELerNumeroInteiro(leitorEntrada, "Selecione: ");
             if (opcaoPainel == 0) {
                 exibirAbaMeuPerfil(
-                        leitorEntrada, sessao, auditoria, caixa, persistencia, moduloAutoridades,
+                        leitorEntrada, sessao, auditoria, caixa, persistencia,
                         tabelaFuncId, tabelaFuncNome, tabelaFuncCpf,
                         tabelaFuncCargo, tabelaFuncSenha,
                         tabelaFuncSalario, tabelaFuncPago,
                         tabelaFuncStatus, tabelaFuncMotivoInativo,
-                        tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf,
-                        tabelaFornProdutoPrincipal, tabelaFornValorFatura,
-                        tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
                         tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda,
-                        tabelaProdQtdEstoque, tabelaClienteCpf, tabelaClienteNome,
-                        tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor
+                        tabelaProdQtdEstoque
                 );
             } else if (opcaoPainel == 1) {
                 exibirMenuGestaoFuncionarios(
@@ -3358,7 +3246,6 @@ public class prototipo {
                         tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
                         tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
                         tabelaClienteCpf, tabelaClienteNome,
-                        tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
                         indicadorTotalSalariosPagos
                 );
             } else if (opcaoPainel == 2) {
@@ -3370,7 +3257,6 @@ public class prototipo {
                         tabelaFornProdutoPrincipal, tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
                         tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
                         tabelaClienteCpf, tabelaClienteNome,
-                        tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
                         indicadorGastosEstoque, indicadorTotalFornecedoresPagos
                 );
             } else if (opcaoPainel == 3) {
@@ -3456,7 +3342,7 @@ public class prototipo {
             ModuloLogDadosTxt logDados = new ModuloLogDadosTxt(ARQUIVO_LOG_DADOS);
             ModuloAuditoria auditoria = new ModuloAuditoria();
             ModuloCaixa caixa = new ModuloCaixa(indicadorSaldoCaixaGlobal, tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor, logDados);
-            ModuloPersistenciaTxt persistencia = new ModuloPersistenciaTxt(ARQUIVO_PRE_CADASTROS, ARQUIVO_BACKUP_OFICIAL, ARQUIVO_ROLLBACK_AUTO);
+            ModuloPersistenciaTxt persistencia = new ModuloPersistenciaTxt(ARQUIVO_PRE_CADASTROS, ARQUIVO_BACKUP_OFICIAL);
 
             // Popula dados iniciais e salva o primeiro backup editável
             popularBaseOperacional(
@@ -3486,11 +3372,7 @@ public class prototipo {
                 int opcaoAcesso = validarELerNumeroInteiro(leitorEntrada, "Opção: ");
                 if (opcaoAcesso == 1) {
                     executarPortalComprasCliente(
-                            leitorEntrada, caixa, persistencia, moduloAutoridades, movEstoque,
-                            tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
-                            tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                            tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf,
-                            tabelaFornProdutoPrincipal, tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
+                            leitorEntrada, caixa, movEstoque,
                             tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
                             indicadorReceitaBrutaVendas, indicadorCustoMercadoriaVendida, indicadorImpostosProvisionados,
                             tabelaClienteCpf, tabelaClienteNome,
