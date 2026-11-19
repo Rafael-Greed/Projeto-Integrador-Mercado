@@ -1,21 +1,41 @@
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.NumberFormat;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
+// Permite armazenar conjuntos de constantes de um enum de forma compacta e rápida; usado em ModuloAutoridades (EnumSet<Autoridade>) para permissões por cargo/funcionário
 import java.util.EnumSet;
+
+// Mapa que mantém a ordem de inserção; usado em ModuloAutoridades (autoridadesPorId) e em exibirRelatorioVolumeComprasClientes (totaisPorCliente e pedidosPorCliente)
 import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Scanner;
+// Representa um conjunto sem elementos repetidos; usado na constante UFS_BRASIL (validação de UF) e em calcularAliquotaIcmsPorOperacao (UFs do Sul/Sudeste)
 import java.util.Set;
+// Listas dinâmicas usadas nas tabelas paralelas (funcionários, fornecedores, produtos, clientes, transações), paginação, filtros e snapshots de rollback
+import java.util.ArrayList;
+// Usado no main para inicializar indicadores em List<Double> de 1 elemento (ex.: Arrays.asList(200000.00)) permitindo mutação por referência
+import java.util.Arrays;
+// Interface de lista usada em praticamente todos os métodos e módulos para armazenar colunas paralelas, registros filtrados e históricos
+import java.util.List;
+// Interface de mapa usada na assinatura de métodos que consolidam agrupamentos (como totais e pedidos por cliente)
+import java.util.Map;
+// Usado no main e nos métodos de entrada/validação (lerLinhaSegura, validarELer*) para ler comandos e dados digitados no console
+import java.util.Scanner;
+// Leitura linha a linha de arquivos .TXT; usado em ModuloLogDadosTxt e ModuloPersistenciaTxt para ler pré-cadastros e restaurar backup
+import java.io.BufferedReader;
+// Escrita de texto em arquivos .TXT; usado para gravar logs, pré-cadastros padrão, snapshots de rollback, backups e relatórios exportados
+import java.io.BufferedWriter;
+// Representa caminhos/arquivos no disco; usado para verificar existência de arquivos (.exists()) antes de ler, sobrescrever ou restaurar
+import java.io.File;
+// Fluxo de leitura de arquivo conectado ao BufferedReader ao carregar dados e logs dos arquivos .TXT
+import java.io.FileReader;
+// Fluxo de escrita de arquivo conectado ao BufferedWriter ao salvar logs, backups, rollbacks e relatórios em .TXT
+import java.io.FileWriter;
+// Tratamento de exceções de entrada/saída (try/catch) nas operações de leitura e gravação de arquivos .TXT
+import java.io.IOException;
+// Captura a data e hora atuais do sistema em ModuloAuditoria, ModuloLogDadosTxt, ModuloMovimentacaoEstoque e cabeçalhos de exportação
+import java.time.LocalDateTime;
+// Formata LocalDateTime no padrão dd/MM/yyyy HH:mm:ss (FORMATADOR_DATA_HORA) para carimbo de tempo em logs, auditoria e arquivos .TXT
+import java.time.format.DateTimeFormatter;
+// Formata valores numéricos como moeda em formatarValorMonetarioReais usando FORMATADOR_MOEDA_BR
+import java.text.NumberFormat;
+// Define a localidade "pt", "BR" para formatar moeda em reais (R$) no NumberFormat
+import java.util.Locale;
+// Gera números aleatórios de forma segura em gerarSenhaTemporaria() para senhas iniciais, de readmissão, reset ou bloqueio
 import java.util.concurrent.ThreadLocalRandom;
 
 public class prototipo {
@@ -27,7 +47,8 @@ public class prototipo {
     private static final String ARQUIVO_LOG_DADOS = "log_entradas_saidas_dados.txt";
     private static final String ARQUIVO_LOG_FILTRADO_EXPORTADO = "log_entradas_saidas_filtrado.txt";
     private static final DateTimeFormatter FORMATADOR_DATA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-    private static final NumberFormat FORMATADOR_MOEDA_BR = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+   // Formata valores monetários no padrão brasileiro usando Locale.of (evita aviso de construtor depreciado no Java 19+)
+    private static final NumberFormat FORMATADOR_MOEDA_BR = NumberFormat.getCurrencyInstance(Locale.of("pt", "BR"));
 
     // Conjunto imutável com as 27 unidades federativas do Brasil para validação rápida de UF
     private static final Set<String> UFS_BRASIL = Set.of(
@@ -72,6 +93,7 @@ public class prototipo {
 
     // Enumeração ampliada com permissões granulares para RH, Financeiro, Gerente e áreas operacionais
     enum Autoridade {
+        RH_VER_FOLHA_E_STATUS("Visualizar status de pagamento da folha e histórico funcional"),
         RH_VER_FUNCIONARIOS("Visualizar lista de funcionários"),
         RH_GERIR_CADASTROS("Cadastrar, editar e alterar status de funcionários"),
         RH_ALTERAR_CARGO_SALARIO("Promover, rebaixar ou ajustar cargo e salário de funcionários"),
@@ -123,10 +145,12 @@ public class prototipo {
                     // Gerente recebe todas as autoridades cadastradas no enum
                     return EnumSet.allOf(Autoridade.class);
                 case "FINANCEIRO":
-                    // Financeiro concentra movimentações, pagamentos, estornos, relatórios e consulta de RH/estoque
+
+                   // Financeiro concentra movimentações, pagamentos, estornos, relatórios e consulta de RH/estoque
                     return EnumSet.of(
                             Autoridade.RH_VER_FUNCIONARIOS,
                             Autoridade.RH_VER_FOLHA_E_STATUS,
+                            Autoridade.RH_GERIR_CADASTROS,
                             Autoridade.FORN_VER_LISTA,
                             Autoridade.FORN_GERIR_OPERACOES,
                             Autoridade.FORN_QUITAR_FATURAS,
@@ -142,6 +166,7 @@ public class prototipo {
                             Autoridade.CLI_GERIR_CADASTROS,
                             Autoridade.LOG_VER_E_EXPORTAR
                     );
+
                 case "OPERADOR":
                     // Operador recebe permissões básicas de visualização de estoque/fornecedores e consulta de logs
                     return EnumSet.of(
@@ -903,7 +928,8 @@ public class prototipo {
                 caixa.registrarMovimentoDados("ENTRADA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Restauração do backup '" + arquivoBackupOficial + "'");
                 auditoria.registrar(sessao.obterNomeVigente(), "Restaurou backup oficial " + arquivoBackupOficial);
                 System.out.println(CoresAnsi.sucesso(" Backup restaurado com sucesso.\n"));
-            } catch (IOException | NumberFormatException | IllegalArgumentException e) {
+              // Captura IOException para falhas de arquivo e IllegalArgumentException (que já inclui NumberFormatException) para formatos inválidos
+            } catch (IOException | IllegalArgumentException e) {
                 System.out.println(CoresAnsi.erro("Falha ao restaurar backup: " + e.getMessage() + "\n"));
             }
         }
@@ -1438,6 +1464,7 @@ public class prototipo {
 
     // Exibe os dados do usuário logado e permite alterar a própria senha com persistência automática
     public static void exibirAbaMeuPerfil(
+        
             Scanner leitorEntrada,
             ModuloSessao sessao,
             ModuloAuditoria auditoria,
@@ -1529,17 +1556,20 @@ public class prototipo {
                 String confirmacaoSenha = lerLinhaSegura(leitorEntrada);
                 if (isComandoCancelamento(confirmacaoSenha)) continue;
 
-                if (!novaSenha.equals(confirmacaoSenha)) {
+  if (!novaSenha.equals(confirmacaoSenha)) {
                     System.out.println(CoresAnsi.erro("A confirmação não coincide com a nova senha.\n"));
                     continue;
                 }
 
-                // Atualiza a senha na tabela em memória e registra nos logs
+                // Atualiza a senha na tabela paralela em memória imediatamente após a confirmação
                 tabelaFuncSenha.set(indice, novaSenha);
-                caixa.registrarMovimentoDados("ENTRADA_DADOS", "Usuário: " + tabelaFuncNome.get(indice), "Atualização de senha em Meu Perfil");
-                auditoria.registrar(tabelaFuncNome.get(indice), "Alterou a própria senha em Meu Perfil");
 
-                // Persiste a alteração automaticamente no arquivo de backup editável
+                // Registra a alteração no log de entrada/saída de dados e na auditoria da sessão
+                String operadorAtual = sessao.obterNomeVigente() + " (" + sessao.obterIdVigente() + ")";
+                caixa.registrarMovimentoDados("ENTRADA_DADOS", operadorAtual, "Atualização de senha em Meu Perfil (" + tabelaFuncId.get(indice) + ")");
+                auditoria.registrar(operadorAtual, "Alterou a própria senha em Meu Perfil");
+
+                // Persiste a senha atualizada automaticamente no arquivo de backup editável (.TXT)
                 boolean salvouTxt = persistencia.salvarBackupEditavel(
                         moduloAutoridades,
                         tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
@@ -1552,6 +1582,7 @@ public class prototipo {
                         caixa
                 );
 
+                // Informa ao usuário se a gravação no arquivo de backup foi concluída ou falhou
                 if (salvouTxt) {
                     System.out.println(CoresAnsi.sucesso(" Senha alterada e salva automaticamente em '" + persistencia.obterNomeArquivoBackup() + "'.\n"));
                 } else {
