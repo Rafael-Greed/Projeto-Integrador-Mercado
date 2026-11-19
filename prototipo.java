@@ -2,7 +2,7 @@
 import java.util.EnumSet;
 // Estrutura de mapa chave-valor para vincular o ID do funcionário ao seu conjunto de autoridades
 import java.util.HashMap;
-// Mapa que mantém a ordem de inserção, útil para consolidar históricos por cliente
+// Mapa que mantém a ordem de inserção, útilizado para consolidar históricos por cliente
 import java.util.LinkedHashMap;
 // Representa um conjunto sem elementos repetidos para consultas de permissão
 import java.util.Set;
