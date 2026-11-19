@@ -1,0 +1,7 @@
+================================================================================
+# LOG DEDICADO DE ENTRADAS E SAÍDAS DE DADOS - PROTEI CREAT (L'ESTOQUE)
+# Formato: [DATA HORA] | [DIRECAO] | Envolvidos: ... | Detalhes: ...
+================================================================================
+[2026-11-19 12:34:31] | [ENTRADA DE DADOS] | Envolvidos: Arquivo: dados_pre_cadastros.txt | Detalhes: Leitura sob demanda de pré-cadastros (25 itens, 25 cadastros)
+[2026-11-19 12:34:31] | [ENTRADA DE DADOS] | Envolvidos: Arquivo: dados_pre_cadastros.txt | Detalhes: Carga inicial de pré-cadastros externos
+[2026-11-19 12:34:31] | [SAÍDA DE DADOS] | Envolvidos: Arquivo: protei_creat_backup_oficial.txt | Detalhes: Gravação inicial de backup editável
