@@ -397,7 +397,7 @@ public class prototipo {
         // Valida se a sessão continua ativa; se foi inativada durante o uso, exibe aviso e encerra
         boolean validarOuRevogarSessao() {
             if (estaAtiva()) return true;
-            System.out.println(CoresAnsi.erro("\n🚨 [REVOGAÇÃO DE SESSÃO]: Sua autoridade foi encerrada ou o registro está inativo.\n"));
+            System.out.println(CoresAnsi.erro("\n [REVOGAÇÃO DE SESSÃO]: Sua autoridade foi encerrada ou o registro está inativo.\n"));
             return false;
         }
 
@@ -441,7 +441,7 @@ public class prototipo {
         boolean exigirAutoridade(Autoridade autoridade, String mensagemNegacao) {
             if (temAutoridade(autoridade)) return true;
             String msg = (mensagemNegacao == null || mensagemNegacao.isBlank())
-                    ? "❌ Acesso negado: autoridade necessária (" + autoridade.name() + ")."
+                    ? "Acesso negado: autoridade necessária (" + autoridade.name() + ")."
                     : mensagemNegacao;
             System.out.println(CoresAnsi.erro(msg + "\n"));
             return false;
@@ -465,14 +465,14 @@ public class prototipo {
         // Exige permissão operacional básica
         boolean exigirPermissaoOperacional() {
             if (podeGerirOperacoes()) return true;
-            System.out.println(CoresAnsi.erro("❌ Acesso negado para o seu perfil.\n"));
+            System.out.println(CoresAnsi.erro(" Acesso negado para o seu perfil.\n"));
             return false;
         }
 
         // Exige permissão de gerente
         boolean exigirPermissaoGerente() {
             if (isGerente()) return true;
-            System.out.println(CoresAnsi.erro("❌ Operação não permitida para o seu perfil.\n"));
+            System.out.println(CoresAnsi.erro(" Operação não permitida para o seu perfil.\n"));
             return false;
         }
     }
@@ -535,7 +535,7 @@ public class prototipo {
         // Credita um valor positivo no caixa e registra a transação/log
         boolean registrarEntrada(double valor, String tipo, String envolvidosStr, String descricao) {
             if (!Double.isFinite(valor) || valor <= 0.0) {
-                System.out.println(CoresAnsi.erro("❌ Valor de entrada inválido.\n"));
+                System.out.println(CoresAnsi.erro("Valor de entrada inválido.\n"));
                 return false;
             }
             // Soma o valor ao saldo atual
@@ -546,7 +546,7 @@ public class prototipo {
 
             tipos.add(tipoLimpo);
             envolvidos.add(envLimpo);
-            descricoes.add(descLimpa);
+            descricoes.add(descLimpo);
             valores.add(valor);
 
             if (logDados != null) {
@@ -558,12 +558,12 @@ public class prototipo {
         // Debita um valor positivo do caixa se houver saldo suficiente
         boolean registrarSaida(double valor, String tipo, String envolvidosStr, String descricao) {
             if (!Double.isFinite(valor) || valor <= 0.0) {
-                System.out.println(CoresAnsi.erro("❌ Valor de saída inválido.\n"));
+                System.out.println(CoresAnsi.erro("Valor de saída inválido.\n"));
                 return false;
             }
             double saldoAtual = obterSaldo();
             if (saldoAtual < valor) {
-                System.out.println(CoresAnsi.erro("❌ Saldo insuficiente para concluir a operação.\n"));
+                System.out.println(CoresAnsi.erro("Saldo insuficiente para concluir a operação.\n"));
                 return false;
             }
             // Subtrai o valor do saldo atual
@@ -578,7 +578,7 @@ public class prototipo {
             valores.add(valor);
 
             if (logDados != null) {
-                logDados.gravarEvento("SAÍDA DE DADOS (" + tipoLimpo + ")", envLimpo, descLimpo + " | Valor: " + formatarValorMonetarioReais(valor));
+                logDados.gravarEvento("SAÍDA DE DADOS (" + tipoLimpo + ")", envLimpo, descLimpa + " | Valor: " + formatarValorMonetarioReais(valor));
             }
             return true;
         }
@@ -586,7 +586,7 @@ public class prototipo {
         // Estorna um lançamento existente, ajustando o saldo conforme o tipo da operação
         boolean estornarLancamento(int indice) {
             if (indice < 0 || indice >= tipos.size()) {
-                System.out.println(CoresAnsi.erro("❌ Lançamento inexistente.\n"));
+                System.out.println(CoresAnsi.erro("Lançamento inexistente.\n"));
                 return false;
             }
 
@@ -597,7 +597,7 @@ public class prototipo {
             if ("VENDA".equalsIgnoreCase(tipoLancamento)) {
                 // Estornar venda exige saldo suficiente para devolver o valor
                 if (saldoAtual < valorEstorno) {
-                    System.out.println(CoresAnsi.erro("❌ Estorno bloqueado: saldo atual ("
+                    System.out.println(CoresAnsi.erro("Estorno bloqueado: saldo atual ("
                             + formatarValorMonetarioReais(saldoAtual)
                             + ") inferior ao valor do lançamento ("
                             + formatarValorMonetarioReais(valorEstorno) + ").\n"));
@@ -683,7 +683,7 @@ public class prototipo {
                 );
                 return true;
             } catch (Exception e) {
-                System.out.println(CoresAnsi.erro("❌ Erro ao consultar '" + arquivoPreCadastros + "': " + e.getMessage() + "\n"));
+                System.out.println(CoresAnsi.erro("Erro ao consultar '" + arquivoPreCadastros + "': " + e.getMessage() + "\n"));
                 return false;
             }
         }
@@ -1124,7 +1124,7 @@ public class prototipo {
                 List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
                 ModuloCaixa caixa) {
 
-            if (!sessao.exigirAutoridade(Autoridade.SIS_AUDITORIA_E_BACKUP, "❌ Sem autoridade para exportar backup.")) {
+            if (!sessao.exigirAutoridade(Autoridade.SIS_AUDITORIA_E_BACKUP, "Sem autoridade para exportar backup.")) {
                 return false;
             }
 
@@ -1135,10 +1135,10 @@ public class prototipo {
                     tabelaFuncId.size(), tabelaFornRazaoSocial.size(), tabelaProdNome.size(), tabelaClienteCpf.size(), tabelaTransacaoTipo.size());
 
             // Solicita a senha atual para confirmar a operação sensível
-            System.out.print("🔒 Confirme sua senha [0 para cancelar]: ");
+            System.out.print(" Confirme sua senha [0 para cancelar]: ");
             String senhaConfirmacao = lerLinhaSegura(leitorEntrada);
             if (isComandoCancelamento(senhaConfirmacao) || !senhaConfirmacao.equals(sessao.obterSenhaVigente())) {
-                System.out.println(CoresAnsi.erro("❌ Senha incorreta ou operação cancelada.\n"));
+                System.out.println(CoresAnsi.erro("Senha incorreta ou operação cancelada.\n"));
                 return false;
             }
 
@@ -1162,9 +1162,9 @@ public class prototipo {
 
             if (gravou) {
                 auditoria.registrar(sessao.obterNomeVigente(), "Exportou/atualizou arquivo editável " + arquivoBackupOficial);
-                System.out.println(CoresAnsi.sucesso("✅ Arquivo '" + arquivoBackupOficial + "' salvo com sucesso.\n"));
+                System.out.println(CoresAnsi.sucesso(" Arquivo '" + arquivoBackupOficial + "' salvo com sucesso.\n"));
             } else {
-                System.out.println(CoresAnsi.erro("❌ Falha técnica ao gravar arquivo.\n"));
+                System.out.println(CoresAnsi.erro("Falha técnica ao gravar arquivo.\n"));
             }
             return gravou;
         }
@@ -1185,20 +1185,20 @@ public class prototipo {
                 List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
                 ModuloCaixa caixa) {
 
-            if (!sessao.exigirAutoridade(Autoridade.SIS_AUDITORIA_E_BACKUP, "❌ Sem autoridade para restaurar backup.")) {
+            if (!sessao.exigirAutoridade(Autoridade.SIS_AUDITORIA_E_BACKUP, "Sem autoridade para restaurar backup.")) {
                 return false;
             }
 
-            System.out.print("🔒 Confirme sua senha [0 para cancelar]: ");
+            System.out.print(" Confirme sua senha [0 para cancelar]: ");
             String senhaConfirmacao = lerLinhaSegura(leitorEntrada);
             if (isComandoCancelamento(senhaConfirmacao) || !senhaConfirmacao.equals(sessao.obterSenhaVigente())) {
-                System.out.println(CoresAnsi.erro("❌ Senha incorreta ou operação cancelada.\n"));
+                System.out.println(CoresAnsi.erro("Senha incorreta ou operação cancelada.\n"));
                 return false;
             }
 
             File arquivoBackup = new File(arquivoBackupOficial);
             if (!arquivoBackup.exists()) {
-                System.out.println(CoresAnsi.aviso("⚠️ Arquivo '" + arquivoBackupOficial + "' não encontrado.\n"));
+                System.out.println(CoresAnsi.aviso(" Arquivo '" + arquivoBackupOficial + "' não encontrado.\n"));
                 return false;
             }
 
@@ -1236,10 +1236,10 @@ public class prototipo {
                         "Restauração de dados a partir de '" + arquivoBackupOficial + "'"
                 );
                 auditoria.registrar(sessao.obterNomeVigente(), "Restaurou/aplicou alterações do arquivo " + arquivoBackupOficial);
-                System.out.println(CoresAnsi.sucesso("✅ Dados atualizados a partir de '" + arquivoBackupOficial + "'.\n"));
+                System.out.println(CoresAnsi.sucesso(" Dados atualizados a partir de '" + arquivoBackupOficial + "'.\n"));
                 return true;
             } catch (Exception e) {
-                System.out.println(CoresAnsi.erro("❌ Erro ao ler/validar '" + arquivoBackupOficial + "': " + e.getMessage() + "\n"));
+                System.out.println(CoresAnsi.erro("Erro ao ler/validar '" + arquivoBackupOficial + "': " + e.getMessage() + "\n"));
                 return false;
             }
         }
@@ -1554,7 +1554,7 @@ public class prototipo {
             if (!normalizado.isEmpty() && normalizado.matches("^[a-zA-ZáàâãéèêíïóôõúüçÁÀÂÃÉÈÊÍÏÓÔÕÚÜÇ ]+$")) {
                 return normalizado.toUpperCase();
             }
-            System.out.println(CoresAnsi.erro("❌ [Validação]: Digite apenas letras e espaços.\n"));
+            System.out.println(CoresAnsi.erro("[Validação]: Digite apenas letras e espaços.\n"));
         }
     }
 
@@ -1568,7 +1568,7 @@ public class prototipo {
             if (!normalizado.isEmpty() && !normalizado.startsWith("-")) {
                 return normalizado.toUpperCase();
             }
-            System.out.println(CoresAnsi.erro("❌ [Validação]: Campo obrigatório e não pode iniciar com '-'.\n"));
+            System.out.println(CoresAnsi.erro("[Validação]: Campo obrigatório e não pode iniciar com '-'.\n"));
         }
     }
 
@@ -1583,7 +1583,7 @@ public class prototipo {
             String sigla = lerLinhaSegura(leitorEntrada).toUpperCase();
             if (isComandoCancelamento(sigla)) return "CANCELAR";
             if (ufs.contains(sigla)) return sigla;
-            System.out.println(CoresAnsi.erro("❌ [Validação]: UF inválida.\n"));
+            System.out.println(CoresAnsi.erro("[Validação]: UF inválida.\n"));
         }
     }
 
@@ -1594,17 +1594,17 @@ public class prototipo {
             String entrada = lerLinhaSegura(leitorEntrada);
             if (entrada.equals("0") || entrada.equalsIgnoreCase("SAIR")) return -999;
             if (entrada.startsWith("-")) {
-                System.out.println(CoresAnsi.erro("❌ [Validação]: Valores negativos ou '-0' não são permitidos.\n"));
+                System.out.println(CoresAnsi.erro("[Validação]: Valores negativos ou '-0' não são permitidos.\n"));
                 continue;
             }
             if (entrada.matches("^[0-9]+$")) {
                 try {
                     return Integer.parseInt(entrada);
                 } catch (NumberFormatException e) {
-                    System.out.println(CoresAnsi.erro("❌ [Validação]: Número fora do limite.\n"));
+                    System.out.println(CoresAnsi.erro("[Validação]: Número fora do limite.\n"));
                 }
             } else {
-                System.out.println(CoresAnsi.erro("❌ [Validação]: Digite um número inteiro positivo (ou 0 para voltar).\n"));
+                System.out.println(CoresAnsi.erro("[Validação]: Digite um número inteiro positivo (ou 0 para voltar).\n"));
             }
         }
     }
@@ -1616,17 +1616,17 @@ public class prototipo {
             String entrada = lerLinhaSegura(leitorEntrada);
             if (entrada.equalsIgnoreCase("SAIR")) return -999;
             if (entrada.startsWith("-")) {
-                System.out.println(CoresAnsi.erro("❌ [Validação]: Valores negativos ou '-0' não são aceitos.\n"));
+                System.out.println(CoresAnsi.erro("[Validação]: Valores negativos ou '-0' não são aceitos.\n"));
                 continue;
             }
             if (entrada.matches("^[0-9]+$")) {
                 try {
                     return Integer.parseInt(entrada);
                 } catch (NumberFormatException e) {
-                    System.out.println(CoresAnsi.erro("❌ [Validação]: Número fora do limite.\n"));
+                    System.out.println(CoresAnsi.erro("[Validação]: Número fora do limite.\n"));
                 }
             } else {
-                System.out.println(CoresAnsi.erro("❌ [Validação]: Digite um número inteiro >= 0 (ou SAIR para cancelar).\n"));
+                System.out.println(CoresAnsi.erro("[Validação]: Digite um número inteiro >= 0 (ou SAIR para cancelar).\n"));
             }
         }
     }
@@ -1637,7 +1637,7 @@ public class prototipo {
             int val = validarELerNumeroInteiro(leitorEntrada, mensagemPrompt);
             if (val == -999) return -999;
             if (val > 0) return val;
-            System.out.println(CoresAnsi.erro("❌ [Validação]: A quantidade deve ser maior que zero.\n"));
+            System.out.println(CoresAnsi.erro("[Validação]: A quantidade deve ser maior que zero.\n"));
         }
     }
 
@@ -1648,24 +1648,24 @@ public class prototipo {
             String bruta = lerLinhaSegura(leitorEntrada);
             if (bruta.equalsIgnoreCase("SAIR")) return -999.0;
             if (bruta.startsWith("-")) {
-                System.out.println(CoresAnsi.erro("❌ [Validação]: Valores negativos ou '-0' não são aceitos.\n"));
+                System.out.println(CoresAnsi.erro("[Validação]: Valores negativos ou '-0' não são aceitos.\n"));
                 continue;
             }
             if (bruta.startsWith("+")) {
-                System.out.println(CoresAnsi.erro("❌ [Validação]: Não utilize sinal de '+' antes do valor.\n"));
+                System.out.println(CoresAnsi.erro("[Validação]: Não utilize sinal de '+' antes do valor.\n"));
                 continue;
             }
             String norm = bruta.replace(",", ".");
             if (!permitirZero && norm.matches("^0(\\.0+)?$")) return -999.0;
             if (!norm.matches("^[0-9]+(\\.[0-9]{1,4})?$")) {
-                System.out.println(CoresAnsi.erro("❌ [Validação]: Informe um valor numérico válido.\n"));
+                System.out.println(CoresAnsi.erro("[Validação]: Informe um valor numérico válido.\n"));
                 continue;
             }
             try {
                 double v = Double.parseDouble(norm);
                 if (Double.isFinite(v) && ((permitirZero && v >= 0.0) || (!permitirZero && v > 0.0))) return v;
             } catch (NumberFormatException ignored) {}
-            System.out.println(CoresAnsi.erro("❌ [Validação]: Valor monetário inválido.\n"));
+            System.out.println(CoresAnsi.erro("[Validação]: Valor monetário inválido.\n"));
         }
     }
 
@@ -1676,12 +1676,12 @@ public class prototipo {
             String entrada = lerLinhaSegura(leitorEntrada);
             if (isComandoCancelamento(entrada)) return "CANCELAR";
             if (entrada.startsWith("-") || !entrada.matches("^[0-9.\\-\\s]+$")) {
-                System.out.println(CoresAnsi.erro("❌ [Validação]: CPF inválido.\n"));
+                System.out.println(CoresAnsi.erro("[Validação]: CPF inválido.\n"));
                 continue;
             }
             String nums = entrada.replaceAll("[^0-9]", "");
             if (isCpfValido(nums)) return nums;
-            System.out.println(CoresAnsi.erro("❌ [Validação]: CPF inválido (dígitos verificadores não conferem).\n"));
+            System.out.println(CoresAnsi.erro("[Validação]: CPF inválido (dígitos verificadores não conferem).\n"));
         }
     }
 
@@ -1692,12 +1692,12 @@ public class prototipo {
             String entrada = lerLinhaSegura(leitorEntrada);
             if (isComandoCancelamento(entrada)) return "CANCELAR";
             if (entrada.startsWith("-") || !entrada.matches("^[0-9./\\-\\s]+$")) {
-                System.out.println(CoresAnsi.erro("❌ [Validação]: CNPJ inválido.\n"));
+                System.out.println(CoresAnsi.erro("[Validação]: CNPJ inválido.\n"));
                 continue;
             }
             String nums = entrada.replaceAll("[^0-9]", "");
             if (isCnpjValido(nums)) return nums;
-            System.out.println(CoresAnsi.erro("❌ [Validação]: CNPJ inválido (dígitos verificadores não conferem).\n"));
+            System.out.println(CoresAnsi.erro("[Validação]: CNPJ inválido (dígitos verificadores não conferem).\n"));
         }
     }
 
@@ -1868,10 +1868,10 @@ public class prototipo {
         );
 
         auditoria.registrar("SISTEMA", "Base inicializada via '" + ARQUIVO_PRE_CADASTROS + "' e salva em '" + ARQUIVO_BACKUP_OFICIAL + "'");
-        System.out.println(CoresAnsi.sucesso("✅ Base inicializada (" + tabelaProdNome.size() + " itens, " + tabelaTransacaoTipo.size() + " lançamentos)."));
-        System.out.println(CoresAnsi.colorir(CoresAnsi.CIANO, "📄 Pré-cadastros externos em: '" + ARQUIVO_PRE_CADASTROS + "'"));
-        System.out.println(CoresAnsi.colorir(CoresAnsi.CIANO, "📝 Arquivo editável disponível: '" + ARQUIVO_BACKUP_OFICIAL + "'"));
-        System.out.println(CoresAnsi.colorir(CoresAnsi.CIANO, "🕒 Log de entradas/saídas em: '" + ARQUIVO_LOG_DADOS + "'\n"));
+        System.out.println(CoresAnsi.sucesso(" Base inicializada (" + tabelaProdNome.size() + " itens, " + tabelaTransacaoTipo.size() + " lançamentos)."));
+        System.out.println(CoresAnsi.colorir(CoresAnsi.CIANO, " Pré-cadastros externos em: '" + ARQUIVO_PRE_CADASTROS + "'"));
+        System.out.println(CoresAnsi.colorir(CoresAnsi.CIANO, " Arquivo editável disponível: '" + ARQUIVO_BACKUP_OFICIAL + "'"));
+        System.out.println(CoresAnsi.colorir(CoresAnsi.CIANO, " Log de entradas/saídas em: '" + ARQUIVO_LOG_DADOS + "'\n"));
     }
 
     // Exibe os dados do usuário logado e permite alterar a própria senha com persistência automática
@@ -1907,7 +1907,7 @@ public class prototipo {
                 }
             }
             if (indice == -1) {
-                System.out.println(CoresAnsi.erro("❌ Registro não encontrado.\n"));
+                System.out.println(CoresAnsi.erro("Registro não encontrado.\n"));
                 return;
             }
 
@@ -1915,16 +1915,16 @@ public class prototipo {
             boolean salarioPago = tabelaFuncPago.get(indice);
 
             System.out.println(CoresAnsi.titulo("\n┌────────────────────────────────────────────────────────────────┐"));
-            System.out.println(CoresAnsi.titulo("│                         👤 MEU PERFIL                          │"));
+            System.out.println(CoresAnsi.titulo("│                          MEU PERFIL                          │"));
             System.out.println(CoresAnsi.titulo("├────────────────────────────────────────────────────────────────┤"));
             System.out.printf("│ Matrícula / ID   : %s\n", tabelaFuncId.get(indice));
             System.out.printf("│ Nome Completo    : %s\n", tabelaFuncNome.get(indice));
             System.out.printf("│ CPF              : %s\n", tabelaFuncCpf.get(indice));
             System.out.printf("│ Perfil / Cargo   : %s\n", tabelaFuncCargo.get(indice));
-            System.out.printf("│ Status da Conta  : %s\n", (estaAtivo ? CoresAnsi.sucesso("ATIVO ✅") : CoresAnsi.erro("INATIVO 🚫")));
+            System.out.printf("│ Status da Conta  : %s\n", (estaAtivo ? CoresAnsi.sucesso("ATIVO ") : CoresAnsi.erro("INATIVO ")));
             System.out.printf("│ Autoridade       : %s\n", (estaAtivo ? CoresAnsi.sucesso("HABILITADA") : CoresAnsi.erro("REVOGADA")));
             System.out.printf("│ Salário Base     : %s\n", sessao.exibirValorCondicional(Autoridade.FIN_VER_VALORES_SENSIVEIS, tabelaFuncSalario.get(indice)));
-            System.out.printf("│ Situação Folha   : %s\n", (salarioPago ? CoresAnsi.sucesso("PAGO ✅") : CoresAnsi.aviso("PENDENTE ⚠️")));
+            System.out.printf("│ Situação Folha   : %s\n", (salarioPago ? CoresAnsi.sucesso("PAGO ") : CoresAnsi.aviso("PENDENTE ")));
             if (!estaAtivo) {
                 System.out.printf("│ Observação       : %s\n", CoresAnsi.aviso(tabelaFuncMotivoInativo.get(indice)));
             }
@@ -1937,36 +1937,36 @@ public class prototipo {
             if (acaoPerfil == 0 || acaoPerfil == -999) {
                 abaPerfilAtiva = false;
             } else if (acaoPerfil == 1) {
-                System.out.print("🔒 Senha atual [0 para cancelar]: ");
+                System.out.print(" Senha atual [0 para cancelar]: ");
                 String senhaAtualInformada = lerLinhaSegura(leitorEntrada);
                 if (isComandoCancelamento(senhaAtualInformada)) continue;
 
                 // Confere se a senha atual informada bate com a cadastrada
                 if (!senhaAtualInformada.equals(tabelaFuncSenha.get(indice))) {
-                    System.out.println(CoresAnsi.erro("❌ Senha atual incorreta.\n"));
+                    System.out.println(CoresAnsi.erro("Senha atual incorreta.\n"));
                     continue;
                 }
 
-                System.out.print("🔑 Nova senha (mínimo 6 caracteres, sem espaços) [0 para cancelar]: ");
+                System.out.print(" Nova senha (mínimo 6 caracteres, sem espaços) [0 para cancelar]: ");
                 String novaSenha = lerLinhaSegura(leitorEntrada);
                 if (isComandoCancelamento(novaSenha)) continue;
 
                 // Valida tamanho mínimo e ausência de espaços na nova senha
                 if (novaSenha.length() < 6 || novaSenha.contains(" ")) {
-                    System.out.println(CoresAnsi.erro("❌ A nova senha deve ter pelo menos 6 caracteres e não pode conter espaços.\n"));
+                    System.out.println(CoresAnsi.erro("A nova senha deve ter pelo menos 6 caracteres e não pode conter espaços.\n"));
                     continue;
                 }
                 if (novaSenha.equals(tabelaFuncSenha.get(indice))) {
-                    System.out.println(CoresAnsi.aviso("⚠️ A nova senha deve ser diferente da senha atual.\n"));
+                    System.out.println(CoresAnsi.aviso(" A nova senha deve ser diferente da senha atual.\n"));
                     continue;
                 }
 
-                System.out.print("🔑 Confirme a nova senha [0 para cancelar]: ");
+                System.out.print(" Confirme a nova senha [0 para cancelar]: ");
                 String confirmacaoSenha = lerLinhaSegura(leitorEntrada);
                 if (isComandoCancelamento(confirmacaoSenha)) continue;
 
                 if (!novaSenha.equals(confirmacaoSenha)) {
-                    System.out.println(CoresAnsi.erro("❌ A confirmação não coincide com a nova senha.\n"));
+                    System.out.println(CoresAnsi.erro("A confirmação não coincide com a nova senha.\n"));
                     continue;
                 }
 
@@ -1989,12 +1989,12 @@ public class prototipo {
                 );
 
                 if (salvouTxt) {
-                    System.out.println(CoresAnsi.sucesso("✅ Senha alterada e salva automaticamente em '" + persistencia.obterNomeArquivoBackup() + "'.\n"));
+                    System.out.println(CoresAnsi.sucesso(" Senha alterada e salva automaticamente em '" + persistencia.obterNomeArquivoBackup() + "'.\n"));
                 } else {
-                    System.out.println(CoresAnsi.aviso("⚠️ Senha alterada na sessão, mas houve falha ao gravar '" + persistencia.obterNomeArquivoBackup() + "'.\n"));
+                    System.out.println(CoresAnsi.aviso(" Senha alterada na sessão, mas houve falha ao gravar '" + persistencia.obterNomeArquivoBackup() + "'.\n"));
                 }
             } else {
-                System.out.println(CoresAnsi.erro("❌ Opção inválida.\n"));
+                System.out.println(CoresAnsi.erro("Opção inválida.\n"));
             }
         }
     }
@@ -2019,7 +2019,7 @@ public class prototipo {
             List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
             List<Double> indicadorTotalSalariosPagos) {
 
-        if (!sessao.exigirAutoridade(Autoridade.RH_VER_FUNCIONARIOS, "❌ Sem autoridade para acessar a gestão de funcionários.")) {
+        if (!sessao.exigirAutoridade(Autoridade.RH_VER_FUNCIONARIOS, "Sem autoridade para acessar a gestão de funcionários.")) {
             return;
         }
 
@@ -2056,7 +2056,7 @@ public class prototipo {
                 menuRhAtivo = false;
             } else if (opcaoEscolhida == 1) {
                 if (tabelaFuncNome.isEmpty()) {
-                    System.out.println(CoresAnsi.aviso("⚠️ Nenhum registro disponível.\n"));
+                    System.out.println(CoresAnsi.aviso(" Nenhum registro disponível.\n"));
                     continue;
                 }
                 int paginaAtual = 1;
@@ -2085,17 +2085,17 @@ public class prototipo {
                     System.out.println(CoresAnsi.titulo("\n--- REGISTROS [" + etiquetaFiltro + "] (Página " + paginaAtual + " de " + totalPaginas + " | Encontrados: " + totalFiltrados + ") ---"));
 
                     if (totalFiltrados == 0) {
-                        System.out.println(CoresAnsi.aviso("⚠️ Nenhum funcionário encontrado para o filtro '" + filtroFuncAtivo + "'. Use [L] para limpar."));
+                        System.out.println(CoresAnsi.aviso(" Nenhum funcionário encontrado para o filtro '" + filtroFuncAtivo + "'. Use [L] para limpar."));
                     } else {
                         int indiceInicial = (paginaAtual - 1) * ITENS_POR_PAGINA;
                         int indiceFinal = Math.min(indiceInicial + ITENS_POR_PAGINA, totalFiltrados);
 
                         for (int i = indiceInicial; i < indiceFinal; i++) {
                             int idxReal = indicesFiltrados.get(i);
-                            String etiquetaPagamento = tabelaFuncPago.get(idxReal) ? CoresAnsi.sucesso("PAGO ✅") : CoresAnsi.aviso("PENDENTE ⚠️");
+                            String etiquetaPagamento = tabelaFuncPago.get(idxReal) ? CoresAnsi.sucesso("PAGO ") : CoresAnsi.aviso("PENDENTE ");
                             String etiquetaStatus = tabelaFuncStatus.get(idxReal).equalsIgnoreCase("ATIVO")
                                     ? CoresAnsi.sucesso("ATIVO")
-                                    : CoresAnsi.erro("INATIVO (READMITÍVEL) 🚫");
+                                    : CoresAnsi.erro("INATIVO (READMITÍVEL) ");
                             String valorExibido = sessao.exibirValorCondicional(Autoridade.FIN_VER_VALORES_SENSIVEIS, tabelaFuncSalario.get(idxReal));
                             System.out.printf("[%d] ID: %s | Nome: %s | Cargo: %s | Status: %s | Valor: %s [%s]\n",
                                     (i + 1), tabelaFuncId.get(idxReal), tabelaFuncNome.get(idxReal),
@@ -2118,7 +2118,7 @@ public class prototipo {
                     } else if (comandoUsuario.equals("L")) {
                         filtroFuncAtivo = "";
                         paginaAtual = 1;
-                        System.out.println(CoresAnsi.sucesso("✅ Filtro de funcionários removido.\n"));
+                        System.out.println(CoresAnsi.sucesso(" Filtro de funcionários removido.\n"));
                     } else if (isComandoCancelamento(comandoUsuario)) navegandoLista = false;
                     else if (comandoUsuario.matches("^[0-9]+$")) {
                         int pos = Integer.parseInt(comandoUsuario) - 1;
@@ -2130,14 +2130,14 @@ public class prototipo {
                                     tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo, indicadorTotalSalariosPagos
                             );
                         } else {
-                            System.out.println(CoresAnsi.erro("❌ Índice inválido.\n"));
+                            System.out.println(CoresAnsi.erro("Índice inválido.\n"));
                         }
                     } else {
-                        System.out.println(CoresAnsi.erro("❌ Comando inválido.\n"));
+                        System.out.println(CoresAnsi.erro("Comando inválido.\n"));
                     }
                 }
             } else if (opcaoEscolhida == 2) {
-                if (!sessao.exigirAutoridade(Autoridade.RH_GERIR_CADASTROS, "❌ Sem autoridade para cadastrar funcionários.")) continue;
+                if (!sessao.exigirAutoridade(Autoridade.RH_GERIR_CADASTROS, "Sem autoridade para cadastrar funcionários.")) continue;
 
                 // Gera ponto de rollback antes de adicionar novo registro
                 persistencia.executarRollbackAutomatico(
@@ -2158,7 +2158,7 @@ public class prototipo {
                     novoIdFuncional = lerLinhaSegura(leitorEntrada).toUpperCase();
                     if (isComandoCancelamento(novoIdFuncional)) break;
                     if (novoIdFuncional.matches("^[0-9]{3}$") && !novoIdFuncional.equals("000") && !tabelaFuncId.contains(novoIdFuncional)) break;
-                    System.out.println(CoresAnsi.erro("❌ ID inválido ou já cadastrado.\n"));
+                    System.out.println(CoresAnsi.erro("ID inválido ou já cadastrado.\n"));
                 }
                 if (isComandoCancelamento(novoIdFuncional)) continue;
 
@@ -2168,14 +2168,14 @@ public class prototipo {
                 String cpfValidado = validarEFormatarCpf(leitorEntrada);
                 if (cpfValidado.equals("CANCELAR")) continue;
                 if (tabelaFuncCpf.contains(cpfValidado)) {
-                    System.out.println(CoresAnsi.erro("❌ [Duplicidade]: Já existe um registro com este CPF.\n"));
+                    System.out.println(CoresAnsi.erro("[Duplicidade]: Já existe um registro com este CPF.\n"));
                     continue;
                 }
 
                 int opcaoCargo = validarELerNumeroInteiro(leitorEntrada, "Nível de acesso [1 - Gerente | 2 - Operador | 3 - Financeiro] [0 para cancelar]: ");
                 if (opcaoCargo == -999) continue;
                 if (opcaoCargo < 1 || opcaoCargo > 3) {
-                    System.out.println(CoresAnsi.erro("❌ Opção inválida.\n"));
+                    System.out.println(CoresAnsi.erro("Opção inválida.\n"));
                     continue;
                 }
                 String cargoDefinido = (opcaoCargo == 1) ? "GERENTE" : (opcaoCargo == 3 ? "FINANCEIRO" : "OPERADOR");
@@ -2197,9 +2197,9 @@ public class prototipo {
 
                 caixa.registrarMovimentoDados("ENTRADA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Novo cadastro ID " + novoIdFuncional + " - " + nomeCompleto + " (" + cargoDefinido + ")");
                 auditoria.registrar(sessao.obterNomeVigente(), "Cadastrou registro ID " + novoIdFuncional + " (" + nomeCompleto + ")");
-                System.out.println(CoresAnsi.sucesso("✅ Registro salvo! Senha inicial gerada: " + senhaGerada + "\n"));
+                System.out.println(CoresAnsi.sucesso(" Registro salvo! Senha inicial gerada: " + senhaGerada + "\n"));
             } else {
-                System.out.println(CoresAnsi.erro("❌ Opção indisponível.\n"));
+                System.out.println(CoresAnsi.erro("Opção indisponível.\n"));
             }
         }
     }
@@ -2216,7 +2216,7 @@ public class prototipo {
             boolean ativoAlvo) {
 
         if (!ativoAlvo) {
-            System.out.println(CoresAnsi.erro("🚫 Não é possível alterar autoridades de um registro inativo.\n"));
+            System.out.println(CoresAnsi.erro(" Não é possível alterar autoridades de um registro inativo.\n"));
             return;
         }
 
@@ -2247,9 +2247,9 @@ public class prototipo {
                 String acaoTexto = (novoEstado ? "Concedeu" : "Revogou") + " autoridade " + escolhida.name() + " para " + nomeAlvo;
                 caixa.registrarMovimentoDados("ENTRADA_DADOS", "Operador: " + sessao.obterNomeVigente(), acaoTexto);
                 auditoria.registrar(sessao.obterNomeVigente(), acaoTexto);
-                System.out.println(CoresAnsi.sucesso("✅ " + acaoTexto + ".\n"));
+                System.out.println(CoresAnsi.sucesso(" " + acaoTexto + ".\n"));
             } else {
-                System.out.println(CoresAnsi.erro("❌ Opção inválida.\n"));
+                System.out.println(CoresAnsi.erro("Opção inválida.\n"));
             }
         }
     }
@@ -2324,24 +2324,24 @@ public class prototipo {
                 }
                 System.out.println("----------------------------------------------------------------\n");
             } else if (acaoEscolhida == 2) {
-                if (!sessao.exigirAutoridade(Autoridade.FIN_PAGAR_E_ESTORNAR, "❌ Sem autoridade para registrar pagamento.")) continue;
+                if (!sessao.exigirAutoridade(Autoridade.FIN_PAGAR_E_ESTORNAR, "Sem autoridade para registrar pagamento.")) continue;
                 if (!estaAtivo) {
-                    System.out.println(CoresAnsi.erro("🚫 Registro inativo.\n"));
+                    System.out.println(CoresAnsi.erro(" Registro inativo.\n"));
                 } else if (tabelaFuncPago.get(indiceFuncionario)) {
-                    System.out.println(CoresAnsi.aviso("⚠️ Pagamento já registrado neste ciclo.\n"));
+                    System.out.println(CoresAnsi.aviso(" Pagamento já registrado neste ciclo.\n"));
                 } else {
                     double valorSalario = tabelaFuncSalario.get(indiceFuncionario);
                     if (caixa.registrarSaida(valorSalario, "PAGAMENTO", "Funcionário: " + tabelaFuncNome.get(indiceFuncionario), "Quitação de Salário Mensal")) {
                         indicadorTotalSalariosPagos.set(0, indicadorTotalSalariosPagos.get(0) + valorSalario);
                         tabelaFuncPago.set(indiceFuncionario, true);
                         auditoria.registrar(sessao.obterNomeVigente(), "Quitou salário de " + tabelaFuncNome.get(indiceFuncionario));
-                        System.out.println(CoresAnsi.sucesso("✅ Pagamento concluído.\n"));
+                        System.out.println(CoresAnsi.sucesso(" Pagamento concluído.\n"));
                     }
                 }
             } else if (acaoEscolhida == 3) {
-                if (!sessao.exigirAutoridade(Autoridade.RH_GERIR_CADASTROS, "❌ Sem autoridade para editar cadastro.")) continue;
+                if (!sessao.exigirAutoridade(Autoridade.RH_GERIR_CADASTROS, "Sem autoridade para editar cadastro.")) continue;
                 if (!estaAtivo) {
-                    System.out.println(CoresAnsi.erro("🚫 Registro inativo.\n"));
+                    System.out.println(CoresAnsi.erro(" Registro inativo.\n"));
                     continue;
                 }
                 String novoNome = validarELerTextoAlfabetico(leitorEntrada, "Novo nome completo: ");
@@ -2349,12 +2349,12 @@ public class prototipo {
                     tabelaFuncNome.set(indiceFuncionario, novoNome);
                     caixa.registrarMovimentoDados("ENTRADA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Edição de nome do ID " + idAlvo + " para " + novoNome);
                     auditoria.registrar(sessao.obterNomeVigente(), "Editou nome do ID " + idAlvo);
-                    System.out.println(CoresAnsi.sucesso("✅ Nome atualizado.\n"));
+                    System.out.println(CoresAnsi.sucesso(" Nome atualizado.\n"));
                 }
             } else if (acaoEscolhida == 4) {
-                if (!sessao.exigirAutoridade(Autoridade.RH_GERIR_CADASTROS, "❌ Sem autoridade para inativar registro.")) continue;
+                if (!sessao.exigirAutoridade(Autoridade.RH_GERIR_CADASTROS, "Sem autoridade para inativar registro.")) continue;
                 if (!estaAtivo) {
-                    System.out.println(CoresAnsi.aviso("⚠️ Registro já inativo.\n"));
+                    System.out.println(CoresAnsi.aviso(" Registro já inativo.\n"));
                     continue;
                 }
                 String motivo = validarELerTextoLivreObrigatorio(leitorEntrada, "Motivo [0 para cancelar]: ");
@@ -2373,12 +2373,12 @@ public class prototipo {
 
                 caixa.registrarMovimentoDados("SAIDA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Inativação de " + nomeAlvo + " (" + motivo + ")");
                 auditoria.registrar(sessao.obterNomeVigente(), "Inativou " + nomeAlvo + " e revogou autoridade");
-                System.out.println(CoresAnsi.sucesso("✅ Registro inativado e autoridade revogada.\n"));
+                System.out.println(CoresAnsi.sucesso(" Registro inativado e autoridade revogada.\n"));
                 // Se o próprio usuário logado foi inativado, encerra o modal e revoga a sessão
                 if (!sessao.estaAtiva()) return;
                 modalAberto = false;
             } else if (acaoEscolhida == 5) {
-                if (!sessao.exigirAutoridade(Autoridade.RH_GERIR_CADASTROS, "❌ Sem autoridade para readmitir registro.")) continue;
+                if (!sessao.exigirAutoridade(Autoridade.RH_GERIR_CADASTROS, "Sem autoridade para readmitir registro.")) continue;
                 if (estaAtivo) {
                     System.out.println(CoresAnsi.aviso("ℹ️ Registro já está ativo.\n"));
                     continue;
@@ -2386,7 +2386,7 @@ public class prototipo {
                 int opcaoCargo = validarELerNumeroInteiro(leitorEntrada, "Nível de acesso [1 - Gerente | 2 - Operador | 3 - Financeiro] [0 para cancelar]: ");
                 if (opcaoCargo == -999) continue;
                 if (opcaoCargo < 1 || opcaoCargo > 3) {
-                    System.out.println(CoresAnsi.erro("❌ Opção inválida.\n"));
+                    System.out.println(CoresAnsi.erro("Opção inválida.\n"));
                     continue;
                 }
                 String novoCargo = (opcaoCargo == 1) ? "GERENTE" : (opcaoCargo == 3 ? "FINANCEIRO" : "OPERADOR");
@@ -2405,11 +2405,11 @@ public class prototipo {
 
                 caixa.registrarMovimentoDados("ENTRADA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Readmissão de " + tabelaFuncNome.get(indiceFuncionario) + " (" + novoCargo + ")");
                 auditoria.registrar(sessao.obterNomeVigente(), "Readmitiu " + tabelaFuncNome.get(indiceFuncionario));
-                System.out.println(CoresAnsi.sucesso("✅ Registro readmitido. Nova senha gerada: " + novaSenha + "\n"));
+                System.out.println(CoresAnsi.sucesso(" Registro readmitido. Nova senha gerada: " + novaSenha + "\n"));
             } else if (acaoEscolhida == 6) {
-                if (!sessao.exigirAutoridade(Autoridade.RH_RESETAR_SENHA, "❌ Sem autoridade para resetar senha.")) continue;
+                if (!sessao.exigirAutoridade(Autoridade.RH_RESETAR_SENHA, "Sem autoridade para resetar senha.")) continue;
                 if (!estaAtivo) {
-                    System.out.println(CoresAnsi.erro("🚫 Registro inativo.\n"));
+                    System.out.println(CoresAnsi.erro(" Registro inativo.\n"));
                     continue;
                 }
                 System.out.print("Confirma redefinir senha de '" + tabelaFuncNome.get(indiceFuncionario) + "' para '" + gerarSenhaTemporaria() + "'? [S/N]: ");
@@ -2418,17 +2418,17 @@ public class prototipo {
                     tabelaFuncSenha.set(indiceFuncionario, senhaTemp);
                     caixa.registrarMovimentoDados("ENTRADA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Reset de senha do funcionário ID " + idAlvo);
                     auditoria.registrar(sessao.obterNomeVigente(), "Resetou senha de " + tabelaFuncNome.get(indiceFuncionario));
-                    System.out.println(CoresAnsi.sucesso("✅ Senha redefinida para: " + senhaTemp + "\n"));
+                    System.out.println(CoresAnsi.sucesso(" Senha redefinida para: " + senhaTemp + "\n"));
                 }
             } else if (acaoEscolhida == 7) {
-                if (!sessao.exigirAutoridade(Autoridade.RH_GERIR_AUTORIDADES, "❌ Sem autoridade para gerenciar autoridades.")) continue;
+                if (!sessao.exigirAutoridade(Autoridade.RH_GERIR_AUTORIDADES, "Sem autoridade para gerenciar autoridades.")) continue;
                 if (moduloAutoridades != null) {
                     gerenciarAutoridadesDoFuncionario(leitorEntrada, sessao, auditoria, caixa, moduloAutoridades, idAlvo, tabelaFuncNome.get(indiceFuncionario), estaAtivo);
                 }
             } else if (acaoEscolhida == 0 || acaoEscolhida == -999) {
                 modalAberto = false;
             } else {
-                System.out.println(CoresAnsi.erro("❌ Opção indisponível.\n"));
+                System.out.println(CoresAnsi.erro("Opção indisponível.\n"));
             }
         }
     }
@@ -2454,7 +2454,7 @@ public class prototipo {
             List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
             List<Double> indicadorGastosEstoque, List<Double> indicadorTotalFornecedoresPagos) {
 
-        if (!sessao.exigirAutoridade(Autoridade.FORN_VER_LISTA, "❌ Sem autoridade para visualizar fornecedores.")) {
+        if (!sessao.exigirAutoridade(Autoridade.FORN_VER_LISTA, "Sem autoridade para visualizar fornecedores.")) {
             return;
         }
 
@@ -2487,7 +2487,7 @@ public class prototipo {
                 menuFornecedoresAtivo = false;
             } else if (opcaoEscolhida == 1) {
                 if (tabelaFornRazaoSocial.isEmpty()) {
-                    System.out.println(CoresAnsi.aviso("⚠️ Nenhum registro disponível.\n"));
+                    System.out.println(CoresAnsi.aviso(" Nenhum registro disponível.\n"));
                     continue;
                 }
                 int paginaAtual = 1;
@@ -2507,7 +2507,7 @@ public class prototipo {
                     int indiceFinal = Math.min(indiceInicial + ITENS_POR_PAGINA, tabelaFornRazaoSocial.size());
 
                     for (int i = indiceInicial; i < indiceFinal; i++) {
-                        String etiquetaFatura = tabelaFornFaturaPaga.get(i) ? CoresAnsi.sucesso("QUITADO ✅") : CoresAnsi.aviso("PENDENTE ⚠️");
+                        String etiquetaFatura = tabelaFornFaturaPaga.get(i) ? CoresAnsi.sucesso("QUITADO ") : CoresAnsi.aviso("PENDENTE ");
                         String valorExibido = sessao.exibirValorCondicional(Autoridade.FIN_VER_VALORES_SENSIVEIS, tabelaFornValorFatura.get(i));
                         System.out.printf("[%d] %s | CNPJ: %s | UF: %s | Valor: %s [%s]\n",
                                 (i + 1), tabelaFornRazaoSocial.get(i), tabelaFornCnpj.get(i), tabelaFornUf.get(i),
@@ -2531,14 +2531,14 @@ public class prototipo {
                                     indicadorTotalFornecedoresPagos
                             );
                         } else {
-                            System.out.println(CoresAnsi.erro("❌ Índice inválido.\n"));
+                            System.out.println(CoresAnsi.erro("Índice inválido.\n"));
                         }
                     } else {
-                        System.out.println(CoresAnsi.erro("❌ Comando inválido.\n"));
+                        System.out.println(CoresAnsi.erro("Comando inválido.\n"));
                     }
                 }
             } else if (opcaoEscolhida == 2) {
-                if (!sessao.exigirAutoridade(Autoridade.FORN_GERIR_OPERACOES, "❌ Sem autoridade para registrar operação de fornecimento.")) continue;
+                if (!sessao.exigirAutoridade(Autoridade.FORN_GERIR_OPERACOES, "Sem autoridade para registrar operação de fornecimento.")) continue;
 
                 String razaoSocial = validarELerTextoAlfabetico(leitorEntrada, "Razão Social: ");
                 if (razaoSocial.equals("CANCELAR")) continue;
@@ -2546,7 +2546,7 @@ public class prototipo {
                 String cnpjValidado = validarEFormatarCnpj(leitorEntrada);
                 if (cnpjValidado.equals("CANCELAR")) continue;
                 if (tabelaFornCnpj.contains(cnpjValidado)) {
-                    System.out.println(CoresAnsi.erro("❌ [Duplicidade]: Já existe um registro com este CNPJ.\n"));
+                    System.out.println(CoresAnsi.erro("[Duplicidade]: Já existe um registro com este CNPJ.\n"));
                     continue;
                 }
 
@@ -2564,7 +2564,7 @@ public class prototipo {
 
                 double valorTotalFatura = custoUnitario * quantidadeCompra;
                 if (!Double.isFinite(valorTotalFatura) || valorTotalFatura <= 0.0) {
-                    System.out.println(CoresAnsi.erro("❌ Valor total inválido.\n"));
+                    System.out.println(CoresAnsi.erro("Valor total inválido.\n"));
                     continue;
                 }
 
@@ -2607,9 +2607,9 @@ public class prototipo {
                 }
 
                 auditoria.registrar(sessao.obterNomeVigente(), "Operação registrada junto a " + razaoSocial);
-                System.out.println(CoresAnsi.sucesso("✅ Operação registrada com sucesso.\n"));
+                System.out.println(CoresAnsi.sucesso(" Operação registrada com sucesso.\n"));
             } else {
-                System.out.println(CoresAnsi.erro("❌ Opção indisponível.\n"));
+                System.out.println(CoresAnsi.erro("Opção indisponível.\n"));
             }
         }
     }
@@ -2629,7 +2629,7 @@ public class prototipo {
         boolean modalAberto = true;
         while (modalAberto) {
             if (indiceFornecedor < 0 || indiceFornecedor >= tabelaFornRazaoSocial.size()) {
-                System.out.println(CoresAnsi.aviso("⚠️ Registro já removido.\n"));
+                System.out.println(CoresAnsi.aviso(" Registro já removido.\n"));
                 return;
             }
 
@@ -2666,29 +2666,29 @@ public class prototipo {
                 System.out.println("• Margem Padrão  : " + tabelaFornMargemLucroPct.get(indiceFornecedor) + "%");
                 System.out.println("----------------------------------------------------------------\n");
             } else if (acaoEscolhida == 2) {
-                if (!sessao.exigirAutoridade(Autoridade.FIN_PAGAR_E_ESTORNAR, "❌ Sem autoridade para registrar quitação.")) continue;
+                if (!sessao.exigirAutoridade(Autoridade.FIN_PAGAR_E_ESTORNAR, "Sem autoridade para registrar quitação.")) continue;
                 if (tabelaFornFaturaPaga.get(indiceFornecedor)) {
-                    System.out.println(CoresAnsi.aviso("⚠️ Já consta como quitado.\n"));
+                    System.out.println(CoresAnsi.aviso(" Já consta como quitado.\n"));
                 } else {
                     double valorFatura = tabelaFornValorFatura.get(indiceFornecedor);
                     if (caixa.registrarSaida(valorFatura, "PAGAMENTO", "Fornecedor: " + tabelaFornRazaoSocial.get(indiceFornecedor), "Quitação de fatura (" + tabelaFornProdutoPrincipal.get(indiceFornecedor) + ")")) {
                         indicadorTotalFornecedoresPagos.set(0, indicadorTotalFornecedoresPagos.get(0) + valorFatura);
                         tabelaFornFaturaPaga.set(indiceFornecedor, true);
                         auditoria.registrar(sessao.obterNomeVigente(), "Quitou lançamento de " + tabelaFornRazaoSocial.get(indiceFornecedor));
-                        System.out.println(CoresAnsi.sucesso("✅ Quitação registrada.\n"));
+                        System.out.println(CoresAnsi.sucesso(" Quitação registrada.\n"));
                     }
                 }
             } else if (acaoEscolhida == 3) {
-                if (!sessao.exigirAutoridade(Autoridade.FORN_GERIR_OPERACOES, "❌ Sem autoridade para editar fornecedor.")) continue;
+                if (!sessao.exigirAutoridade(Autoridade.FORN_GERIR_OPERACOES, "Sem autoridade para editar fornecedor.")) continue;
                 String novaRazaoSocial = validarELerTextoAlfabetico(leitorEntrada, "Nova Razão Social: ");
                 if (!novaRazaoSocial.equals("CANCELAR")) {
                     String antiga = tabelaFornRazaoSocial.get(indiceFornecedor);
                     tabelaFornRazaoSocial.set(indiceFornecedor, novaRazaoSocial);
                     caixa.registrarMovimentoDados("ENTRADA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Razão social alterada de '" + antiga + "' para '" + novaRazaoSocial + "'");
-                    System.out.println(CoresAnsi.sucesso("✅ Razão social atualizada.\n"));
+                    System.out.println(CoresAnsi.sucesso(" Razão social atualizada.\n"));
                 }
             } else if (acaoEscolhida == 4) {
-                if (!sessao.exigirAutoridade(Autoridade.FORN_GERIR_OPERACOES, "❌ Sem autoridade para remover fornecedor.")) continue;
+                if (!sessao.exigirAutoridade(Autoridade.FORN_GERIR_OPERACOES, "Sem autoridade para remover fornecedor.")) continue;
                 String nomeRemovido = tabelaFornRazaoSocial.get(indiceFornecedor);
                 tabelaFornRazaoSocial.remove(indiceFornecedor);
                 tabelaFornCnpj.remove(indiceFornecedor);
@@ -2699,12 +2699,12 @@ public class prototipo {
                 tabelaFornFaturaPaga.remove(indiceFornecedor);
                 caixa.registrarMovimentoDados("SAIDA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Remoção de registro de fornecimento: " + nomeRemovido);
                 auditoria.registrar(sessao.obterNomeVigente(), "Removeu registro: " + nomeRemovido);
-                System.out.println(CoresAnsi.aviso("🗑️ Registro removido.\n"));
+                System.out.println(CoresAnsi.aviso(" Registro removido.\n"));
                 modalAberto = false;
             } else if (acaoEscolhida == 0 || acaoEscolhida == -999) {
                 modalAberto = false;
             } else {
-                System.out.println(CoresAnsi.erro("❌ Opção indisponível.\n"));
+                System.out.println(CoresAnsi.erro("Opção indisponível.\n"));
             }
         }
     }
@@ -2765,7 +2765,7 @@ public class prototipo {
         System.out.println(CoresAnsi.titulo("\n--- RESULTADO [" + etiquetaStatusFiltro + "] ---"));
 
         if (totaisPorCliente.isEmpty()) {
-            System.out.println(CoresAnsi.aviso("⚠️ Nenhum registro encontrado.\n"));
+            System.out.println(CoresAnsi.aviso(" Nenhum registro encontrado.\n"));
             System.out.print("Pressione ENTER para retornar: ");
             lerLinhaSegura(leitorEntrada);
             return;
@@ -2815,9 +2815,9 @@ public class prototipo {
 
                 caixa.registrarMovimentoDados("SAIDA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Exportação de relatório para '" + nomeArquivoRelatorio + "'");
                 auditoria.registrar(sessao.obterNomeVigente(), "Exportou relatório para " + nomeArquivoRelatorio);
-                System.out.println(CoresAnsi.sucesso("✅ Relatório exportado para '" + nomeArquivoRelatorio + "'.\n"));
+                System.out.println(CoresAnsi.sucesso(" Relatório exportado para '" + nomeArquivoRelatorio + "'.\n"));
             } catch (IOException e) {
-                System.out.println(CoresAnsi.erro("❌ Erro ao gravar arquivo.\n"));
+                System.out.println(CoresAnsi.erro("Erro ao gravar arquivo.\n"));
             }
         }
 
@@ -2883,13 +2883,13 @@ public class prototipo {
             if (opcaoEscolhida == 9 || opcaoEscolhida == -999) {
                 menuFinanceiroAtivo = false;
             } else if (opcaoEscolhida == 10) {
-                if (!sessao.exigirAutoridade(Autoridade.LOG_VER_E_EXPORTAR, "❌ Sem autoridade para consultar/exportar log.")) continue;
+                if (!sessao.exigirAutoridade(Autoridade.LOG_VER_E_EXPORTAR, "Sem autoridade para consultar/exportar log.")) continue;
                 exibirLogEntradasSaidasPaginado(leitorEntrada, sessao, auditoria, caixa, logDados);
             } else if (opcaoEscolhida == 11) {
-                if (!sessao.exigirAutoridade(Autoridade.EST_VER_CATALOGO, "❌ Sem autoridade para consultar movimentações de estoque.")) continue;
+                if (!sessao.exigirAutoridade(Autoridade.EST_VER_CATALOGO, "Sem autoridade para consultar movimentações de estoque.")) continue;
                 exibirMovimentacoesEstoquePaginado(leitorEntrada, movEstoque);
             } else if (opcaoEscolhida == 1) {
-                if (!sessao.exigirAutoridade(Autoridade.EST_VER_CATALOGO, "❌ Sem autoridade para ver o catálogo.")) continue;
+                if (!sessao.exigirAutoridade(Autoridade.EST_VER_CATALOGO, "Sem autoridade para ver o catálogo.")) continue;
                 garantirPreCadastrosAtualizadosDoTxt(
                         persistencia, caixa, moduloAutoridades,
                         tabelaFuncId, tabelaFuncNome, tabelaFuncCpf,
@@ -2903,7 +2903,7 @@ public class prototipo {
                 );
                 gerenciarCatalogoProdutosPaginado(leitorEntrada, sessao, auditoria, caixa, movEstoque, tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque);
             } else if (opcaoEscolhida == 2) {
-                if (!sessao.exigirAutoridade(Autoridade.EST_GERIR_CATALOGO, "❌ Sem autoridade para cadastrar item.")) continue;
+                if (!sessao.exigirAutoridade(Autoridade.EST_GERIR_CATALOGO, "Sem autoridade para cadastrar item.")) continue;
                 persistencia.executarRollbackAutomatico(
                         moduloAutoridades,
                         tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
@@ -2919,7 +2919,7 @@ public class prototipo {
                 String nomeProduto = validarELerTextoLivreObrigatorio(leitorEntrada, "Nome do item [0 para cancelar]: ");
                 if (nomeProduto.equals("CANCELAR")) continue;
                 if (tabelaProdNome.contains(nomeProduto)) {
-                    System.out.println(CoresAnsi.erro("❌ [Duplicidade]: Já existe um item com o nome '" + nomeProduto + "'.\n"));
+                    System.out.println(CoresAnsi.erro("[Duplicidade]: Já existe um item com o nome '" + nomeProduto + "'.\n"));
                     continue;
                 }
 
@@ -2940,15 +2940,15 @@ public class prototipo {
 
                 caixa.registrarMovimentoDados("ENTRADA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Cadastro de item '" + nomeProduto + "' (" + estoqueInicial + " un @ " + formatarValorMonetarioReais(precoVenda) + ")");
                 auditoria.registrar(sessao.obterNomeVigente(), "Cadastrou item: " + nomeProduto);
-                System.out.println(CoresAnsi.sucesso("✅ Item adicionado.\n"));
+                System.out.println(CoresAnsi.sucesso(" Item adicionado.\n"));
             } else if (opcaoEscolhida == 3) {
-                if (!sessao.exigirAutoridade(Autoridade.FIN_VER_VALORES_SENSIVEIS, "❌ Sem autoridade para ver lançamentos financeiros.")) continue;
+                if (!sessao.exigirAutoridade(Autoridade.FIN_VER_VALORES_SENSIVEIS, "Sem autoridade para ver lançamentos financeiros.")) continue;
                 gerenciarHistoricoTransacoesPaginado(leitorEntrada, sessao, auditoria, caixa, movEstoque, tabelaProdNome, tabelaProdQtdEstoque, tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor);
             } else if (opcaoEscolhida == 4) {
-                if (!sessao.exigirAutoridade(Autoridade.FIN_VER_VALORES_SENSIVEIS, "❌ Sem autoridade para gerar relatório financeiro.")) continue;
+                if (!sessao.exigirAutoridade(Autoridade.FIN_VER_VALORES_SENSIVEIS, "Sem autoridade para gerar relatório financeiro.")) continue;
                 exibirRelatorioVolumeComprasClientes(leitorEntrada, auditoria, sessao, caixa, tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor);
             } else if (opcaoEscolhida == 5) {
-                if (!sessao.exigirAutoridade(Autoridade.FIN_VER_VALORES_SENSIVEIS, "❌ Sem autoridade para ver o consolidado financeiro.")) continue;
+                if (!sessao.exigirAutoridade(Autoridade.FIN_VER_VALORES_SENSIVEIS, "Sem autoridade para ver o consolidado financeiro.")) continue;
                 System.out.println(CoresAnsi.titulo("\n================ DEMONSTRATIVO CONSOLIDADO ================"));
                 System.out.println("• Saldo Atual em Caixa Global      : " + CoresAnsi.sucesso(formatarValorMonetarioReais(caixa.obterSaldo())));
                 System.out.println("• Receita Bruta de Vendas          : " + formatarValorMonetarioReais(indicadorReceitaBrutaVendas.get(0)));
@@ -2985,7 +2985,7 @@ public class prototipo {
                         caixa
                 );
             } else {
-                System.out.println(CoresAnsi.erro("❌ Opção indisponível.\n"));
+                System.out.println(CoresAnsi.erro("Opção indisponível.\n"));
             }
         }
     }
@@ -2993,7 +2993,7 @@ public class prototipo {
     // Exibe movimentações de estoque paginadas (25 por página) com filtro
     private static void exibirMovimentacoesEstoquePaginado(Scanner leitorEntrada, ModuloMovimentacaoEstoque movEstoque) {
         if (movEstoque == null) {
-            System.out.println(CoresAnsi.aviso("⚠️ Módulo de movimentações de estoque indisponível.\n"));
+            System.out.println(CoresAnsi.aviso(" Módulo de movimentações de estoque indisponível.\n"));
             return;
         }
 
@@ -3012,7 +3012,7 @@ public class prototipo {
             System.out.println(CoresAnsi.titulo("\n--- MOVIMENTAÇÕES DE ESTOQUE [" + etiquetaFiltro + "] (Página " + paginaAtual + " de " + totalPaginas + " | Encontrados: " + total + ") ---"));
 
             if (total == 0) {
-                System.out.println(CoresAnsi.aviso("⚠️ Nenhuma movimentação encontrada para o filtro '" + filtroAtivo + "'. Use [L] para limpar."));
+                System.out.println(CoresAnsi.aviso(" Nenhuma movimentação encontrada para o filtro '" + filtroAtivo + "'. Use [L] para limpar."));
             } else {
                 int ini = (paginaAtual - 1) * ITENS_POR_PAGINA;
                 int fim = Math.min(ini + ITENS_POR_PAGINA, total);
@@ -3037,11 +3037,11 @@ public class prototipo {
             } else if (cmd.equals("L")) {
                 filtroAtivo = "";
                 paginaAtual = 1;
-                System.out.println(CoresAnsi.sucesso("✅ Filtro removido.\n"));
+                System.out.println(CoresAnsi.sucesso(" Filtro removido.\n"));
             } else if (isComandoCancelamento(cmd)) {
                 navegando = false;
             } else {
-                System.out.println(CoresAnsi.erro("❌ Comando inválido.\n"));
+                System.out.println(CoresAnsi.erro("Comando inválido.\n"));
             }
         }
     }
@@ -3055,7 +3055,7 @@ public class prototipo {
             ModuloLogDadosTxt logDados) {
 
         if (logDados == null) {
-            System.out.println(CoresAnsi.aviso("⚠️ Módulo de log indisponível.\n"));
+            System.out.println(CoresAnsi.aviso(" Módulo de log indisponível.\n"));
             return;
         }
 
@@ -3074,7 +3074,7 @@ public class prototipo {
             System.out.println(CoresAnsi.titulo("\n--- LOG DE ENTRADAS E SAÍDAS DE DADOS [" + etiquetaFiltro + "] (Página " + paginaAtual + " de " + totalPaginas + " | Encontrados: " + totalRegistros + ") ---"));
 
             if (totalRegistros == 0) {
-                System.out.println(CoresAnsi.aviso("⚠️ Nenhum registro corresponde ao filtro '" + filtroAtivo + "'. Pressione [L] para limpar."));
+                System.out.println(CoresAnsi.aviso(" Nenhum registro corresponde ao filtro '" + filtroAtivo + "'. Pressione [L] para limpar."));
             } else {
                 int indiceInicial = (paginaAtual - 1) * ITENS_POR_PAGINA;
                 int indiceFinal = Math.min(indiceInicial + ITENS_POR_PAGINA, totalRegistros);
@@ -3099,10 +3099,10 @@ public class prototipo {
             } else if (comandoUsuario.equals("L")) {
                 filtroAtivo = "";
                 paginaAtual = 1;
-                System.out.println(CoresAnsi.sucesso("✅ Filtro removido.\n"));
+                System.out.println(CoresAnsi.sucesso(" Filtro removido.\n"));
             } else if (comandoUsuario.equals("E")) {
                 if (listaRegistrosFiltrados.isEmpty()) {
-                    System.out.println(CoresAnsi.aviso("⚠️ Não há eventos filtrados para exportar.\n"));
+                    System.out.println(CoresAnsi.aviso(" Não há eventos filtrados para exportar.\n"));
                     continue;
                 }
                 System.out.print("Nome do arquivo .TXT [ENTER para '" + ARQUIVO_LOG_FILTRADO_EXPORTADO + "' | 0 para cancelar]: ");
@@ -3123,7 +3123,7 @@ public class prototipo {
                 // Pede confirmação caso o arquivo de destino já exista
                 File arquivoExistente = new File(arquivoDestino);
                 if (arquivoExistente.exists()) {
-                    System.out.print(CoresAnsi.aviso("⚠️ O arquivo '" + arquivoDestino + "' já existe. Deseja sobrescrever? [S/N]: "));
+                    System.out.print(CoresAnsi.aviso(" O arquivo '" + arquivoDestino + "' já existe. Deseja sobrescrever? [S/N]: "));
                     String respostaSobrescrita = lerLinhaSegura(leitorEntrada).toUpperCase();
                     if (!respostaSobrescrita.equals("S")) {
                         System.out.println(CoresAnsi.aviso("ℹ️ Sobrescrita cancelada. O arquivo existente foi mantido.\n"));
@@ -3152,23 +3152,23 @@ public class prototipo {
                     if (auditoria != null) {
                         auditoria.registrar(autor, "Exportou eventos filtrados do log para " + arquivoDestino);
                     }
-                    System.out.println(CoresAnsi.sucesso("✅ " + totalRegistros + " evento(s) exportado(s) para '" + arquivoDestino + "'.\n"));
+                    System.out.println(CoresAnsi.sucesso(" " + totalRegistros + " evento(s) exportado(s) para '" + arquivoDestino + "'.\n"));
                 } catch (IOException e) {
-                    System.out.println(CoresAnsi.erro("❌ Erro ao exportar log para '" + arquivoDestino + "': " + e.getMessage() + "\n"));
+                    System.out.println(CoresAnsi.erro("Erro ao exportar log para '" + arquivoDestino + "': " + e.getMessage() + "\n"));
                 }
             } else if (isComandoCancelamento(comandoUsuario)) {
                 navegandoLog = false;
             } else {
-                System.out.println(CoresAnsi.erro("❌ Comando inválido.\n"));
+                System.out.println(CoresAnsi.erro("Comando inválido.\n"));
             }
         }
     }
 
     // Exibe os registros de auditoria em memória de forma paginada e filtrável
     private static void exibirLogAuditoriaPaginado(Scanner leitorEntrada, ModuloSessao sessao, ModuloAuditoria auditoria) {
-        if (!sessao.exigirAutoridade(Autoridade.SIS_AUDITORIA_E_BACKUP, "❌ Sem autoridade para visualizar a auditoria.")) return;
+        if (!sessao.exigirAutoridade(Autoridade.SIS_AUDITORIA_E_BACKUP, "Sem autoridade para visualizar a auditoria.")) return;
         if (auditoria.estaVazio()) {
-            System.out.println(CoresAnsi.aviso("⚠️ Nenhum registro encontrado.\n"));
+            System.out.println(CoresAnsi.aviso(" Nenhum registro encontrado.\n"));
             return;
         }
 
@@ -3187,7 +3187,7 @@ public class prototipo {
             System.out.println(CoresAnsi.titulo("\n--- REGISTROS DE AUDITORIA [" + etiquetaFiltro + "] (Página " + paginaAtual + " de " + totalPaginas + " | Encontrados: " + totalRegistros + ") ---"));
 
             if (totalRegistros == 0) {
-                System.out.println(CoresAnsi.aviso("⚠️ Nenhum registro corresponde ao filtro '" + filtroAtivo + "'. Pressione [L] para limpar."));
+                System.out.println(CoresAnsi.aviso(" Nenhum registro corresponde ao filtro '" + filtroAtivo + "'. Pressione [L] para limpar."));
             } else {
                 int indiceInicial = (paginaAtual - 1) * ITENS_POR_PAGINA;
                 int indiceFinal = Math.min(indiceInicial + ITENS_POR_PAGINA, totalRegistros);
@@ -3212,19 +3212,19 @@ public class prototipo {
             } else if (comandoUsuario.equals("L")) {
                 filtroAtivo = "";
                 paginaAtual = 1;
-                System.out.println(CoresAnsi.sucesso("✅ Filtro removido.\n"));
+                System.out.println(CoresAnsi.sucesso(" Filtro removido.\n"));
             } else if (isComandoCancelamento(comandoUsuario)) {
                 navegandoLog = false;
             } else {
-                System.out.println(CoresAnsi.erro("❌ Comando inválido.\n"));
+                System.out.println(CoresAnsi.erro("Comando inválido.\n"));
             }
         }
     }
 
     // Retorna etiqueta visual de alerta para estoque zerado ou baixo
     private static String formatarAlertaEstoque(int saldo) {
-        if (saldo <= 0) return CoresAnsi.erro(" [SEM ESTOQUE 🚨]");
-        if (saldo <= ESTOQUE_MINIMO_ALERTA) return CoresAnsi.aviso(" [ESTOQUE BAIXO ⚠️]");
+        if (saldo <= 0) return CoresAnsi.erro(" [SEM ESTOQUE ]");
+        if (saldo <= ESTOQUE_MINIMO_ALERTA) return CoresAnsi.aviso(" [ESTOQUE BAIXO ]");
         return "";
     }
 
@@ -3235,7 +3235,7 @@ public class prototipo {
             List<Double> tabelaProdPrecoVenda, List<Integer> tabelaProdQtdEstoque) {
 
         if (tabelaProdNome.isEmpty()) {
-            System.out.println(CoresAnsi.aviso("⚠️ Catálogo vazio.\n"));
+            System.out.println(CoresAnsi.aviso(" Catálogo vazio.\n"));
             return;
         }
 
@@ -3270,7 +3270,7 @@ public class prototipo {
             System.out.println(CoresAnsi.titulo("\n--- CATÁLOGO [" + etiquetaFiltro + "] (Página " + paginaAtual + " de " + totalPaginas + " | Encontrados: " + totalFiltrados + ") ---"));
 
             if (totalFiltrados == 0) {
-                System.out.println(CoresAnsi.aviso("⚠️ Nenhum item encontrado para o filtro '" + filtroProdutoAtivo + "'. Pressione [L] para limpar."));
+                System.out.println(CoresAnsi.aviso(" Nenhum item encontrado para o filtro '" + filtroProdutoAtivo + "'. Pressione [L] para limpar."));
             } else {
                 int indiceInicial = (paginaAtual - 1) * ITENS_POR_PAGINA;
                 int indiceFinal = Math.min(indiceInicial + ITENS_POR_PAGINA, totalFiltrados);
@@ -3300,7 +3300,7 @@ public class prototipo {
             } else if (comandoUsuario.equals("L")) {
                 filtroProdutoAtivo = "";
                 paginaAtual = 1;
-                System.out.println(CoresAnsi.sucesso("✅ Filtro removido.\n"));
+                System.out.println(CoresAnsi.sucesso(" Filtro removido.\n"));
             } else if (isComandoCancelamento(comandoUsuario)) {
                 navegandoLista = false;
             } else if (comandoUsuario.matches("^[0-9]+$")) {
@@ -3310,7 +3310,7 @@ public class prototipo {
                     boolean modalAberto = true;
                     while (modalAberto) {
                         if (indiceSelecionado < 0 || indiceSelecionado >= tabelaProdNome.size()) {
-                            System.out.println(CoresAnsi.aviso("⚠️ Item já removido.\n"));
+                            System.out.println(CoresAnsi.aviso(" Item já removido.\n"));
                             break;
                         }
                         System.out.println(CoresAnsi.titulo("\n┌────────────────────────────────────────────────────────────────┐"));
@@ -3341,16 +3341,16 @@ public class prototipo {
                             System.out.println("• Preço     : " + formatarValorMonetarioReais(tabelaProdPrecoVenda.get(indiceSelecionado)));
                             System.out.println("• Saldo     : " + tabelaProdQtdEstoque.get(indiceSelecionado) + " unidades" + formatarAlertaEstoque(tabelaProdQtdEstoque.get(indiceSelecionado)) + "\n");
                         } else if (acaoEscolhida == 2) {
-                            if (!sessao.exigirAutoridade(Autoridade.EST_GERIR_CATALOGO, "❌ Sem autoridade para editar preço.")) continue;
+                            if (!sessao.exigirAutoridade(Autoridade.EST_GERIR_CATALOGO, "Sem autoridade para editar preço.")) continue;
                             double novoPreco = validarELerValorDecimalMonetario(leitorEntrada, "Novo preço (R$) [0 para cancelar]: ", false);
                             if (novoPreco > 0) {
                                 tabelaProdPrecoVenda.set(indiceSelecionado, novoPreco);
                                 caixa.registrarMovimentoDados("ENTRADA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Novo preço de '" + tabelaProdNome.get(indiceSelecionado) + "': " + formatarValorMonetarioReais(novoPreco));
                                 auditoria.registrar(sessao.obterNomeVigente(), "Alterou preço de " + tabelaProdNome.get(indiceSelecionado));
-                                System.out.println(CoresAnsi.sucesso("✅ Preço atualizado.\n"));
+                                System.out.println(CoresAnsi.sucesso(" Preço atualizado.\n"));
                             }
                         } else if (acaoEscolhida == 3) {
-                            if (!sessao.exigirAutoridade(Autoridade.EST_GERIR_CATALOGO, "❌ Sem autoridade para ajustar saldo.")) continue;
+                            if (!sessao.exigirAutoridade(Autoridade.EST_GERIR_CATALOGO, "Sem autoridade para ajustar saldo.")) continue;
                             int novoEstoque = validarELerInteiroNaoNegativoComSair(leitorEntrada, "Novo saldo [SAIR para cancelar]: ");
                             if (novoEstoque != -999 && novoEstoque >= 0) {
                                 int saldoAnterior = tabelaProdQtdEstoque.get(indiceSelecionado);
@@ -3362,10 +3362,10 @@ public class prototipo {
                                 String direcao = novoEstoque >= saldoAnterior ? "ENTRADA_DADOS" : "SAIDA_DADOS";
                                 caixa.registrarMovimentoDados(direcao, "Operador: " + sessao.obterNomeVigente(), "Saldo de '" + tabelaProdNome.get(indiceSelecionado) + "': " + saldoAnterior + " -> " + novoEstoque + " un");
                                 auditoria.registrar(sessao.obterNomeVigente(), "Ajustou saldo de " + tabelaProdNome.get(indiceSelecionado));
-                                System.out.println(CoresAnsi.sucesso("✅ Saldo atualizado.\n"));
+                                System.out.println(CoresAnsi.sucesso(" Saldo atualizado.\n"));
                             }
                         } else if (acaoEscolhida == 4) {
-                            if (!sessao.exigirAutoridade(Autoridade.EST_GERIR_CATALOGO, "❌ Sem autoridade para remover item.")) continue;
+                            if (!sessao.exigirAutoridade(Autoridade.EST_GERIR_CATALOGO, "Sem autoridade para remover item.")) continue;
                             String nomeRemovido = tabelaProdNome.get(indiceSelecionado);
                             int saldoRemovido = tabelaProdQtdEstoque.get(indiceSelecionado);
                             tabelaProdNome.remove(indiceSelecionado);
@@ -3377,19 +3377,19 @@ public class prototipo {
                             }
                             caixa.registrarMovimentoDados("SAIDA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Remoção de item do catálogo: " + nomeRemovido);
                             auditoria.registrar(sessao.obterNomeVigente(), "Removeu item: " + nomeRemovido);
-                            System.out.println(CoresAnsi.aviso("🗑️ Item removido.\n"));
+                            System.out.println(CoresAnsi.aviso(" Item removido.\n"));
                             modalAberto = false;
                         } else if (acaoEscolhida == 0 || acaoEscolhida == -999) {
                             modalAberto = false;
                         } else {
-                            System.out.println(CoresAnsi.erro("❌ Opção indisponível.\n"));
+                            System.out.println(CoresAnsi.erro("Opção indisponível.\n"));
                         }
                     }
                 } else {
-                    System.out.println(CoresAnsi.erro("❌ Item inexistente.\n"));
+                    System.out.println(CoresAnsi.erro("Item inexistente.\n"));
                 }
             } else {
-                System.out.println(CoresAnsi.erro("❌ Comando inválido.\n"));
+                System.out.println(CoresAnsi.erro("Comando inválido.\n"));
             }
         }
     }
@@ -3402,7 +3402,7 @@ public class prototipo {
             List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor) {
 
         if (tabelaTransacaoTipo.isEmpty()) {
-            System.out.println(CoresAnsi.aviso("⚠️ Nenhum lançamento registrado.\n"));
+            System.out.println(CoresAnsi.aviso(" Nenhum lançamento registrado.\n"));
             return;
         }
 
@@ -3437,7 +3437,7 @@ public class prototipo {
             System.out.println(CoresAnsi.titulo("\n--- HISTÓRICO DE LANÇAMENTOS [" + etiquetaFiltro + "] (Página " + paginaAtual + " de " + totalPaginas + " | Encontrados: " + totalFiltrados + ") ---"));
 
             if (totalFiltrados == 0) {
-                System.out.println(CoresAnsi.aviso("⚠️ Nenhum lançamento corresponde ao filtro '" + filtroTransacaoAtivo + "'. Pressione [L] para limpar."));
+                System.out.println(CoresAnsi.aviso(" Nenhum lançamento corresponde ao filtro '" + filtroTransacaoAtivo + "'. Pressione [L] para limpar."));
             } else {
                 int indiceInicial = (paginaAtual - 1) * ITENS_POR_PAGINA;
                 int indiceFinal = Math.min(indiceInicial + ITENS_POR_PAGINA, totalFiltrados);
@@ -3466,7 +3466,7 @@ public class prototipo {
             } else if (comandoUsuario.equals("L")) {
                 filtroTransacaoAtivo = "";
                 paginaAtual = 1;
-                System.out.println(CoresAnsi.sucesso("✅ Filtro removido.\n"));
+                System.out.println(CoresAnsi.sucesso(" Filtro removido.\n"));
             } else if (isComandoCancelamento(comandoUsuario)) {
                 navegandoLista = false;
             } else if (comandoUsuario.matches("^[0-9]+$")) {
@@ -3476,7 +3476,7 @@ public class prototipo {
                     boolean modalAberto = true;
                     while (modalAberto) {
                         if (indiceSelecionado < 0 || indiceSelecionado >= tabelaTransacaoTipo.size()) {
-                            System.out.println(CoresAnsi.aviso("⚠️ Lançamento já removido.\n"));
+                            System.out.println(CoresAnsi.aviso(" Lançamento já removido.\n"));
                             break;
                         }
                         System.out.println(CoresAnsi.titulo("\n┌────────────────────────────────────────────────────────────────┐"));
@@ -3502,15 +3502,15 @@ public class prototipo {
                             System.out.println("• Valor      : " + formatarValorMonetarioReais(tabelaTransacaoValor.get(indiceSelecionado)));
                             System.out.println("----------------------------------------------------------------\n");
                         } else if (acaoEscolhida == 2) {
-                            if (!sessao.exigirAutoridade(Autoridade.FIN_PAGAR_E_ESTORNAR, "❌ Sem autoridade para editar lançamento.")) continue;
+                            if (!sessao.exigirAutoridade(Autoridade.FIN_PAGAR_E_ESTORNAR, "Sem autoridade para editar lançamento.")) continue;
                             String novaDescricao = validarELerTextoLivreObrigatorio(leitorEntrada, "Nova descrição [0 para cancelar]: ");
                             if (!novaDescricao.equals("CANCELAR")) {
                                 tabelaTransacaoDescricao.set(indiceSelecionado, sanitizarCampoTxt(novaDescricao));
                                 auditoria.registrar(sessao.obterNomeVigente(), "Editou descrição do lançamento #" + (indiceSelecionado + 1));
-                                System.out.println(CoresAnsi.sucesso("✅ Descrição atualizada.\n"));
+                                System.out.println(CoresAnsi.sucesso(" Descrição atualizada.\n"));
                             }
                         } else if (acaoEscolhida == 3) {
-                            if (!sessao.exigirAutoridade(Autoridade.FIN_PAGAR_E_ESTORNAR, "❌ Sem autoridade para estornar lançamento.")) continue;
+                            if (!sessao.exigirAutoridade(Autoridade.FIN_PAGAR_E_ESTORNAR, "Sem autoridade para estornar lançamento.")) continue;
                             String tipoEstorno = tabelaTransacaoTipo.get(indiceSelecionado);
                             String descEstorno = tabelaTransacaoDescricao.get(indiceSelecionado);
                             if (caixa.estornarLancamento(indiceSelecionado)) {
@@ -3519,20 +3519,20 @@ public class prototipo {
                                 }
                                 caixa.registrarMovimentoDados("SAIDA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Estorno/remoção do lançamento: " + descEstorno);
                                 auditoria.registrar(sessao.obterNomeVigente(), "Estornou lançamento #" + (indiceSelecionado + 1));
-                                System.out.println(CoresAnsi.aviso("🗑️ Lançamento estornado e removido.\n"));
+                                System.out.println(CoresAnsi.aviso(" Lançamento estornado e removido.\n"));
                                 modalAberto = false;
                             }
                         } else if (acaoEscolhida == 0 || acaoEscolhida == -999) {
                             modalAberto = false;
                         } else {
-                            System.out.println(CoresAnsi.erro("❌ Opção indisponível.\n"));
+                            System.out.println(CoresAnsi.erro("Opção indisponível.\n"));
                         }
                     }
                 } else {
-                    System.out.println(CoresAnsi.erro("❌ Lançamento inexistente.\n"));
+                    System.out.println(CoresAnsi.erro("Lançamento inexistente.\n"));
                 }
             } else {
-                System.out.println(CoresAnsi.erro("❌ Comando inválido.\n"));
+                System.out.println(CoresAnsi.erro("Comando inválido.\n"));
             }
         }
     }
@@ -3639,7 +3639,7 @@ public class prototipo {
             } else if (comandoCarrinho.equals("E")) {
                 carrinhoIndicesProdutos.clear();
                 carrinhoQuantidades.clear();
-                System.out.println(CoresAnsi.aviso("🗑️ Carrinho esvaziado com sucesso.\n"));
+                System.out.println(CoresAnsi.aviso(" Carrinho esvaziado com sucesso.\n"));
                 return false;
             } else if (comandoCarrinho.equals("R")) {
                 int itemRemover = validarELerNumeroInteiro(leitorEntrada, "Número do item para remover [0 para cancelar]: ");
@@ -3649,9 +3649,9 @@ public class prototipo {
                         String nomeRemovido = tabelaProdNome.get(carrinhoIndicesProdutos.get(idxCarrinho));
                         carrinhoIndicesProdutos.remove(idxCarrinho);
                         carrinhoQuantidades.remove(idxCarrinho);
-                        System.out.println(CoresAnsi.aviso("🗑️ Item '" + nomeRemovido + "' removido.\n"));
+                        System.out.println(CoresAnsi.aviso(" Item '" + nomeRemovido + "' removido.\n"));
                     } else {
-                        System.out.println(CoresAnsi.erro("❌ Item inválido.\n"));
+                        System.out.println(CoresAnsi.erro("Item inválido.\n"));
                     }
                 }
             } else if (comandoCarrinho.equals("K")) {
@@ -3663,7 +3663,7 @@ public class prototipo {
                 if (indiceClienteCadastrado != -1) {
                     nomeComprador = tabelaClienteNome.get(indiceClienteCadastrado);
                 } else {
-                    System.out.println(CoresAnsi.aviso("⚠️ CPF não encontrado na base de clientes cadastrados."));
+                    System.out.println(CoresAnsi.aviso(" CPF não encontrado na base de clientes cadastrados."));
                     System.out.print("Deseja cadastrar este novo cliente agora? [S/N]: ");
                     if (lerLinhaSegura(leitorEntrada).toUpperCase().equals("S")) {
                         String novoNomeCliente = validarELerTextoAlfabetico(leitorEntrada, "Nome completo do novo cliente: ");
@@ -3672,7 +3672,7 @@ public class prototipo {
                             tabelaClienteNome.add(novoNomeCliente);
                             nomeComprador = novoNomeCliente;
                             caixa.registrarMovimentoDados("ENTRADA_DADOS", "Portal Cliente", "Novo cliente cadastrado: " + novoNomeCliente + " (" + cpfComprador + ")");
-                            System.out.println(CoresAnsi.sucesso("✅ Novo cliente cadastrado com sucesso.\n"));
+                            System.out.println(CoresAnsi.sucesso(" Novo cliente cadastrado com sucesso.\n"));
                         } else {
                             System.out.println(CoresAnsi.aviso("ℹ️ Cadastro cancelado. Prosseguindo como CLIENTE AVULSO.\n"));
                         }
@@ -3686,12 +3686,12 @@ public class prototipo {
                     int idxProd = carrinhoIndicesProdutos.get(i);
                     int qtd = carrinhoQuantidades.get(i);
                     if (idxProd < 0 || idxProd >= tabelaProdNome.size() || tabelaProdNome.get(idxProd) == null) {
-                        System.out.println(CoresAnsi.erro("\n❌ Um item do carrinho não está mais disponível.\n"));
+                        System.out.println(CoresAnsi.erro("\nUm item do carrinho não está mais disponível.\n"));
                         return false;
                     }
                     int estoqueAtualReal = tabelaProdQtdEstoque.get(idxProd);
                     if (qtd <= 0 || estoqueAtualReal < qtd) {
-                        System.out.println(CoresAnsi.erro("\n❌ Saldo insuficiente para concluir o pedido."));
+                        System.out.println(CoresAnsi.erro("\nSaldo insuficiente para concluir o pedido."));
                         System.out.printf("• Item: %s\n• Solicitado: %d un | Disponível: %d un\n\n",
                                 tabelaProdNome.get(idxProd), qtd, Math.max(0, estoqueAtualReal));
                         return false;
@@ -3729,7 +3729,7 @@ public class prototipo {
                 carrinhoQuantidades.clear();
 
                 System.out.println(CoresAnsi.sucesso("\n================================================================"));
-                System.out.println(CoresAnsi.sucesso("              ✅ PEDIDO CONCLUÍDO COM SUCESSO!                  "));
+                System.out.println(CoresAnsi.sucesso("               PEDIDO CONCLUÍDO COM SUCESSO!                  "));
                 System.out.println(CoresAnsi.sucesso("================================================================"));
                 System.out.println("• Cliente       : " + nomeComprador + " (CPF: " + cpfComprador + ")");
                 System.out.println("• Itens         : " + resumoItensPedido.toString());
@@ -3738,7 +3738,7 @@ public class prototipo {
                 System.out.println(CoresAnsi.sucesso("================================================================\n"));
                 return true;
             } else {
-                System.out.println(CoresAnsi.erro("❌ Opção inválida no carrinho.\n"));
+                System.out.println(CoresAnsi.erro("Opção inválida no carrinho.\n"));
             }
         }
         return false;
@@ -3774,7 +3774,7 @@ public class prototipo {
         );
 
         if (tabelaProdNome.isEmpty()) {
-            System.out.println(CoresAnsi.aviso("⚠️ Nenhum item disponível na vitrine.\n"));
+            System.out.println(CoresAnsi.aviso(" Nenhum item disponível na vitrine.\n"));
             return;
         }
 
@@ -3815,7 +3815,7 @@ public class prototipo {
             System.out.println("----------------------------------------------------------------");
 
             if (totalFiltrados == 0) {
-                System.out.println(CoresAnsi.aviso("⚠️ Nenhum item corresponde ao filtro '" + filtroVitrineAtivo + "'. Pressione [L] para limpar."));
+                System.out.println(CoresAnsi.aviso(" Nenhum item corresponde ao filtro '" + filtroVitrineAtivo + "'. Pressione [L] para limpar."));
             } else {
                 int indiceInicial = (paginaAtual - 1) * ITENS_POR_PAGINA;
                 int indiceFinal = Math.min(indiceInicial + ITENS_POR_PAGINA, totalFiltrados);
@@ -3848,7 +3848,7 @@ public class prototipo {
             } else if (comandoCliente.equals("L")) {
                 filtroVitrineAtivo = "";
                 paginaAtual = 1;
-                System.out.println(CoresAnsi.sucesso("✅ Filtro removido.\n"));
+                System.out.println(CoresAnsi.sucesso(" Filtro removido.\n"));
             } else if (comandoCliente.equals("C")) {
                 gerenciarCarrinhoEFinalizarCompra(
                         leitorEntrada, caixa, movEstoque, carrinhoIndicesProdutos, carrinhoQuantidades,
@@ -3864,7 +3864,7 @@ public class prototipo {
                 );
             } else if (isComandoCancelamento(comandoCliente)) {
                 if (!carrinhoIndicesProdutos.isEmpty()) {
-                    System.out.print(CoresAnsi.aviso("⚠️ Há itens no carrinho. Deseja sair e descartar? [S/N]: "));
+                    System.out.print(CoresAnsi.aviso(" Há itens no carrinho. Deseja sair e descartar? [S/N]: "));
                     if (!lerLinhaSegura(leitorEntrada).toUpperCase().equals("S")) continue;
                 }
                 portalClienteAtivo = false;
@@ -3876,7 +3876,7 @@ public class prototipo {
                     int saldoDisponivel = Math.max(0, tabelaProdQtdEstoque.get(indiceProduto) - reservado);
 
                     if (saldoDisponivel <= 0) {
-                        System.out.println(CoresAnsi.erro("❌ Sem saldo disponível.\n"));
+                        System.out.println(CoresAnsi.erro("Sem saldo disponível.\n"));
                         continue;
                     }
 
@@ -3884,7 +3884,7 @@ public class prototipo {
                     if (quantidadeDesejada == -999) continue;
 
                     if (quantidadeDesejada > saldoDisponivel) {
-                        System.out.println(CoresAnsi.erro("\n❌ Quantidade solicitada (" + quantidadeDesejada + ") maior que o disponível (" + saldoDisponivel + " un).\n"));
+                        System.out.println(CoresAnsi.erro("\nQuantidade solicitada (" + quantidadeDesejada + ") maior que o disponível (" + saldoDisponivel + " un).\n"));
                         continue;
                     }
 
@@ -3895,12 +3895,12 @@ public class prototipo {
                         carrinhoIndicesProdutos.add(indiceProduto);
                         carrinhoQuantidades.add(quantidadeDesejada);
                     }
-                    System.out.println(CoresAnsi.sucesso("✅ Adicionado ao carrinho: " + quantidadeDesejada + "x " + tabelaProdNome.get(indiceProduto) + ".\n"));
+                    System.out.println(CoresAnsi.sucesso(" Adicionado ao carrinho: " + quantidadeDesejada + "x " + tabelaProdNome.get(indiceProduto) + ".\n"));
                 } else {
-                    System.out.println(CoresAnsi.erro("❌ Item inválido.\n"));
+                    System.out.println(CoresAnsi.erro("Item inválido.\n"));
                 }
             } else {
-                System.out.println(CoresAnsi.erro("❌ Comando inválido.\n"));
+                System.out.println(CoresAnsi.erro("Comando inválido.\n"));
             }
         }
     }
@@ -4004,7 +4004,7 @@ public class prototipo {
             } else if (opcaoPainel == 4 || opcaoPainel == -999) {
                 break;
             } else {
-                System.out.println(CoresAnsi.erro("❌ Opção indisponível.\n"));
+                System.out.println(CoresAnsi.erro("Opção indisponível.\n"));
             }
         }
     }
@@ -4144,10 +4144,10 @@ public class prototipo {
                     if (usuarioValidoEAtivo && tabelaFuncSenha.get(indiceAtual).equals(senhaDigitada)) {
                         loginAutenticado = true;
                         auditoria.registrar(tabelaFuncNome.get(indiceAtual), "Login realizado com sucesso");
-                        System.out.println(CoresAnsi.sucesso("\n✅ Acesso autorizado.\n"));
+                        System.out.println(CoresAnsi.sucesso("\n Acesso autorizado.\n"));
                         break;
                     }
-                    System.out.println(CoresAnsi.erro("❌ Credenciais inválidas.\n"));
+                    System.out.println(CoresAnsi.erro("Credenciais inválidas.\n"));
                 }
 
                 if (loginAutenticado) {
@@ -4188,7 +4188,7 @@ public class prototipo {
                 execucaoSistemaAtiva = false;
                 System.out.println(CoresAnsi.colorir(CoresAnsi.CIANO, "\n[SISTEMA] Encerrado com segurança.\n"));
             } else {
-                System.out.println(CoresAnsi.erro("❌ Opção inválida.\n"));
+                System.out.println(CoresAnsi.erro("Opção inválida.\n"));
             }
         }
         // Fecha o Scanner ao encerrar o programa

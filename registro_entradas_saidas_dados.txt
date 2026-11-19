@@ -2,6 +2,35 @@
 # LOG DEDICADO DE ENTRADAS E SAÍDAS DE DADOS - PROTEI CREAT (L'ESTOQUE)
 # Formato: [DATA HORA] | [DIRECAO] | Envolvidos: ... | Detalhes: ...
 ================================================================================
-[2026-11-19 12:34:31] | [ENTRADA DE DADOS] | Envolvidos: Arquivo: dados_pre_cadastros.txt | Detalhes: Leitura sob demanda de pré-cadastros (25 itens, 25 cadastros)
-[2026-11-19 12:34:31] | [ENTRADA DE DADOS] | Envolvidos: Arquivo: dados_pre_cadastros.txt | Detalhes: Carga inicial de pré-cadastros externos
-[2026-11-19 12:34:31] | [SAÍDA DE DADOS] | Envolvidos: Arquivo: protei_creat_backup_oficial.txt | Detalhes: Gravação inicial de backup editável
+[2026-11-19 08:00:10] | [ENTRADA DE DADOS] | Envolvidos: Arquivo: dados_pre_cadastros.txt | Detalhes: Carga inicial de pré-cadastros externos (25 cadastros, 15 fornecedores, 25 itens, 20 clientes)
+[2026-11-19 08:02:45] | [ENTRADA DE DADOS (VENDA)] | Envolvidos: Cliente: JOAO PEDRO ALMEIDA (CPF: 11144477735) | Detalhes: Pedido Carrinho (1 itens): 2x WHEY PROTEIN CONCENTRADO 900G | Valor: R$ 279,80
+[2026-11-19 08:15:12] | [ENTRADA DE DADOS (VENDA)] | Envolvidos: Cliente: MARIA CLARA SOUZA (CPF: 39053344705) | Detalhes: Pedido Carrinho (1 itens): 3x CREATINA MONOHIDRATADA 300G | Valor: R$ 269,70
+[2026-11-19 08:30:00] | [SAÍDA DE DADOS (COMPRA / ABASTECIMENTO)] | Envolvidos: Fornecedor: PROTEI NUTRI DISTRIBUIDORA LTDA (SP) | Detalhes: Entrada em estoque: 60x WHEY PROTEIN CONCENTRADO 900G | Valor: R$ 8400,00
+[2026-11-19 09:05:22] | [SAÍDA DE DADOS (COMPRA / ABASTECIMENTO)] | Envolvidos: Fornecedor: VITA FORCA SUPLEMENTOS SA (RJ) | Detalhes: Entrada em estoque: 70x CREATINA MONOHIDRATADA 300G | Valor: R$ 6200,00
+[2026-11-19 09:40:18] | [SAÍDA DE DADOS (PAGAMENTO)] | Envolvidos: Funcionário: FERNANDA OLIVEIRA SANTOS | Detalhes: Quitação de Salário Mensal | Valor: R$ 2200,00
+[2026-11-19 10:11:04] | [SAÍDA DE DADOS (PAGAMENTO)] | Envolvidos: Funcionário: CAMILA FERREIRA LIMA | Detalhes: Quitação de Salário Mensal | Valor: R$ 4800,00
+[2026-11-19 10:25:39] | [ENTRADA DE DADOS] | Envolvidos: Usuário: LUIZ RAFAEL BRAGA | Detalhes: Atualização de senha em Meu Perfil
+[2026-11-19 10:42:51] | [ENTRADA DE DADOS (VENDA)] | Envolvidos: Cliente: CARLOS EDUARDO LIMA (CPF: 71428793860) | Detalhes: Pedido Carrinho (2 itens): 1x ISOLATE WHEY 900G, 2x BCAA 2400MG 120 CAPS | Valor: R$ 309,70
+[2026-11-19 11:03:17] | [ENTRADA DE DADOS] | Envolvidos: Operador: LUIZ RAFAEL BRAGA | Detalhes: Saldo de 'WHEY PROTEIN CONCENTRADO 900G': 80 -> 85 un
+[2026-11-19 11:18:40] | [SAÍDA DE DADOS] | Envolvidos: Operador: MARIANA COSTA SILVA | Detalhes: Saldo de 'MALTODEXTRINA SABOR LIMAO 1KG': 125 -> 120 un
+[2026-11-19 11:34:09] | [ENTRADA DE DADOS (VENDA)] | Envolvidos: Cliente: BEATRIZ HELENA OLIVEIRA (CPF: 85351394037) | Detalhes: Pedido Carrinho (1 itens): 4x MULTIVITAMINICO COMPLETO 90 CAPS | Valor: R$ 179,60
+[2026-11-19 11:50:26] | [ENTRADA DE DADOS (VENDA)] | Envolvidos: Cliente: LUCAS GABRIEL SANTOS (CPF: 26890517008) | Detalhes: Pedido Carrinho (1 itens): 2x PRE-WORKOUT EXTREME 300G | Valor: R$ 239,80
+[2026-11-19 12:04:55] | [SAÍDA DE DADOS] | Envolvidos: Operador: CARLOS HENRIQUE ALVES | Detalhes: Estorno/remoção do lançamento: 1x DEXTROSE PURA 1KG
+[2026-11-19 12:15:33] | [SAÍDA DE DADOS] | Envolvidos: Operador: LUIZ RAFAEL BRAGA | Detalhes: Exportação de backup para 'protei_creat_backup_oficial.txt' (12 lançamentos)
+[2026-11-19 12:22:14] | [ENTRADA DE DADOS (VENDA)] | Envolvidos: Cliente: JULIANA FERREIRA COSTA (CPF: 94271653015) | Detalhes: Pedido Carrinho (1 itens): 3x GLUTAMINA PURA 300G | Valor: R$ 224,70
+[2026-11-19 12:28:47] | [ENTRADA DE DADOS (VENDA)] | Envolvidos: Cliente: RAFAEL HENRIQUE PEREIRA (CPF: 52998224725) | Detalhes: Pedido Carrinho (1 itens): 5x MALTODEXTRINA SABOR LIMAO 1KG | Valor: R$ 149,50
+[2026-11-19 12:33:02] | [ENTRADA DE DADOS (VENDA)] | Envolvidos: Cliente: ANA CAROLINA RODRIGUES (CPF: 12345678909) | Detalhes: Pedido Carrinho (1 itens): 2x COLAGENO HIDROLISADO VERISOL 300G | Valor: R$ 159,80
+[2026-11-19 13:28:03] | [ENTRADA DE DADOS] | Envolvidos: Arquivo: dados_pre_cadastros.txt | Detalhes: Leitura sob demanda de pré-cadastros (25 itens, 25 cadastros)
+[2026-11-19 13:28:03] | [ENTRADA DE DADOS] | Envolvidos: Arquivo: dados_pre_cadastros.txt | Detalhes: Carga inicial de pré-cadastros externos
+[2026-11-19 13:28:03] | [SAÍDA DE DADOS] | Envolvidos: Arquivo: protei_creat_backup_oficial.txt | Detalhes: Gravação inicial de backup editável
+[2026-11-19 13:28:28] | [ENTRADA DE DADOS] | Envolvidos: Arquivo: dados_pre_cadastros.txt | Detalhes: Leitura sob demanda de pré-cadastros (25 itens, 25 cadastros)
+[2026-11-19 13:28:28] | [ENTRADA DE DADOS] | Envolvidos: Arquivo: dados_pre_cadastros.txt | Detalhes: Carga inicial de pré-cadastros externos
+[2026-11-19 13:28:28] | [SAÍDA DE DADOS] | Envolvidos: Arquivo: protei_creat_backup_oficial.txt | Detalhes: Gravação inicial de backup editável
+[2026-11-19 13:28:33] | [ENTRADA DE DADOS] | Envolvidos: Arquivo: dados_pre_cadastros.txt | Detalhes: Leitura sob demanda de pré-cadastros (25 itens, 25 cadastros)
+[2026-11-19 13:31:53] | [ENTRADA DE DADOS] | Envolvidos: Arquivo: dados_pre_cadastros.txt | Detalhes: Leitura sob demanda de pré-cadastros (25 itens, 25 cadastros)
+[2026-11-19 13:31:53] | [ENTRADA DE DADOS] | Envolvidos: Arquivo: dados_pre_cadastros.txt | Detalhes: Carga inicial de pré-cadastros externos
+[2026-11-19 13:31:53] | [SAÍDA DE DADOS] | Envolvidos: Arquivo: protei_creat_backup_oficial.txt | Detalhes: Gravação inicial de backup editável
+[2026-11-19 13:31:57] | [ENTRADA DE DADOS] | Envolvidos: Arquivo: dados_pre_cadastros.txt | Detalhes: Leitura sob demanda de pré-cadastros (25 itens, 25 cadastros)
+[2026-11-19 13:43:23] | [ENTRADA DE DADOS] | Envolvidos: Arquivo: dados_pre_cadastros.txt | Detalhes: Leitura sob demanda de pré-cadastros (25 itens, 25 cadastros)
+[2026-11-19 13:43:23] | [ENTRADA DE DADOS] | Envolvidos: Arquivo: dados_pre_cadastros.txt | Detalhes: Carga inicial de pré-cadastros externos
+[2026-11-19 13:43:23] | [SAÍDA DE DADOS] | Envolvidos: Arquivo: protei_creat_backup_oficial.txt | Detalhes: Gravação inicial de backup editável
