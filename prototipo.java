@@ -1,104 +1,149 @@
-// Permite armazenar conjuntos de constantes de um enum de forma compacta e rápida
-import java.util.EnumSet;
-// Estrutura de mapa chave-valor para vincular o ID do funcionário ao seu conjunto de autoridades
-import java.util.HashMap;
-// Mapa que mantém a ordem de inserção, útilizado para consolidar históricos por cliente
-import java.util.LinkedHashMap;
-// Representa um conjunto sem elementos repetidos para consultas de permissão
-import java.util.Set;
-// Utilitários de lista, arrays e leitura de dados do console
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
-// Classes de I/O para leitura e gravação de arquivos .TXT
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-// Data e hora atuais e formatador para carimbo de tempo em logs e exportações
+import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
-// Classe principal do protótipo modular do sistema Protei Creat (L'Estoque)
 public class prototipo {
 
-    // Caminho do arquivo externo de pré-cadastros (funcionários, fornecedores, produtos e clientes)
-    public static final String ARQUIVO_PRE_CADASTROS = "dados_pre_cadastros.txt";
-    // Caminho do arquivo editável de backup oficial do sistema
-    public static final String ARQUIVO_BACKUP_OFICIAL = "protei_creat_backup_oficial.txt";
-    // Caminho do arquivo gerado automaticamente antes de restaurar um backup (ponto de rollback)
-    public static final String ARQUIVO_ROLLBACK_AUTO = "protei_creat_rollback_auto.txt";
-    // Caminho do arquivo de log contínuo de entradas e saídas de dados
-    public static final String ARQUIVO_LOG_DADOS = "registro_entradas_saidas_dados.txt";
-    // Nome padrão do arquivo ao exportar eventos filtrados do log
-    public static final String ARQUIVO_LOG_FILTRADO_EXPORTADO = "log_entradas_saidas_filtrado.txt";
-    // Quantidade limite para sinalizar item com estoque baixo na listagem
-    public static final int ESTOQUE_MINIMO_ALERTA = 10;
+    // Constantes de arquivos e formatação de data/hora do sistema
+    private static final String ARQUIVO_PRE_CADASTROS = "dados_pre_cadastros.txt";
+    private static final String ARQUIVO_BACKUP_OFICIAL = "backup_sistema_editavel.txt";
+    private static final String ARQUIVO_ROLLBACK_AUTO = "rollback_automatico_sistema.txt";
+    private static final String ARQUIVO_LOG_DADOS = "log_entradas_saidas_dados.txt";
+    private static final String ARQUIVO_LOG_FILTRADO_EXPORTADO = "log_entradas_saidas_filtrado.txt";
+    private static final DateTimeFormatter FORMATADOR_DATA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+    private static final NumberFormat FORMATADOR_MOEDA_BR = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
 
-    // Padroniza o formato de data e hora usado em logs e exportações
-    private static final DateTimeFormatter FORMATADOR_DATA_HORA = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    // Conjunto imutável com as 27 unidades federativas do Brasil para validação rápida de UF
+    private static final Set<String> UFS_BRASIL = Set.of(
+            "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
+            "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+    );
 
-    // Enumeração que representa cada permissão granular disponível no sistema
+    // Utilitário de formatação ANSI para destacar títulos, avisos, erros, sucessos e cores no terminal
+    static class CoresAnsi {
+        static final String RESET = "\u001B[0m";
+        static final String CIANO = "\u001B[36m";
+        static final String VERDE = "\u001B[32m";
+        static final String AMARELO = "\u001B[33m";
+        static final String VERMELHO = "\u001B[31m";
+        static final String NEGRITO = "\u001B[1m";
+
+        // Aplica cor genérica à mensagem informada
+        static String colorir(String cor, String texto) {
+            return cor + texto + RESET;
+        }
+
+        // Formata cabeçalhos e molduras do sistema
+        static String titulo(String texto) {
+            return NEGRITO + CIANO + texto + RESET;
+        }
+
+        // Formata mensagens de confirmação e estados positivos
+        static String sucesso(String texto) {
+            return VERDE + texto + RESET;
+        }
+
+        // Formata alertas, pendências e avisos intermediários
+        static String aviso(String texto) {
+            return AMARELO + texto + RESET;
+        }
+
+        // Formata mensagens de erro e validações inválidas
+        static String erro(String texto) {
+            return VERMELHO + texto + RESET;
+        }
+    }
+
+    // Enumeração ampliada com permissões granulares para RH, Financeiro, Gerente e áreas operacionais
     enum Autoridade {
         RH_VER_FUNCIONARIOS("Visualizar lista de funcionários"),
         RH_GERIR_CADASTROS("Cadastrar, editar e alterar status de funcionários"),
+        RH_ALTERAR_CARGO_SALARIO("Promover, rebaixar ou ajustar cargo e salário de funcionários"),
+        RH_INATIVAR_E_READMITIR("Inativar/desligar ou readmitir registros de funcionários"),
         RH_RESETAR_SENHA("Redefinir senha de funcionário para temporária"),
         RH_GERIR_AUTORIDADES("Conceder ou revogar autoridades de funcionários"),
         FORN_VER_LISTA("Visualizar registros de fornecedores"),
         FORN_GERIR_OPERACOES("Registrar compras, editar ou remover fornecedores"),
+        FORN_QUITAR_FATURAS("Registrar quitação de faturas de fornecedores"),
         EST_VER_CATALOGO("Visualizar catálogo e saldos de estoque"),
         EST_GERIR_CATALOGO("Cadastrar itens, editar preços, ajustar saldos e ver histórico de estoque"),
+        EST_AJUSTAR_SALDO_E_PRECO("Ajustar saldo físico e preço de venda de itens no catálogo"),
         FIN_VER_VALORES_SENSIVEIS("Visualizar salários, caixa, lançamentos e demonstrativos financeiros"),
+        FIN_LANCAR_ENTRADAS_SAIDAS("Registrar entradas e saídas financeiras no caixa"),
         FIN_PAGAR_E_ESTORNAR("Registrar pagamentos/quitações e estornar lançamentos"),
+        FIN_ESTORNAR_LANCAMENTOS("Estornar lançamentos financeiros registrados no sistema"),
+        FIN_VER_CONSOLIDADO_E_IMPOSTOS("Visualizar demonstrativo consolidado, margens e provisões de ICMS"),
+        FIN_EXPORTAR_RELATORIOS("Exportar relatórios financeiros e de compras por cliente em .TXT"),
+        CLI_GERIR_CADASTROS("Consultar e gerenciar cadastros de clientes"),
         LOG_VER_E_EXPORTAR("Consultar, filtrar e exportar logs de entradas/saídas"),
-        SIS_AUDITORIA_E_BACKUP("Acessar auditoria, salvar backup e restaurar arquivos .TXT");
+        SIS_AUDITORIA_E_BACKUP("Acessar auditoria, salvar backup e restaurar arquivos .TXT"),
+        GER_SUPERVISAO_GERAL("Acesso de supervisão gerencial e visão global de indicadores"),
+        GER_APROVAR_OPERACOES_CRITICAS("Autorizar e confirmar operações críticas do sistema");
 
-        // Descrição amigável exibida na tela de gerenciamento de autoridades
         private final String descricao;
 
-        // Construtor do enum que associa a descrição à constante
         Autoridade(String descricao) {
             this.descricao = descricao;
         }
 
-        // Retorna a descrição legível da autoridade
         String getDescricao() {
             return descricao;
         }
     }
 
-    // Gerencia o conjunto de autoridades de cada funcionário por ID
+    // Módulo de gestão de autoridades (RBAC) por funcionário e cargo
     static class ModuloAutoridades {
-        // Mapeia o ID do funcionário (em maiúsculas) para seu EnumSet de autoridades
-        private final Map<String, EnumSet<Autoridade>> autoridadesPorId = new HashMap<>();
+        private final Map<String, EnumSet<Autoridade>> autoridadesPorId = new LinkedHashMap<>();
 
         // Define o conjunto inicial de autoridades de acordo com o cargo
+        // GERENTE recebe todas as permissões do enum; FINANCEIRO e OPERADOR recebem conjuntos delimitados
         static EnumSet<Autoridade> autoridadesPadraoPorCargo(String cargo) {
             // Se o cargo for nulo, não concede nenhuma autoridade
             if (cargo == null) return EnumSet.noneOf(Autoridade.class);
+
             // Seleciona as permissões padrão conforme o perfil/cargo
             switch (cargo.trim().toUpperCase()) {
                 case "GERENTE":
-                    // Gerente recebe todas as autoridades cadastradas
+                    // Gerente recebe todas as autoridades cadastradas no enum
                     return EnumSet.allOf(Autoridade.class);
                 case "FINANCEIRO":
-                    // Financeiro recebe permissões de RH consulta, fornecedores, estoque, financeiro e logs
+                    // Financeiro concentra movimentações, pagamentos, estornos, relatórios e consulta de RH/estoque
                     return EnumSet.of(
                             Autoridade.RH_VER_FUNCIONARIOS,
+                            Autoridade.RH_VER_FOLHA_E_STATUS,
                             Autoridade.FORN_VER_LISTA,
                             Autoridade.FORN_GERIR_OPERACOES,
+                            Autoridade.FORN_QUITAR_FATURAS,
                             Autoridade.EST_VER_CATALOGO,
                             Autoridade.EST_GERIR_CATALOGO,
+                            Autoridade.EST_AJUSTAR_SALDO_E_PRECO,
                             Autoridade.FIN_VER_VALORES_SENSIVEIS,
+                            Autoridade.FIN_LANCAR_ENTRADAS_SAIDAS,
                             Autoridade.FIN_PAGAR_E_ESTORNAR,
+                            Autoridade.FIN_ESTORNAR_LANCAMENTOS,
+                            Autoridade.FIN_VER_CONSOLIDADO_E_IMPOSTOS,
+                            Autoridade.FIN_EXPORTAR_RELATORIOS,
+                            Autoridade.CLI_GERIR_CADASTROS,
                             Autoridade.LOG_VER_E_EXPORTAR
                     );
                 case "OPERADOR":
-                    // Operador recebe permissões básicas de visualização de estoque/fornecedores e logs
+                    // Operador recebe permissões básicas de visualização de estoque/fornecedores e consulta de logs
                     return EnumSet.of(
                             Autoridade.EST_VER_CATALOGO,
                             Autoridade.FORN_VER_LISTA,
@@ -110,253 +155,58 @@ public class prototipo {
             }
         }
 
-        // Mantém o mapa de autoridades alinhado com a lista de funcionários e seus status
+        // Sincroniza autoridades de funcionários ativos com o cargo vigente quando não houver registro prévio
         void sincronizarComTabelaFuncionarios(List<String> ids, List<String> cargos, List<String> status) {
-            // Cria um conjunto com os IDs atualmente existentes para remover órfãos
-            Set<String> idsAtuais = new java.util.HashSet<>(ids);
-            // Remove entradas de IDs que não existem mais na tabela de funcionários
-            autoridadesPorId.keySet().retainAll(idsAtuais);
-
-            // Percorre todos os funcionários cadastrados
+            if (ids == null || cargos == null || status == null) return;
             for (int i = 0; i < ids.size(); i++) {
                 String id = ids.get(i);
-                // Verifica se o funcionário está com status ATIVO
                 boolean ativo = i < status.size() && "ATIVO".equalsIgnoreCase(status.get(i));
+                String cargo = i < cargos.size() ? cargos.get(i) : "SEM_CARGO";
                 if (!ativo) {
-                    // Funcionário inativo/demitido tem todas as autoridades zeradas
                     autoridadesPorId.put(id, EnumSet.noneOf(Autoridade.class));
                 } else if (!autoridadesPorId.containsKey(id)) {
-                    // Se o funcionário ativo ainda não tem entrada, aplica o padrão do cargo
-                    String cargo = i < cargos.size() ? cargos.get(i) : "OPERADOR";
                     autoridadesPorId.put(id, autoridadesPadraoPorCargo(cargo));
                 }
             }
         }
 
-        // Restaura autoridades lidas do arquivo de backup para um funcionário ativo
-        void aplicarAutoridadesCarregadas(String idUsuario, boolean ativo, List<String> nomesAutoridades) {
-            // Ignora usuários inativos ou IDs vazios
-            if (!ativo || idUsuario == null || idUsuario.isBlank()) return;
-            // Cria um conjunto vazio para popular com os nomes válidos
-            EnumSet<Autoridade> conjunto = EnumSet.noneOf(Autoridade.class);
-            for (String nome : nomesAutoridades) {
-                if (nome == null || nome.isBlank()) continue;
-                try {
-                    // Converte o texto do arquivo para a constante Autoridade correspondente
-                    conjunto.add(Autoridade.valueOf(nome.trim().toUpperCase()));
-                } catch (IllegalArgumentException ignored) {
-                    // Ignora nomes de autoridades obsoletos ou inválidos no arquivo
-                }
-            }
-            // Grava o conjunto restaurado no mapa
-            autoridadesPorId.put(idUsuario.trim().toUpperCase(), conjunto);
-        }
-
-        // Obtém o conjunto de autoridades vigentes do usuário (vazio se inativo)
-        EnumSet<Autoridade> obterAutoridades(String idUsuario, boolean ativo) {
-            if (!ativo || idUsuario == null) return EnumSet.noneOf(Autoridade.class);
-            // Busca ou inicializa um conjunto vazio caso ainda não exista
-            EnumSet<Autoridade> conjunto = autoridadesPorId.get(idUsuario);
-            if (conjunto == null) {
-                conjunto = EnumSet.noneOf(Autoridade.class);
-                autoridadesPorId.put(idUsuario, conjunto);
-            }
-            return conjunto;
-        }
-
-        // Verifica se o usuário ativo possui uma autoridade específica
-        boolean temAutoridade(String idUsuario, boolean ativo, Autoridade autoridade) {
-            return obterAutoridades(idUsuario, ativo).contains(autoridade);
-        }
-
-        // Concede ou revoga individualmente uma autoridade para o ID informado
-        void definirAutoridade(String idUsuario, Autoridade autoridade, boolean conceder) {
-            EnumSet<Autoridade> conjunto = autoridadesPorId.computeIfAbsent(idUsuario, k -> EnumSet.noneOf(Autoridade.class));
-            if (conceder) {
-                conjunto.add(autoridade);
-            } else {
-                conjunto.remove(autoridade);
-            }
-        }
-
-        // Redefine todas as autoridades de um usuário conforme seu status e cargo
-        void redefinirPorCargo(String idUsuario, String cargo, boolean ativo) {
+        // Redefine o conjunto de autoridades de um ID de acordo com o cargo e o status ativo
+        void redefinirPorCargo(String id, String cargo, boolean ativo) {
+            if (id == null || id.isBlank()) return;
             if (!ativo) {
-                autoridadesPorId.put(idUsuario, EnumSet.noneOf(Autoridade.class));
+                autoridadesPorId.put(id, EnumSet.noneOf(Autoridade.class));
             } else {
-                autoridadesPorId.put(idUsuario, autoridadesPadraoPorCargo(cargo));
+                autoridadesPorId.put(id, autoridadesPadraoPorCargo(cargo));
             }
+        }
+
+        // Alterna ou define individualmente uma autoridade para o ID informado
+        void definirAutoridade(String id, Autoridade autoridade, boolean conceder) {
+            if (id == null || id.isBlank() || autoridade == null) return;
+            EnumSet<Autoridade> set = autoridadesPorId.computeIfAbsent(id, k -> EnumSet.noneOf(Autoridade.class));
+            if (conceder) {
+                set.add(autoridade);
+            } else {
+                set.remove(autoridade);
+            }
+        }
+
+        // Retorna cópia defensiva das autoridades do funcionário caso esteja ativo
+        EnumSet<Autoridade> obterAutoridades(String id, boolean ativo) {
+            if (!ativo || id == null) return EnumSet.noneOf(Autoridade.class);
+            EnumSet<Autoridade> set = autoridadesPorId.get(id);
+            return (set == null) ? EnumSet.noneOf(Autoridade.class) : EnumSet.copyOf(set);
+        }
+
+        // Verifica se o funcionário ativo possui a autoridade consultada
+        boolean possuiAutoridade(String id, boolean ativo, Autoridade autoridade) {
+            if (!ativo || id == null || autoridade == null) return false;
+            EnumSet<Autoridade> set = autoridadesPorId.get(id);
+            return set != null && set.contains(autoridade);
         }
     }
 
-    // Centraliza códigos de cor ANSI para destacar mensagens no console
-    static class CoresAnsi {
-        static final String RESET = "\u001B[0m";
-        static final String VERMELHO = "\u001B[31m";
-        static final String VERDE = "\u001B[32m";
-        static final String AMARELO = "\u001B[33m";
-        static final String AZUL = "\u001B[34m";
-        static final String CIANO = "\u001B[36m";
-        static final String NEGRITO_CIANO = "\u001B[1;36m";
-
-        // Envolve um texto com a cor escolhida e reseta ao final
-        static String colorir(String cor, String texto) {
-            if (texto == null) return "";
-            return cor + texto + RESET;
-        }
-
-        // Formata mensagens de sucesso em verde
-        static String sucesso(String texto) {
-            return colorir(VERDE, texto);
-        }
-
-        // Formata mensagens de erro/bloqueio em vermelho
-        static String erro(String texto) {
-            return colorir(VERMELHO, texto);
-        }
-
-        // Formata mensagens de aviso/atenção em amarelo
-        static String aviso(String texto) {
-            return colorir(AMARELO, texto);
-        }
-
-        // Formata títulos e molduras em ciano negrito
-        static String titulo(String texto) {
-            return colorir(NEGRITO_CIANO, texto);
-        }
-    }
-
-    // Registra e consulta movimentações de quantidade dos itens em estoque
-    static class ModuloMovimentacaoEstoque {
-        // Lista em memória das linhas formatadas de movimentação de estoque
-        private final List<String> registros = new ArrayList<>();
-
-        // Adiciona um evento de movimentação com variação (+ / -), saldo final e responsável
-        void registrarMovimento(String tipoMovimento, String produto, int deltaQuantidade, int saldoFinal, String origemDestino, String responsavel) {
-            String dataHora = LocalDateTime.now().format(FORMATADOR_DATA_HORA);
-            // Garante sinal explícito de '+' para entradas/ajustes positivos
-            String sinal = deltaQuantidade >= 0 ? "+" + deltaQuantidade : String.valueOf(deltaQuantidade);
-            String linha = String.format("[%s] | %s | Item: %s | Var: %s un | Saldo: %d un | Ref: %s | Resp: %s",
-                    dataHora,
-                    sanitizarCampoTxt(tipoMovimento),
-                    sanitizarCampoTxt(produto),
-                    sinal,
-                    Math.max(0, saldoFinal),
-                    sanitizarCampoTxt(origemDestino),
-                    sanitizarCampoTxt(responsavel));
-            registros.add(linha);
-        }
-
-        // Filtra os registros de movimentação por termo (case-insensitive)
-        List<String> buscarFiltrados(String termoFiltro) {
-            List<String> resultado = new ArrayList<>();
-            String filtro = (termoFiltro == null) ? "" : termoFiltro.trim().toUpperCase();
-            for (String linha : registros) {
-                if (filtro.isEmpty() || linha.toUpperCase().contains(filtro)) {
-                    resultado.add(linha);
-                }
-            }
-            return resultado;
-        }
-    }
-
-    // Grava e lê o log persistente de entradas e saídas de dados em arquivo .TXT
-    static class ModuloLogDadosTxt {
-        private final String caminhoArquivoLog;
-
-        // Inicializa o módulo e garante a criação do cabeçalho se o arquivo não existir
-        ModuloLogDadosTxt(String caminhoArquivoLog) {
-            this.caminhoArquivoLog = caminhoArquivoLog;
-            garantirCabecalho();
-        }
-
-        // Escreve o cabeçalho explicativo apenas quando o arquivo está vazio ou ausente
-        private void garantirCabecalho() {
-            File arquivo = new File(caminhoArquivoLog);
-            if (arquivo.exists() && arquivo.length() > 0) return;
-
-            try (BufferedWriter escritor = new BufferedWriter(new FileWriter(arquivo, true))) {
-                escritor.write("================================================================================\n");
-                escritor.write("# LOG DEDICADO DE ENTRADAS E SAÍDAS DE DADOS - PROTEI CREAT (L'ESTOQUE)\n");
-                escritor.write("# Formato: [DATA HORA] | [DIRECAO] | Envolvidos: ... | Detalhes: ...\n");
-                escritor.write("================================================================================\n");
-            } catch (IOException ignored) {
-                // Evita interromper o fluxo do console caso o disco esteja somente leitura
-            }
-        }
-
-        // Acrescenta uma nova linha de evento ao arquivo de log
-        void gravarEvento(String direcao, String envolvidos, String descricao) {
-            garantirCabecalho();
-            String timestamp = LocalDateTime.now().format(FORMATADOR_DATA_HORA);
-            String dirLimpa = sanitizarCampoTxt(direcao);
-            String envLimpo = sanitizarCampoTxt(envolvidos);
-            String descLimpa = sanitizarCampoTxt(descricao);
-
-            String linhaFormatada = String.format("[%s] | [%s] | Envolvidos: %s | Detalhes: %s",
-                    timestamp, dirLimpa, envLimpo, descLimpa);
-
-            try (BufferedWriter escritor = new BufferedWriter(new FileWriter(caminhoArquivoLog, true))) {
-                escritor.write(linhaFormatada + "\n");
-            } catch (IOException ignored) {
-            }
-        }
-
-        // Lê as linhas úteis do arquivo de log aplicando um filtro opcional
-        List<String> lerEventosFiltrados(String termoFiltro) {
-            garantirCabecalho();
-            List<String> eventos = new ArrayList<>();
-            String filtroNormalizado = (termoFiltro == null) ? "" : termoFiltro.trim().toUpperCase();
-
-            File arquivo = new File(caminhoArquivoLog);
-            if (!arquivo.exists()) return eventos;
-
-            try (BufferedReader leitor = new BufferedReader(new FileReader(arquivo))) {
-                String linha;
-                while ((linha = leitor.readLine()) != null) {
-                    String limpa = linha.trim();
-                    // Ignora linhas vazias, comentários '#' e separadores '='
-                    if (limpa.isEmpty() || limpa.startsWith("#") || limpa.startsWith("=")) continue;
-                    if (filtroNormalizado.isEmpty() || limpa.toUpperCase().contains(filtroNormalizado)) {
-                        eventos.add(limpa);
-                    }
-                }
-            } catch (IOException ignored) {
-            }
-            return eventos;
-        }
-    }
-
-    // Registra ações administrativas e operacionais para consulta na auditoria
-    static class ModuloAuditoria {
-        private final List<String> registros = new ArrayList<>();
-
-        // Registra um evento com nome do operador e descrição da ação
-        void registrar(String operador, String acao) {
-            String autor = (operador == null || operador.isBlank()) ? "SISTEMA" : sanitizarCampoTxt(operador.trim());
-            String desc = (acao == null) ? "" : sanitizarCampoTxt(acao.trim());
-            registros.add("[AUDITORIA] Operador: " + autor + " | Ação: " + desc);
-        }
-
-        // Retorna eventos filtrados por palavra-chave
-        List<String> buscarFiltrados(String termoFiltro) {
-            List<String> resultado = new ArrayList<>();
-            String filtroNormalizado = (termoFiltro == null) ? "" : termoFiltro.trim().toUpperCase();
-            for (String evento : registros) {
-                if (filtroNormalizado.isEmpty() || evento.toUpperCase().contains(filtroNormalizado)) {
-                    resultado.add(evento);
-                }
-            }
-            return resultado;
-        }
-
-        // Indica se não há registros de auditoria ainda
-        boolean estaVazio() {
-            return registros.isEmpty();
-        }
-    }
-
-    // Representa a sessão do usuário autenticado e valida permissões/status em tempo real
+    // Gerencia a sessão autenticada, validando status ativo, cargo e permissões em tempo real
     static class ModuloSessao {
         private final String idUsuario;
         private final List<String> tabelaId;
@@ -365,14 +215,10 @@ public class prototipo {
         private final List<String> tabelaSenha;
         private final List<String> tabelaStatus;
         private final ModuloAutoridades moduloAutoridades;
+        private boolean sessaoRevogada = false;
 
-        // Construtor que vincula a sessão às tabelas de funcionários e ao módulo de autoridades
-        ModuloSessao(String idUsuario,
-                     List<String> tabelaId,
-                     List<String> tabelaNome,
-                     List<String> tabelaCargo,
-                     List<String> tabelaSenha,
-                     List<String> tabelaStatus,
+        ModuloSessao(String idUsuario, List<String> tabelaId, List<String> tabelaNome,
+                     List<String> tabelaCargo, List<String> tabelaSenha, List<String> tabelaStatus,
                      ModuloAutoridades moduloAutoridades) {
             this.idUsuario = idUsuario;
             this.tabelaId = tabelaId;
@@ -383,264 +229,281 @@ public class prototipo {
             this.moduloAutoridades = moduloAutoridades;
         }
 
-        // Localiza o índice atual do usuário na tabela de IDs
-        private int indiceAtual() {
-            return tabelaId.indexOf(idUsuario);
-        }
-
-        // Verifica se o usuário ainda existe e está com status ATIVO
-        boolean estaAtiva() {
-            int idx = indiceAtual();
-            return idx != -1 && "ATIVO".equalsIgnoreCase(tabelaStatus.get(idx));
-        }
-
-        // Valida se a sessão continua ativa; se foi inativada durante o uso, exibe aviso e encerra
-        boolean validarOuRevogarSessao() {
-            if (estaAtiva()) return true;
-            System.out.println(CoresAnsi.erro("\n [REVOGAÇÃO DE SESSÃO]: Sua autoridade foi encerrada ou o registro está inativo.\n"));
-            return false;
-        }
-
-        // Retorna o ID do usuário logado
+        // Retorna o ID do usuário autenticado na sessão
         String obterIdVigente() {
             return idUsuario;
         }
 
+        // Localiza o índice atual do usuário na tabela de funcionários
+        int indiceAtual() {
+            return tabelaId.indexOf(idUsuario);
+        }
+
         // Retorna o nome atualizado do usuário logado
+        // Protege contra IndexOutOfBoundsException caso o índice esteja fora dos limites da lista paralela
         String obterNomeVigente() {
             int idx = indiceAtual();
-            return (idx != -1) ? tabelaNome.get(idx) : "DESCONHECIDO";
+            return (idx >= 0 && idx < tabelaNome.size()) ? tabelaNome.get(idx) : "DESCONHECIDO";
         }
 
-        // Retorna o cargo atualizado do usuário logado
-        String obterCargoVigente() {
+        // Indica se a sessão ainda está ativa e válida
+        boolean estaAtiva() {
+            if (sessaoRevogada) return false;
             int idx = indiceAtual();
-            return (idx != -1) ? tabelaCargo.get(idx) : "SEM_CARGO";
+            return idx >= 0 && idx < tabelaStatus.size() && "ATIVO".equalsIgnoreCase(tabelaStatus.get(idx));
         }
 
-        // Retorna a senha atual do usuário logado (usada para confirmação de ações críticas)
-        String obterSenhaVigente() {
-            int idx = indiceAtual();
-            return (idx != -1) ? tabelaSenha.get(idx) : "";
+        // Revalida o status da conta e revoga a sessão caso o usuário tenha sido inativado/removido
+        boolean validarOuRevogarSessao() {
+            if (!estaAtiva()) {
+                if (!sessaoRevogada) {
+                    sessaoRevogada = true;
+                    System.out.println(CoresAnsi.erro("\n[SESSÃO ENCERRADA]: Sua conta não está mais ativa.\n"));
+                }
+                return false;
+            }
+            return true;
         }
 
-        // Consulta se o usuário ativo possui determinada autoridade
+        // Verifica se a sessão ativa possui a autoridade solicitada
         boolean temAutoridade(Autoridade autoridade) {
-            return moduloAutoridades != null && moduloAutoridades.temAutoridade(idUsuario, estaAtiva(), autoridade);
+            if (!estaAtiva() || moduloAutoridades == null) return false;
+            return moduloAutoridades.possuiAutoridade(idUsuario, true, autoridade);
         }
 
-        // Exibe o valor monetário formatado ou "[RESTRITO]" caso falte permissão sensível
-        String exibirValorCondicional(Autoridade autoridadeNecessaria, double valor) {
-            if (temAutoridade(autoridadeNecessaria)) {
+        // Exige a autoridade para prosseguir e exibe mensagem de bloqueio caso ausente
+        boolean exigirAutoridade(Autoridade autoridade, String mensagemBloqueio) {
+            if (!validarOuRevogarSessao()) return false;
+            if (!temAutoridade(autoridade)) {
+                System.out.println(CoresAnsi.erro(" " + mensagemBloqueio + "\n"));
+                return false;
+            }
+            return true;
+        }
+
+        // Mascara valores sensíveis caso o usuário não tenha permissão de visualização financeira
+        String exibirValorCondicional(Autoridade autoridade, double valor) {
+            if (temAutoridade(autoridade)) {
                 return formatarValorMonetarioReais(valor);
             }
-            return CoresAnsi.aviso("[RESTRITO]");
-        }
-
-        // Exige uma autoridade e imprime mensagem de erro caso o usuário não a possua
-        boolean exigirAutoridade(Autoridade autoridade, String mensagemNegacao) {
-            if (temAutoridade(autoridade)) return true;
-            String msg = (mensagemNegacao == null || mensagemNegacao.isBlank())
-                    ? "Acesso negado: autoridade necessária (" + autoridade.name() + ")."
-                    : mensagemNegacao;
-            System.out.println(CoresAnsi.erro(msg + "\n"));
-            return false;
-        }
-
-        // Verifica se o cargo vigente é OPERADOR
-        boolean isOperador() {
-            return "OPERADOR".equalsIgnoreCase(obterCargoVigente());
-        }
-
-        // Verifica se o usuário tem ao menos uma autoridade operacional/financeira/estoque/fornecedor
-        boolean podeGerirOperacoes() {
-            return temAutoridade(Autoridade.FIN_PAGAR_E_ESTORNAR) || temAutoridade(Autoridade.EST_GERIR_CATALOGO) || temAutoridade(Autoridade.FORN_GERIR_OPERACOES);
-        }
-
-        // Verifica se o usuário tem perfil de GERENTE ou permissão de auditoria/backup
-        boolean isGerente() {
-            return "GERENTE".equalsIgnoreCase(obterCargoVigente()) || temAutoridade(Autoridade.SIS_AUDITORIA_E_BACKUP);
-        }
-
-        // Exige permissão operacional básica
-        boolean exigirPermissaoOperacional() {
-            if (podeGerirOperacoes()) return true;
-            System.out.println(CoresAnsi.erro(" Acesso negado para o seu perfil.\n"));
-            return false;
-        }
-
-        // Exige permissão de gerente
-        boolean exigirPermissaoGerente() {
-            if (isGerente()) return true;
-            System.out.println(CoresAnsi.erro(" Operação não permitida para o seu perfil.\n"));
-            return false;
+            return "R$ ***.** (RESTRITO)";
         }
     }
 
-    // Controla o saldo em caixa global e os lançamentos financeiros/de dados
+    // Registra eventos de auditoria com carimbo de data/hora e consulta filtrada
+    static class ModuloAuditoria {
+        private final List<String> registros = new ArrayList<>();
+
+        // Registra um evento com nome do operador e descrição da ação
+        // Inclui carimbo de data e hora para facilitar rastreabilidade em auditorias e testes
+        void registrar(String operador, String acao) {
+            String timestamp = LocalDateTime.now().format(FORMATADOR_DATA_HORA);
+            String autor = (operador == null || operador.isBlank()) ? "SISTEMA" : sanitizarCampoTxt(operador.trim());
+            String desc = (acao == null) ? "" : sanitizarCampoTxt(acao.trim());
+            registros.add("[" + timestamp + "] [AUDITORIA] Operador: " + autor + " | Ação: " + desc);
+        }
+
+        boolean estaVazio() {
+            return registros.isEmpty();
+        }
+
+        List<String> buscarFiltrados(String termo) {
+            if (termo == null || termo.isBlank()) return new ArrayList<>(registros);
+            String busca = termo.trim().toUpperCase();
+            List<String> filtrados = new ArrayList<>();
+            for (String r : registros) {
+                if (r.toUpperCase().contains(busca)) filtrados.add(r);
+            }
+            return filtrados;
+        }
+    }
+
+    // Grava em arquivo .TXT o log de entradas e saídas de dados e movimentos
+    static class ModuloLogDadosTxt {
+        private final String caminhoArquivo;
+        private final List<String> eventosEmMemoria = new ArrayList<>();
+
+        ModuloLogDadosTxt(String caminhoArquivo) {
+            this.caminhoArquivo = caminhoArquivo;
+            carregarExistentes();
+        }
+
+        // Carrega linhas já existentes no arquivo de log ao iniciar
+        private void carregarExistentes() {
+            File arq = new File(caminhoArquivo);
+            if (!arq.exists()) return;
+            try (BufferedReader br = new BufferedReader(new FileReader(arq))) {
+                String linha;
+                while ((linha = br.readLine()) != null) {
+                    if (!linha.isBlank()) eventosEmMemoria.add(linha);
+                }
+            } catch (IOException ignored) {}
+        }
+
+        // Acrescenta um evento de entrada/saída com timestamp na memória e no arquivo .TXT
+        void registrarEvento(String direcao, String origemOuOperador, String detalhe) {
+            String timestamp = LocalDateTime.now().format(FORMATADOR_DATA_HORA);
+            String linha = String.format("[%s] [%s] %s -> %s",
+                    timestamp,
+                    sanitizarCampoTxt(direcao),
+                    sanitizarCampoTxt(origemOuOperador),
+                    sanitizarCampoTxt(detalhe));
+            eventosEmMemoria.add(linha);
+            try (BufferedWriter bw = new BufferedWriter(new FileWriter(caminhoArquivo, true))) {
+                bw.write(linha);
+                bw.newLine();
+            } catch (IOException ignored) {}
+        }
+
+        List<String> lerEventosFiltrados(String filtro) {
+            if (filtro == null || filtro.isBlank()) return new ArrayList<>(eventosEmMemoria);
+            String busca = filtro.trim().toUpperCase();
+            List<String> resultado = new ArrayList<>();
+            for (String ev : eventosEmMemoria) {
+                if (ev.toUpperCase().contains(busca)) resultado.add(ev);
+            }
+            return resultado;
+        }
+    }
+
+    // Registra histórico detalhado das movimentações físicas de estoque
+    static class ModuloMovimentacaoEstoque {
+        private final List<String> movimentos = new ArrayList<>();
+
+        // Registra entrada, saída, cadastro ou ajuste de estoque
+        void registrarMovimento(String tipoMovimento, String item, int variacaoQtd, int saldoApos, String referencia, String operador) {
+            String timestamp = LocalDateTime.now().format(FORMATADOR_DATA_HORA);
+            String sinal = variacaoQtd > 0 ? "+" + variacaoQtd : String.valueOf(variacaoQtd);
+            String linha = String.format("[%s] [%s] Item: %s | Variação: %s un | Saldo: %d un | Ref: %s | Op: %s",
+                    timestamp,
+                    sanitizarCampoTxt(tipoMovimento),
+                    sanitizarCampoTxt(item),
+                    sinal,
+                    saldoApos,
+                    sanitizarCampoTxt(referencia),
+                    sanitizarCampoTxt(operador));
+            movimentos.add(linha);
+        }
+
+        List<String> buscarFiltrados(String filtro) {
+            if (filtro == null || filtro.isBlank()) return new ArrayList<>(movimentos);
+            String busca = filtro.trim().toUpperCase();
+            List<String> resultado = new ArrayList<>();
+            for (String m : movimentos) {
+                if (m.toUpperCase().contains(busca)) resultado.add(m);
+            }
+            return resultado;
+        }
+    }
+
+    // Controla o saldo global de caixa, lançamentos financeiros e logs de movimento de dados
     static class ModuloCaixa {
         private final List<Double> saldoGlobal;
-        private final List<String> tipos;
-        private final List<String> envolvidos;
-        private final List<String> descricoes;
-        private final List<Double> valores;
+        private final List<String> transacaoTipo;
+        private final List<String> transacaoEnvolvidos;
+        private final List<String> transacaoDescricao;
+        private final List<Double> transacaoValor;
         private final ModuloLogDadosTxt logDados;
 
-        // Construtor que conecta o caixa às listas de transações e ao log em .TXT
         ModuloCaixa(List<Double> saldoGlobal,
-                    List<String> tipos,
-                    List<String> envolvidos,
-                    List<String> descricoes,
-                    List<Double> valores,
+                    List<String> transacaoTipo,
+                    List<String> transacaoEnvolvidos,
+                    List<String> transacaoDescricao,
+                    List<Double> transacaoValor,
                     ModuloLogDadosTxt logDados) {
             this.saldoGlobal = saldoGlobal;
-            this.tipos = tipos;
-            this.envolvidos = envolvidos;
-            this.descricoes = descricoes;
-            this.valores = valores;
+            this.transacaoTipo = transacaoTipo;
+            this.transacaoEnvolvidos = transacaoEnvolvidos;
+            this.transacaoDescricao = transacaoDescricao;
+            this.transacaoValor = transacaoValor;
             this.logDados = logDados;
         }
 
-        // Retorna o saldo atual do caixa com segurança contra valores inválidos
+        // Retorna o saldo atual do caixa global
         double obterSaldo() {
-            return (saldoGlobal != null && !saldoGlobal.isEmpty() && Double.isFinite(saldoGlobal.get(0)))
-                    ? saldoGlobal.get(0)
-                    : 0.0;
+            return (saldoGlobal == null || saldoGlobal.isEmpty()) ? 0.0 : saldoGlobal.get(0);
         }
 
-        // Atualiza o saldo do caixa caso seja finito e não negativo
+        // Define diretamente um novo valor para o saldo global
         void definirSaldo(double novoSaldo) {
-            if (Double.isFinite(novoSaldo) && novoSaldo >= 0.0) {
+            if (saldoGlobal != null && !saldoGlobal.isEmpty() && Double.isFinite(novoSaldo)) {
                 saldoGlobal.set(0, novoSaldo);
             }
         }
 
-        // Registra movimentação puramente de dados (valor 0.0) no histórico e no log .TXT
-        void registrarMovimentoDados(String direcao, String envolvidosStr, String descricao) {
-            boolean ehEntrada = "ENTRADA_DADOS".equalsIgnoreCase(direcao) || "ENTRADA DE DADOS".equalsIgnoreCase(direcao);
-            String tipoFormatado = ehEntrada ? "ENTRADA DE DADOS" : "SAÍDA DE DADOS";
-            String envLimpo = sanitizarCampoTxt(envolvidosStr);
-            String descLimpa = sanitizarCampoTxt(descricao);
-
-            tipos.add(tipoFormatado);
-            envolvidos.add(envLimpo);
-            descricoes.add(descLimpa);
-            valores.add(0.0);
-
+        // Registra movimentação de entrada/saída de dados no log externo
+        void registrarMovimentoDados(String direcao, String origemOuOperador, String detalhe) {
             if (logDados != null) {
-                logDados.gravarEvento(tipoFormatado, envLimpo, descLimpa);
+                logDados.registrarEvento(direcao, origemOuOperador, detalhe);
             }
         }
 
         // Credita um valor positivo no caixa e registra a transação/log
         boolean registrarEntrada(double valor, String tipo, String envolvidosStr, String descricao) {
+            // Garante que a lista de saldo exista antes de atualizar o índice 0
+            if (saldoGlobal == null || saldoGlobal.isEmpty()) {
+                System.out.println(CoresAnsi.erro("Saldo global não inicializado.\n"));
+                return false;
+            }
             if (!Double.isFinite(valor) || valor <= 0.0) {
                 System.out.println(CoresAnsi.erro("Valor de entrada inválido.\n"));
                 return false;
             }
             // Soma o valor ao saldo atual
             saldoGlobal.set(0, obterSaldo() + valor);
-            String tipoLimpo = sanitizarCampoTxt(tipo);
-            String envLimpo = sanitizarCampoTxt(envolvidosStr);
-            String descLimpo = sanitizarCampoTxt(descricao);
-
-            tipos.add(tipoLimpo);
-            envolvidos.add(envLimpo);
-            descricoes.add(descLimpo);
-            valores.add(valor);
-
-            if (logDados != null) {
-                logDados.gravarEvento("ENTRADA DE DADOS (" + tipoLimpo + ")", envLimpo, descLimpo + " | Valor: " + formatarValorMonetarioReais(valor));
-            }
+            transacaoTipo.add(tipo);
+            transacaoEnvolvidos.add(envolvidosStr);
+            transacaoDescricao.add(descricao);
+            transacaoValor.add(valor);
+            registrarMovimentoDados("ENTRADA_CAIXA", envolvidosStr, tipo + " (" + formatarValorMonetarioReais(valor) + ") - " + descricao);
             return true;
         }
 
-        // Debita um valor positivo do caixa se houver saldo suficiente
+        // Debita um valor positivo do caixa após conferir saldo disponível
         boolean registrarSaida(double valor, String tipo, String envolvidosStr, String descricao) {
+            if (saldoGlobal == null || saldoGlobal.isEmpty()) {
+                System.out.println(CoresAnsi.erro("Saldo global não inicializado.\n"));
+                return false;
+            }
             if (!Double.isFinite(valor) || valor <= 0.0) {
                 System.out.println(CoresAnsi.erro("Valor de saída inválido.\n"));
                 return false;
             }
-            double saldoAtual = obterSaldo();
-            if (saldoAtual < valor) {
-                System.out.println(CoresAnsi.erro("Saldo insuficiente para concluir a operação.\n"));
+            if (obterSaldo() < valor) {
+                System.out.println(CoresAnsi.erro("Saldo insuficiente em caixa (" + formatarValorMonetarioReais(obterSaldo()) + ") para operação de " + formatarValorMonetarioReais(valor) + ".\n"));
                 return false;
             }
-            // Subtrai o valor do saldo atual
-            saldoGlobal.set(0, saldoAtual - valor);
-            String tipoLimpo = sanitizarCampoTxt(tipo);
-            String envLimpo = sanitizarCampoTxt(envolvidosStr);
-            String descLimpa = sanitizarCampoTxt(descricao);
-
-            tipos.add(tipoLimpo);
-            envolvidos.add(envLimpo);
-            descricoes.add(descLimpa);
-            valores.add(valor);
-
-            if (logDados != null) {
-                logDados.gravarEvento("SAÍDA DE DADOS (" + tipoLimpo + ")", envLimpo, descLimpa + " | Valor: " + formatarValorMonetarioReais(valor));
-            }
-            return true;
-        }
-
-        // Estorna um lançamento existente, ajustando o saldo conforme o tipo da operação
-        boolean estornarLancamento(int indice) {
-            if (indice < 0 || indice >= tipos.size()) {
-                System.out.println(CoresAnsi.erro("Lançamento inexistente.\n"));
-                return false;
-            }
-
-            String tipoLancamento = tipos.get(indice);
-            double valorEstorno = valores.get(indice);
-            double saldoAtual = obterSaldo();
-
-            if ("VENDA".equalsIgnoreCase(tipoLancamento)) {
-                // Estornar venda exige saldo suficiente para devolver o valor
-                if (saldoAtual < valorEstorno) {
-                    System.out.println(CoresAnsi.erro("Estorno bloqueado: saldo atual ("
-                            + formatarValorMonetarioReais(saldoAtual)
-                            + ") inferior ao valor do lançamento ("
-                            + formatarValorMonetarioReais(valorEstorno) + ").\n"));
-                    return false;
-                }
-                saldoGlobal.set(0, saldoAtual - valorEstorno);
-            } else if ("COMPRA / ABASTECIMENTO".equalsIgnoreCase(tipoLancamento)
-                    || "PAGAMENTO".equalsIgnoreCase(tipoLancamento)) {
-                // Estornar saída devolve o valor ao caixa
-                saldoGlobal.set(0, saldoAtual + valorEstorno);
-            }
-
-            // Remove o lançamento das listas paralelas
-            tipos.remove(indice);
-            envolvidos.remove(indice);
-            descricoes.remove(indice);
-            valores.remove(indice);
+            saldoGlobal.set(0, obterSaldo() - valor);
+            transacaoTipo.add(tipo);
+            transacaoEnvolvidos.add(envolvidosStr);
+            transacaoDescricao.add(descricao);
+            transacaoValor.add(valor);
+            registrarMovimentoDados("SAIDA_CAIXA", envolvidosStr, tipo + " (" + formatarValorMonetarioReais(valor) + ") - " + descricao);
             return true;
         }
     }
 
-    // Gerencia leitura de pré-cadastros, backups editáveis em .TXT e rollback automático
+    // Gerencia leitura de pré-cadastros, snapshots de rollback e backups editáveis em .TXT
     static class ModuloPersistenciaTxt {
         private final String arquivoPreCadastros;
         private final String arquivoBackupOficial;
         private final String arquivoRollbackAuto;
 
-        // Dados mínimos de emergência caso o arquivo de pré-cadastros esteja sem funcionários
-        private static final List<String> EMERGENCIA_FUNCIONARIOS_POR_FUNCAO = Arrays.asList(
-            "001;GERENTE EMERGENCIA;52998224725;GERENTE;emerg123;5500.0;false;ATIVO;NENHUM",
-            "002;OPERADOR EMERGENCIA;12345678909;OPERADOR;emerg456;2200.0;false;ATIVO;NENHUM",
-            "003;FINANCEIRO EMERGENCIA;39053344705;FINANCEIRO;emerg789;4800.0;false;ATIVO;NENHUM"
-        );
-
-        // Fornecedor de emergência caso a seção esteja vazia
-        private static final List<String> EMERGENCIA_FORNECEDOR = Arrays.asList(
-            "FORNECEDOR EMERGENCIA LTDA;11222333000181;SP;ITEM EMERGENCIA;2500.00;40.0;false"
-        );
-
-        // Produto de emergência caso a seção esteja vazia
-        private static final List<String> EMERGENCIA_PRODUTO = Arrays.asList(
-            "ITEM EMERGENCIA;2106.90.30;50.00;20"
-        );
+        // Snapshots em memória para rollback rápido durante operações
+        private List<String> snapFuncId = new ArrayList<>();
+        private List<String> snapFuncNome = new ArrayList<>();
+        private List<String> snapFuncCpf = new ArrayList<>();
+        private List<String> snapFuncCargo = new ArrayList<>();
+        private List<String> snapFuncSenha = new ArrayList<>();
+        private List<Double> snapFuncSalario = new ArrayList<>();
+        private List<Boolean> snapFuncPago = new ArrayList<>();
+        private List<String> snapFuncStatus = new ArrayList<>();
+        private List<String> snapFuncMotivo = new ArrayList<>();
+        private List<String> snapProdNome = new ArrayList<>();
+        private List<String> snapProdNcm = new ArrayList<>();
+        private List<Double> snapProdPreco = new ArrayList<>();
+        private List<Integer> snapProdQtd = new ArrayList<>();
+        private double snapSaldoCaixa = 200000.00;
 
         ModuloPersistenciaTxt(String arquivoPreCadastros, String arquivoBackupOficial, String arquivoRollbackAuto) {
             this.arquivoPreCadastros = arquivoPreCadastros;
@@ -648,12 +511,31 @@ public class prototipo {
             this.arquivoRollbackAuto = arquivoRollbackAuto;
         }
 
-        // Retorna o nome do arquivo de backup editável
         String obterNomeArquivoBackup() {
             return arquivoBackupOficial;
         }
 
-        // Cria o arquivo de pré-cadastros se não existir e carrega suas seções
+        // Garante que exista um arquivo inicial de pré-cadastros caso ainda não esteja no disco
+        private void criarArquivoPreCadastrosPadraoSeAusente() {
+            File arq = new File(arquivoPreCadastros);
+            if (arq.exists()) return;
+            try (BufferedWriter bw = new BufferedWriter(new FileWriter(arq))) {
+                bw.write("# Arquivo de pré-cadastros iniciais do sistema\n");
+                bw.write("[FUNCIONARIOS]\n");
+                bw.write("001;MARIANA SILVA;12345678909;GERENTE;admin123;9500.00;false;ATIVO;NENHUM\n");
+                bw.write("002;CARLOS SOUZA;98765432100;FINANCEIRO;fin123;6200.00;false;ATIVO;NENHUM\n");
+                bw.write("003;LUCAS PEREIRA;11144477735;OPERADOR;op123;3800.00;false;ATIVO;NENHUM\n");
+                bw.write("[FORNECEDORES]\n");
+                bw.write("DISTRIBUIDORA PAULISTA LTDA;11222333000181;SP;CONCENTRADO CITRICO;4500.00;40.0;true\n");
+                bw.write("[PRODUTOS]\n");
+                bw.write("SUCO INTEGRAL LARANJA 1L;2009.19.00;18.50;120\n");
+                bw.write("NECTAR MANGA 1L;2009.89.90;12.00;85\n");
+                bw.write("[CLIENTES]\n");
+                bw.write("52998224725;ANA BEATRIZ COSTA\n");
+            } catch (IOException ignored) {}
+        }
+
+        // Carrega pré-cadastros de funcionários, fornecedores, produtos e clientes a partir do .TXT
         boolean conferirECarregarPreCadastrosExternos(
                 List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
                 List<String> tabelaFuncCargo, List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario,
@@ -664,422 +546,113 @@ public class prototipo {
                 List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda,
                 List<Integer> tabelaProdQtdEstoque, List<String> tabelaClienteCpf, List<String> tabelaClienteNome) {
 
-            File arquivo = new File(arquivoPreCadastros);
-            if (!arquivo.exists()) {
-                criarArquivoPreCadastrosPadraoSeAusente(arquivo);
-            }
+            criarArquivoPreCadastrosPadraoSeAusente();
+            File arq = new File(arquivoPreCadastros);
+            if (!arq.exists()) return false;
 
-            try {
-                lerSecoesPreCadastroDeArquivo(
-                        arquivo,
-                        tabelaFuncId, tabelaFuncNome, tabelaFuncCpf,
-                        tabelaFuncCargo, tabelaFuncSenha, tabelaFuncSalario,
-                        tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                        tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf,
-                        tabelaFornProdutoPrincipal, tabelaFornValorFatura,
-                        tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
-                        tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda,
-                        tabelaProdQtdEstoque, tabelaClienteCpf, tabelaClienteNome
-                );
-                return true;
-            } catch (Exception e) {
-                System.out.println(CoresAnsi.erro("Erro ao consultar '" + arquivoPreCadastros + "': " + e.getMessage() + "\n"));
+            List<String> fId = new ArrayList<>();
+            List<String> fNome = new ArrayList<>();
+            List<String> fCpf = new ArrayList<>();
+            List<String> fCargo = new ArrayList<>();
+            List<String> fSenha = new ArrayList<>();
+            List<Double> fSal = new ArrayList<>();
+            List<Boolean> fPago = new ArrayList<>();
+            List<String> fStatus = new ArrayList<>();
+            List<String> fMotivo = new ArrayList<>();
+
+            List<String> fnRazao = new ArrayList<>();
+            List<String> fnCnpj = new ArrayList<>();
+            List<String> fnUf = new ArrayList<>();
+            List<String> fnProd = new ArrayList<>();
+            List<Double> fnVal = new ArrayList<>();
+            List<Double> fnMarg = new ArrayList<>();
+            List<Boolean> fnPaga = new ArrayList<>();
+
+            List<String> pNome = new ArrayList<>();
+            List<String> pNcm = new ArrayList<>();
+            List<Double> pPreco = new ArrayList<>();
+            List<Integer> pQtd = new ArrayList<>();
+
+            List<String> cCpf = new ArrayList<>();
+            List<String> cNome = new ArrayList<>();
+
+            String secaoAtual = "";
+            try (BufferedReader br = new BufferedReader(new FileReader(arq))) {
+                String linha;
+                while ((linha = br.readLine()) != null) {
+                    String limpa = linha.trim();
+                    if (limpa.isEmpty() || limpa.startsWith("#")) continue;
+                    if (limpa.startsWith("[") && limpa.endsWith("]")) {
+                        secaoAtual = limpa.toUpperCase();
+                        continue;
+                    }
+                    String[] partes = limpa.split(";");
+                    if ("[FUNCIONARIOS]".equals(secaoAtual) && partes.length >= 9) {
+                        fId.add(partes[0].trim().toUpperCase());
+                        fNome.add(partes[1].trim().toUpperCase());
+                        fCpf.add(partes[2].trim().replaceAll("[^0-9]", ""));
+                        fCargo.add(partes[3].trim().toUpperCase());
+                        fSenha.add(partes[4].trim());
+                        fSal.add(Double.parseDouble(partes[5].trim().replace(",", ".")));
+                        fPago.add(Boolean.parseBoolean(partes[6].trim()));
+                        fStatus.add(partes[7].trim().toUpperCase());
+                        fMotivo.add(partes[8].trim().toUpperCase());
+                    } else if ("[FORNECEDORES]".equals(secaoAtual) && partes.length >= 7) {
+                        fnRazao.add(partes[0].trim().toUpperCase());
+                        fnCnpj.add(partes[1].trim().replaceAll("[^0-9]", ""));
+                        fnUf.add(partes[2].trim().toUpperCase());
+                        fnProd.add(partes[3].trim().toUpperCase());
+                        fnVal.add(Double.parseDouble(partes[4].trim().replace(",", ".")));
+                        fnMarg.add(Double.parseDouble(partes[5].trim().replace(",", ".")));
+                        fnPaga.add(Boolean.parseBoolean(partes[6].trim()));
+                    } else if ("[PRODUTOS]".equals(secaoAtual) && partes.length >= 4) {
+                        pNome.add(partes[0].trim().toUpperCase());
+                        pNcm.add(partes[1].trim().toUpperCase());
+                        pPreco.add(Double.parseDouble(partes[2].trim().replace(",", ".")));
+                        pQtd.add(Integer.parseInt(partes[3].trim()));
+                    } else if ("[CLIENTES]".equals(secaoAtual) && partes.length >= 2) {
+                        cCpf.add(partes[0].trim().replaceAll("[^0-9]", ""));
+                        cNome.add(partes[1].trim().toUpperCase());
+                    }
+                }
+            } catch (IOException | NumberFormatException e) {
                 return false;
             }
+
+            if (!fId.isEmpty()) {
+                tabelaFuncId.clear(); tabelaFuncId.addAll(fId);
+                tabelaFuncNome.clear(); tabelaFuncNome.addAll(fNome);
+                tabelaFuncCpf.clear(); tabelaFuncCpf.addAll(fCpf);
+                tabelaFuncCargo.clear(); tabelaFuncCargo.addAll(fCargo);
+                tabelaFuncSenha.clear(); tabelaFuncSenha.addAll(fSenha);
+                tabelaFuncSalario.clear(); tabelaFuncSalario.addAll(fSal);
+                tabelaFuncPago.clear(); tabelaFuncPago.addAll(fPago);
+                tabelaFuncStatus.clear(); tabelaFuncStatus.addAll(fStatus);
+                tabelaFuncMotivoInativo.clear(); tabelaFuncMotivoInativo.addAll(fMotivo);
+            }
+            if (!fnRazao.isEmpty()) {
+                tabelaFornRazaoSocial.clear(); tabelaFornRazaoSocial.addAll(fnRazao);
+                tabelaFornCnpj.clear(); tabelaFornCnpj.addAll(fnCnpj);
+                tabelaFornUf.clear(); tabelaFornUf.addAll(fnUf);
+                tabelaFornProdutoPrincipal.clear(); tabelaFornProdutoPrincipal.addAll(fnProd);
+                tabelaFornValorFatura.clear(); tabelaFornValorFatura.addAll(fnVal);
+                tabelaFornMargemLucroPct.clear(); tabelaFornMargemLucroPct.addAll(fnMarg);
+                tabelaFornFaturaPaga.clear(); tabelaFornFaturaPaga.addAll(fnPaga);
+            }
+            if (!pNome.isEmpty()) {
+                tabelaProdNome.clear(); tabelaProdNome.addAll(pNome);
+                tabelaProdNcm.clear(); tabelaProdNcm.addAll(pNcm);
+                tabelaProdPrecoVenda.clear(); tabelaProdPrecoVenda.addAll(pPreco);
+                tabelaProdQtdEstoque.clear(); tabelaProdQtdEstoque.addAll(pQtd);
+            }
+            if (!cCpf.isEmpty()) {
+                tabelaClienteCpf.clear(); tabelaClienteCpf.addAll(cCpf);
+                tabelaClienteNome.clear(); tabelaClienteNome.addAll(cNome);
+            }
+            return true;
         }
 
-        // Gera um arquivo inicial de pré-cadastros com blocos delimitados por ';'
-        private void criarArquivoPreCadastrosPadraoSeAusente(File arquivo) {
-            List<String> funcionariosArquivo = new ArrayList<>(EMERGENCIA_FUNCIONARIOS_POR_FUNCAO);
-            funcionariosArquivo.addAll(Arrays.asList(
-                "004;MARCOS OLIVEIRA;71428793860;OPERADOR;op999;2200.0;true;DEMITIDO;Corte de custos",
-                "005;JULIA MENDES;85351394037;GERENTE;ger888;5500.0;true;DEMITIDO;Pedido de demissão",
-                "006;ROBERTO ALVES;26890517008;OPERADOR;op111;2200.0;false;ATIVO;NENHUM",
-                "007;PATRICIA LIMA;94271653015;FINANCEIRO;fin222;4800.0;false;ATIVO;NENHUM",
-                "008;LUCAS SANTIAGO;11144477735;OPERADOR;op333;2200.0;false;ATIVO;NENHUM"
-            ));
-
-            List<String> fornecedoresArquivo = new ArrayList<>(EMERGENCIA_FORNECEDOR);
-            fornecedoresArquivo.addAll(Arrays.asList(
-                "VITAFIT DISTRIBUIDORA;11444777000161;RJ;CREATINA;3200.00;35.0;false",
-                "GLOBAL NUTRI;19131243000197;MG;BCAA 100G;2800.00;40.0;false",
-                "FARMACOMERCIAL BRASIL;33000167000101;PR;VITAMINAS;1900.00;45.0;false",
-                "BIOHEDGER;60701190000104;RS;GLUTAMINA;3100.00;35.0;false",
-                "ATLAS SUPLEMENTOS;00000000000191;SC;BARRA PROTEICA;1500.00;40.0;false"
-            ));
-
-            List<String> produtosArquivo = new ArrayList<>(EMERGENCIA_PRODUTO);
-            produtosArquivo.addAll(Arrays.asList(
-                "WHEY PROTEIN CONCENTRADO;2106.90.30;129.90;45",
-                "CREATINA MONOHIDRATADA;2106.90.90;89.90;60",
-                "BCAA 2400MG;2106.90.30;54.90;50",
-                "MULTIVITAMINICO COMPLETO;2106.90.90;42.00;75",
-                "GLUTAMINA PURA 300G;2106.90.30;68.50;40",
-                "BARRA PROTEICA CAIXA;2106.90.90;79.00;35",
-                "OMEGA 3 ULTRA;1517.90.90;49.90;55",
-                "PRE-WORKOUT EXTREME;2106.90.90;115.00;30"
-            ));
-
-            List<String> clientesArquivo = Arrays.asList(
-                "11144477735;JOAO PEREIRA",
-                "39053344705;MARIA ALMEIDA",
-                "71428793860;CARLOS EDUARDO",
-                "85351394037;BEATRIZ SOUZA",
-                "26890517008;LUCAS MARTINS",
-                "94271653015;JULIANA ROCHA"
-            );
-
-            try (BufferedWriter escritor = new BufferedWriter(new FileWriter(arquivo))) {
-                escritor.write("================================================================================\n");
-                escritor.write("# ARQUIVO EXCLUSIVO DE PRÉ-CADASTROS (USUÁRIOS, CLIENTES, PRODUTOS E FORNECEDORES)\n");
-                escritor.write("# Separador de campos: ';' | Linhas iniciadas com '#' são comentários\n");
-                escritor.write("================================================================================\n\n");
-
-                escritor.write("# [1] FUNCIONARIOS -> ID;NOME;CPF;CARGO;SENHA;SALARIO;PAGO;STATUS;MOTIVO\n");
-                escritor.write("[FUNCIONARIOS_INICIO]\n");
-                for (String linhaFunc : funcionariosArquivo) {
-                    escritor.write(linhaFunc + "\n");
-                }
-                escritor.write("[FUNCIONARIOS_FIM]\n\n");
-
-                escritor.write("# [2] FORNECEDORES -> RAZAO_SOCIAL;CNPJ;UF;PRODUTO;VALOR_FATURA;MARGEM_PCT;PAGO\n");
-                escritor.write("[FORNECEDORES_INICIO]\n");
-                for (String linhaForn : fornecedoresArquivo) {
-                    escritor.write(linhaForn + "\n");
-                }
-                escritor.write("[FORNECEDORES_FIM]\n\n");
-
-                escritor.write("# [3] PRODUTOS -> NOME;NCM;PRECO_VENDA;QTD_ESTOQUE\n");
-                escritor.write("[PRODUTOS_INICIO]\n");
-                for (String linhaProd : produtosArquivo) {
-                    escritor.write(linhaProd + "\n");
-                }
-                escritor.write("[PRODUTOS_FIM]\n\n");
-
-                escritor.write("# [4] CLIENTES -> CPF;NOME\n");
-                escritor.write("[CLIENTES_INICIO]\n");
-                for (String linhaCliente : clientesArquivo) {
-                    escritor.write(linhaCliente + "\n");
-                }
-                escritor.write("[CLIENTES_FIM]\n");
-            } catch (IOException ignored) {
-            }
-        }
-
-        // Faz o parse de todas as seções do arquivo de pré-cadastros e popula as listas
-        private void lerSecoesPreCadastroDeArquivo(
-                File arquivo,
-                List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
-                List<String> tabelaFuncCargo, List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario,
-                List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
-                List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
-                List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
-                List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga,
-                List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda,
-                List<Integer> tabelaProdQtdEstoque, List<String> tabelaClienteCpf, List<String> tabelaClienteNome) throws Exception {
-
-            // Listas temporárias para garantir atomicidade se ocorrer erro de leitura
-            List<String> tempFuncId = new ArrayList<>(), tempFuncNome = new ArrayList<>(), tempFuncCpf = new ArrayList<>();
-            List<String> tempFuncCargo = new ArrayList<>(), tempFuncSenha = new ArrayList<>(), tempFuncStatus = new ArrayList<>(), tempFuncMotivo = new ArrayList<>();
-            List<Double> tempFuncSalario = new ArrayList<>();
-            List<Boolean> tempFuncPago = new ArrayList<>();
-
-            List<String> tempFornRazao = new ArrayList<>(), tempFornCnpj = new ArrayList<>(), tempFornUf = new ArrayList<>(), tempFornProd = new ArrayList<>();
-            List<Double> tempFornFatura = new ArrayList<>(), tempFornMargem = new ArrayList<>();
-            List<Boolean> tempFornPago = new ArrayList<>();
-
-            List<String> tempProdNome = new ArrayList<>(), tempProdNcm = new ArrayList<>();
-            List<Double> tempProdPreco = new ArrayList<>();
-            List<Integer> tempProdEstoque = new ArrayList<>();
-
-            List<String> tempClienteCpf = new ArrayList<>(), tempClienteNome = new ArrayList<>();
-
-            try (BufferedReader leitor = new BufferedReader(new FileReader(arquivo))) {
-                String linhaAtual, bloco = "";
-                while ((linhaAtual = leitor.readLine()) != null) {
-                    linhaAtual = linhaAtual.trim();
-                    // Ignora linhas vazias, comentários e separadores visuais
-                    if (linhaAtual.isEmpty() || linhaAtual.startsWith("#") || linhaAtual.startsWith("=")) continue;
-
-                    // Identifica abertura e fechamento de cada bloco do arquivo
-                    if (linhaAtual.equals("[FUNCIONARIOS_INICIO]")) { bloco = "FUNC"; continue; }
-                    if (linhaAtual.equals("[FUNCIONARIOS_FIM]")) { bloco = ""; continue; }
-                    if (linhaAtual.equals("[FORNECEDORES_INICIO]")) { bloco = "FORN"; continue; }
-                    if (linhaAtual.equals("[FORNECEDORES_FIM]")) { bloco = ""; continue; }
-                    if (linhaAtual.equals("[PRODUTOS_INICIO]")) { bloco = "PROD"; continue; }
-                    if (linhaAtual.equals("[PRODUTOS_FIM]")) { bloco = ""; continue; }
-                    if (linhaAtual.equals("[CLIENTES_INICIO]")) { bloco = "CLIENTE"; continue; }
-                    if (linhaAtual.equals("[CLIENTES_FIM]")) { bloco = ""; continue; }
-
-                    if (bloco.equals("FUNC")) {
-                        String[] colunas = linhaAtual.split(";");
-                        if (colunas.length < 9) throw new IllegalArgumentException("Linha inválida em FUNCIONARIOS: " + linhaAtual);
-                        double salario = Double.parseDouble(colunas[5].trim().replace(",", "."));
-                        if (!Double.isFinite(salario) || salario < 0) {
-                            throw new IllegalArgumentException("Salário inválido em FUNCIONARIOS.");
-                        }
-                        tempFuncId.add(colunas[0].trim().toUpperCase());
-                        tempFuncNome.add(colunas[1].trim().toUpperCase());
-                        tempFuncCpf.add(colunas[2].trim().replaceAll("[^0-9]", ""));
-                        tempFuncCargo.add(colunas[3].trim().toUpperCase());
-                        tempFuncSenha.add(colunas[4].trim());
-                        tempFuncSalario.add(salario);
-                        tempFuncPago.add(Boolean.parseBoolean(colunas[6].trim()));
-                        tempFuncStatus.add(colunas[7].trim().toUpperCase());
-                        tempFuncMotivo.add(colunas[8].trim());
-                    } else if (bloco.equals("FORN")) {
-                        String[] colunas = linhaAtual.split(";");
-                        if (colunas.length < 7) throw new IllegalArgumentException("Linha inválida em FORNECEDORES: " + linhaAtual);
-                        double fatura = Double.parseDouble(colunas[4].trim().replace(",", "."));
-                        double margem = Double.parseDouble(colunas[5].trim().replace(",", "."));
-                        if (!Double.isFinite(fatura) || fatura < 0 || !Double.isFinite(margem) || margem < 0) {
-                            throw new IllegalArgumentException("Valores de fornecedor inválidos.");
-                        }
-                        tempFornRazao.add(colunas[0].trim().toUpperCase());
-                        tempFornCnpj.add(colunas[1].trim().replaceAll("[^0-9]", ""));
-                        tempFornUf.add(colunas[2].trim().toUpperCase());
-                        tempFornProd.add(colunas[3].trim().toUpperCase());
-                        tempFornFatura.add(fatura);
-                        tempFornMargem.add(margem);
-                        tempFornPago.add(Boolean.parseBoolean(colunas[6].trim()));
-                    } else if (bloco.equals("PROD")) {
-                        String[] colunas = linhaAtual.split(";");
-                        if (colunas.length < 4) throw new IllegalArgumentException("Linha inválida em PRODUTOS: " + linhaAtual);
-                        double preco = Double.parseDouble(colunas[2].trim().replace(",", "."));
-                        int estoque = Integer.parseInt(colunas[3].trim());
-                        if (!Double.isFinite(preco) || preco <= 0 || estoque < 0) {
-                            throw new IllegalArgumentException("Preço ou estoque inválido.");
-                        }
-                        tempProdNome.add(colunas[0].trim().toUpperCase());
-                        tempProdNcm.add(colunas[1].trim());
-                        tempProdPreco.add(preco);
-                        tempProdEstoque.add(estoque);
-                    } else if (bloco.equals("CLIENTE")) {
-                        String[] colunas = linhaAtual.split(";");
-                        if (colunas.length < 2) throw new IllegalArgumentException("Linha inválida em CLIENTES: " + linhaAtual);
-                        tempClienteCpf.add(colunas[0].trim().replaceAll("[^0-9]", ""));
-                        tempClienteNome.add(colunas[1].trim().toUpperCase());
-                    }
-                }
-            }
-
-            // Garante registros mínimos caso o arquivo tenha sido esvaziado manualmente
-            if (tempFuncId.isEmpty()) {
-                for (String linhaFunc : EMERGENCIA_FUNCIONARIOS_POR_FUNCAO) {
-                    String[] colunas = linhaFunc.split(";");
-                    tempFuncId.add(colunas[0].trim().toUpperCase());
-                    tempFuncNome.add(colunas[1].trim().toUpperCase());
-                    tempFuncCpf.add(colunas[2].trim());
-                    tempFuncCargo.add(colunas[3].trim().toUpperCase());
-                    tempFuncSenha.add(colunas[4].trim());
-                    tempFuncSalario.add(Double.parseDouble(colunas[5].trim()));
-                    tempFuncPago.add(Boolean.parseBoolean(colunas[6].trim()));
-                    tempFuncStatus.add(colunas[7].trim().toUpperCase());
-                    tempFuncMotivo.add(colunas[8].trim());
-                }
-            }
-
-            if (tempFornRazao.isEmpty()) {
-                for (String linhaForn : EMERGENCIA_FORNECEDOR) {
-                    String[] colunas = linhaForn.split(";");
-                    tempFornRazao.add(colunas[0].trim().toUpperCase());
-                    tempFornCnpj.add(colunas[1].trim());
-                    tempFornUf.add(colunas[2].trim().toUpperCase());
-                    tempFornProd.add(colunas[3].trim().toUpperCase());
-                    tempFornFatura.add(Double.parseDouble(colunas[4].trim()));
-                    tempFornMargem.add(Double.parseDouble(colunas[5].trim()));
-                    tempFornPago.add(Boolean.parseBoolean(colunas[6].trim()));
-                }
-            }
-
-            if (tempProdNome.isEmpty()) {
-                for (String linhaProd : EMERGENCIA_PRODUTO) {
-                    String[] colunas = linhaProd.split(";");
-                    tempProdNome.add(colunas[0].trim().toUpperCase());
-                    tempProdNcm.add(colunas[1].trim());
-                    tempProdPreco.add(Double.parseDouble(colunas[2].trim()));
-                    tempProdEstoque.add(Integer.parseInt(colunas[3].trim()));
-                }
-            }
-
-            // Substitui o conteúdo das tabelas oficiais pelos dados validados
-            tabelaFuncId.clear(); tabelaFuncId.addAll(tempFuncId);
-            tabelaFuncNome.clear(); tabelaFuncNome.addAll(tempFuncNome);
-            tabelaFuncCpf.clear(); tabelaFuncCpf.addAll(tempFuncCpf);
-            tabelaFuncCargo.clear(); tabelaFuncCargo.addAll(tempFuncCargo);
-            tabelaFuncSenha.clear(); tabelaFuncSenha.addAll(tempFuncSenha);
-            tabelaFuncSalario.clear(); tabelaFuncSalario.addAll(tempFuncSalario);
-            tabelaFuncPago.clear(); tabelaFuncPago.addAll(tempFuncPago);
-            tabelaFuncStatus.clear(); tabelaFuncStatus.addAll(tempFuncStatus);
-            tabelaFuncMotivoInativo.clear(); tabelaFuncMotivoInativo.addAll(tempFuncMotivo);
-
-            tabelaFornRazaoSocial.clear(); tabelaFornRazaoSocial.addAll(tempFornRazao);
-            tabelaFornCnpj.clear(); tabelaFornCnpj.addAll(tempFornCnpj);
-            tabelaFornUf.clear(); tabelaFornUf.addAll(tempFornUf);
-            tabelaFornProdutoPrincipal.clear(); tabelaFornProdutoPrincipal.addAll(tempFornProd);
-            tabelaFornValorFatura.clear(); tabelaFornValorFatura.addAll(tempFornFatura);
-            tabelaFornMargemLucroPct.clear(); tabelaFornMargemLucroPct.addAll(tempFornMargem);
-            tabelaFornFaturaPaga.clear(); tabelaFornFaturaPaga.addAll(tempFornPago);
-
-            tabelaProdNome.clear(); tabelaProdNome.addAll(tempProdNome);
-            tabelaProdNcm.clear(); tabelaProdNcm.addAll(tempProdNcm);
-            tabelaProdPrecoVenda.clear(); tabelaProdPrecoVenda.addAll(tempProdPreco);
-            tabelaProdQtdEstoque.clear(); tabelaProdQtdEstoque.addAll(tempProdEstoque);
-
-            tabelaClienteCpf.clear(); tabelaClienteCpf.addAll(tempClienteCpf);
-            tabelaClienteNome.clear(); tabelaClienteNome.addAll(tempClienteNome);
-        }
-
-        // Grava todo o estado atual do sistema (incluindo autoridades, transações e caixa) em um arquivo .TXT
-        private boolean gravarEmArquivo(
-                String caminhoArquivo, String cabecalho,
-                ModuloAutoridades moduloAutoridades,
-                List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
-                List<String> tabelaFuncCargo, List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario,
-                List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
-                List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
-                List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
-                List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga,
-                List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda,
-                List<Integer> tabelaProdQtdEstoque, List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
-                List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos,
-                List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
-                double saldoCaixaAtual) {
-
-            try (BufferedWriter escritorArquivo = new BufferedWriter(new FileWriter(caminhoArquivo))) {
-                escritorArquivo.write("================================================================================\n");
-                escritorArquivo.write(cabecalho + "\n");
-                escritorArquivo.write("# Dica: Edite este .TXT com o mesmo separador ';' e use Carregar arquivo .TXT.\n");
-                escritorArquivo.write("================================================================================\n\n");
-
-                // Bloco 1: Funcionários
-                escritorArquivo.write("# [1] FUNCIONARIOS -> ID;NOME;CPF;CARGO;SENHA;SALARIO;PAGO;STATUS;MOTIVO\n");
-                escritorArquivo.write("[FUNCIONARIOS_INICIO]\n");
-                for (int i = 0; i < tabelaFuncId.size(); i++) {
-                    escritorArquivo.write(
-                            sanitizarCampoTxt(tabelaFuncId.get(i)) + ";" +
-                            sanitizarCampoTxt(tabelaFuncNome.get(i)) + ";" +
-                            sanitizarCampoTxt(tabelaFuncCpf.get(i)) + ";" +
-                            sanitizarCampoTxt(tabelaFuncCargo.get(i)) + ";" +
-                            sanitizarCampoTxt(tabelaFuncSenha.get(i)) + ";" +
-                            tabelaFuncSalario.get(i) + ";" +
-                            tabelaFuncPago.get(i) + ";" +
-                            sanitizarCampoTxt(tabelaFuncStatus.get(i)) + ";" +
-                            sanitizarCampoTxt(tabelaFuncMotivoInativo.get(i)) + "\n"
-                    );
-                }
-                escritorArquivo.write("[FUNCIONARIOS_FIM]\n\n");
-
-                // Bloco 1B: Autoridades personalizadas por ID de funcionário
-                if (moduloAutoridades != null) {
-                    escritorArquivo.write("# [1B] AUTORIDADES -> ID_FUNCIONARIO;AUT1,AUT2,...\n");
-                    escritorArquivo.write("[AUTORIDADES_INICIO]\n");
-                    for (int i = 0; i < tabelaFuncId.size(); i++) {
-                        String idFunc = tabelaFuncId.get(i);
-                        boolean ativo = i < tabelaFuncStatus.size() && "ATIVO".equalsIgnoreCase(tabelaFuncStatus.get(i));
-                        EnumSet<Autoridade> auts = moduloAutoridades.obterAutoridades(idFunc, ativo);
-                        List<String> nomes = new ArrayList<>();
-                        for (Autoridade a : auts) nomes.add(a.name());
-                        escritorArquivo.write(sanitizarCampoTxt(idFunc) + ";" + String.join(",", nomes) + "\n");
-                    }
-                    escritorArquivo.write("[AUTORIDADES_FIM]\n\n");
-                }
-
-                // Bloco 2: Fornecedores
-                escritorArquivo.write("# [2] FORNECEDORES -> RAZAO_SOCIAL;CNPJ;UF;PRODUTO;VALOR_FATURA;MARGEM_PCT;PAGO\n");
-                escritorArquivo.write("[FORNECEDORES_INICIO]\n");
-                for (int i = 0; i < tabelaFornRazaoSocial.size(); i++) {
-                    escritorArquivo.write(
-                            sanitizarCampoTxt(tabelaFornRazaoSocial.get(i)) + ";" +
-                            sanitizarCampoTxt(tabelaFornCnpj.get(i)) + ";" +
-                            sanitizarCampoTxt(tabelaFornUf.get(i)) + ";" +
-                            sanitizarCampoTxt(tabelaFornProdutoPrincipal.get(i)) + ";" +
-                            tabelaFornValorFatura.get(i) + ";" +
-                            tabelaFornMargemLucroPct.get(i) + ";" +
-                            tabelaFornFaturaPaga.get(i) + "\n"
-                    );
-                }
-                escritorArquivo.write("[FORNECEDORES_FIM]\n\n");
-
-                // Bloco 3: Produtos
-                escritorArquivo.write("# [3] PRODUTOS -> NOME;NCM;PRECO_VENDA;QTD_ESTOQUE\n");
-                escritorArquivo.write("[PRODUTOS_INICIO]\n");
-                for (int i = 0; i < tabelaProdNome.size(); i++) {
-                    if (tabelaProdNome.get(i) != null) {
-                        escritorArquivo.write(
-                                sanitizarCampoTxt(tabelaProdNome.get(i)) + ";" +
-                                sanitizarCampoTxt(tabelaProdNcm.get(i)) + ";" +
-                                tabelaProdPrecoVenda.get(i) + ";" +
-                                tabelaProdQtdEstoque.get(i) + "\n"
-                        );
-                    }
-                }
-                escritorArquivo.write("[PRODUTOS_FIM]\n\n");
-
-                // Bloco 4: Clientes
-                escritorArquivo.write("# [4] CLIENTES -> CPF;NOME\n");
-                escritorArquivo.write("[CLIENTES_INICIO]\n");
-                for (int i = 0; i < tabelaClienteCpf.size(); i++) {
-                    escritorArquivo.write(
-                            sanitizarCampoTxt(tabelaClienteCpf.get(i)) + ";" +
-                            sanitizarCampoTxt(tabelaClienteNome.get(i)) + "\n"
-                    );
-                }
-                escritorArquivo.write("[CLIENTES_FIM]\n\n");
-
-                // Bloco 5: Transações financeiras e de dados
-                escritorArquivo.write("# [5] TRANSACOES (FINANCEIRO & ENTRADAS/SAÍDAS) -> TIPO;ENVOLVIDOS;DESCRICAO;VALOR\n");
-                escritorArquivo.write("[TRANSACOES_INICIO]\n");
-                for (int i = 0; i < tabelaTransacaoTipo.size(); i++) {
-                    escritorArquivo.write(
-                            sanitizarCampoTxt(tabelaTransacaoTipo.get(i)) + ";" +
-                            sanitizarCampoTxt(tabelaTransacaoEnvolvidos.get(i)) + ";" +
-                            sanitizarCampoTxt(tabelaTransacaoDescricao.get(i)) + ";" +
-                            tabelaTransacaoValor.get(i) + "\n"
-                    );
-                }
-                escritorArquivo.write("[TRANSACOES_FIM]\n\n");
-
-                // Bloco 6: Saldo global em caixa
-                escritorArquivo.write("# [6] SALDO EM CAIXA GLOBAL (número >= 0)\n");
-                escritorArquivo.write("[CAIXA_INICIO]\n" + saldoCaixaAtual + "\n[CAIXA_FIM]\n");
-                return true;
-            } catch (IOException e) {
-                return false;
-            }
-        }
-
-        // Atalho para gravar o arquivo de backup oficial editável
-        boolean salvarBackupEditavel(
-                ModuloAutoridades moduloAutoridades,
-                List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
-                List<String> tabelaFuncCargo, List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario,
-                List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
-                List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
-                List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
-                List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga,
-                List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda,
-                List<Integer> tabelaProdQtdEstoque, List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
-                List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos,
-                List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
-                ModuloCaixa caixa) {
-
-            return gravarEmArquivo(
-                    arquivoBackupOficial,
-                    "# BACKUP EDITÁVEL PROTEI CREAT (L'ESTOQUE)",
-                    moduloAutoridades,
-                    tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
-                    tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                    tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
-                    tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
-                    tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
-                    tabelaClienteCpf, tabelaClienteNome,
-                    tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
-                    caixa.obterSaldo()
-            );
-        }
-
-        // Salva um snapshot automático em arquivo antes de restaurar um backup ou cadastrar funcionário/item
+        // Captura snapshot em memória e grava arquivo de rollback automático
         void executarRollbackAutomatico(
                 ModuloAutoridades moduloAutoridades,
                 List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
@@ -1094,84 +667,31 @@ public class prototipo {
                 List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
                 ModuloCaixa caixa) {
 
-            gravarEmArquivo(
-                    arquivoRollbackAuto,
-                    "# PONTO DE RESTAURAÇÃO AUTOMÁTICO (ROLLBACK)",
-                    moduloAutoridades,
-                    tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
-                    tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                    tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
-                    tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
-                    tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
-                    tabelaClienteCpf, tabelaClienteNome,
-                    tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
-                    caixa.obterSaldo()
-            );
+            snapFuncId = new ArrayList<>(tabelaFuncId);
+            snapFuncNome = new ArrayList<>(tabelaFuncNome);
+            snapFuncCpf = new ArrayList<>(tabelaFuncCpf);
+            snapFuncCargo = new ArrayList<>(tabelaFuncCargo);
+            snapFuncSenha = new ArrayList<>(tabelaFuncSenha);
+            snapFuncSalario = new ArrayList<>(tabelaFuncSalario);
+            snapFuncPago = new ArrayList<>(tabelaFuncPago);
+            snapFuncStatus = new ArrayList<>(tabelaFuncStatus);
+            snapFuncMotivo = new ArrayList<>(tabelaFuncMotivoInativo);
+            snapProdNome = new ArrayList<>(tabelaProdNome);
+            snapProdNcm = new ArrayList<>(tabelaProdNcm);
+            snapProdPreco = new ArrayList<>(tabelaProdPrecoVenda);
+            snapProdQtd = new ArrayList<>(tabelaProdQtdEstoque);
+            snapSaldoCaixa = (caixa != null) ? caixa.obterSaldo() : snapSaldoCaixa;
+
+            try (BufferedWriter bw = new BufferedWriter(new FileWriter(arquivoRollbackAuto))) {
+                bw.write("# Snapshot automático de rollback - " + LocalDateTime.now().format(FORMATADOR_DATA_HORA) + "\n");
+                bw.write("SALDO_CAIXA=" + snapSaldoCaixa + "\n");
+                bw.write("FUNCIONARIOS=" + snapFuncId.size() + "\n");
+                bw.write("PRODUTOS=" + snapProdNome.size() + "\n");
+            } catch (IOException ignored) {}
         }
 
-        // Exige confirmação de senha do usuário autenticado antes de exportar o backup .TXT
-        boolean exportarComConfirmacao(
-                Scanner leitorEntrada, ModuloSessao sessao, ModuloAuditoria auditoria, ModuloAutoridades moduloAutoridades,
-                List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
-                List<String> tabelaFuncCargo, List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario,
-                List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
-                List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
-                List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
-                List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga,
-                List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda,
-                List<Integer> tabelaProdQtdEstoque, List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
-                List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos,
-                List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
-                ModuloCaixa caixa) {
-
-            if (!sessao.exigirAutoridade(Autoridade.SIS_AUDITORIA_E_BACKUP, "Sem autoridade para exportar backup.")) {
-                return false;
-            }
-
-            System.out.println(CoresAnsi.titulo("\n================================================================"));
-            System.out.println(CoresAnsi.titulo("               EXPORTAR / ATUALIZAR ARQUIVO .TXT                "));
-            System.out.println(CoresAnsi.titulo("================================================================"));
-            System.out.printf("Resumo Atual -> Cadastros: %d | Fornecimento: %d | Itens: %d | Clientes: %d | Lançamentos: %d\n",
-                    tabelaFuncId.size(), tabelaFornRazaoSocial.size(), tabelaProdNome.size(), tabelaClienteCpf.size(), tabelaTransacaoTipo.size());
-
-            // Solicita a senha atual para confirmar a operação sensível
-            System.out.print(" Confirme sua senha [0 para cancelar]: ");
-            String senhaConfirmacao = lerLinhaSegura(leitorEntrada);
-            if (isComandoCancelamento(senhaConfirmacao) || !senhaConfirmacao.equals(sessao.obterSenhaVigente())) {
-                System.out.println(CoresAnsi.erro("Senha incorreta ou operação cancelada.\n"));
-                return false;
-            }
-
-            caixa.registrarMovimentoDados(
-                    "SAIDA_DADOS",
-                    "Operador: " + sessao.obterNomeVigente(),
-                    "Exportação de backup para '" + arquivoBackupOficial + "' (" + tabelaTransacaoTipo.size() + " lançamentos)"
-            );
-
-            boolean gravou = salvarBackupEditavel(
-                    moduloAutoridades,
-                    tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
-                    tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                    tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
-                    tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
-                    tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
-                    tabelaClienteCpf, tabelaClienteNome,
-                    tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
-                    caixa
-            );
-
-            if (gravou) {
-                auditoria.registrar(sessao.obterNomeVigente(), "Exportou/atualizou arquivo editável " + arquivoBackupOficial);
-                System.out.println(CoresAnsi.sucesso(" Arquivo '" + arquivoBackupOficial + "' salvo com sucesso.\n"));
-            } else {
-                System.out.println(CoresAnsi.erro("Falha técnica ao gravar arquivo.\n"));
-            }
-            return gravou;
-        }
-
-        // Gera rollback automático e carrega os dados do arquivo de backup oficial após confirmar senha
-        boolean restaurarBackupOficial(
-                Scanner leitorEntrada, ModuloSessao sessao, ModuloAuditoria auditoria,
+        // Grava o arquivo de backup editável com funcionários, autoridades, produtos e caixa
+        boolean salvarBackupEditavel(
                 ModuloAutoridades moduloAutoridades,
                 List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
                 List<String> tabelaFuncCargo, List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario,
@@ -1185,25 +705,65 @@ public class prototipo {
                 List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
                 ModuloCaixa caixa) {
 
-            if (!sessao.exigirAutoridade(Autoridade.SIS_AUDITORIA_E_BACKUP, "Sem autoridade para restaurar backup.")) {
+            try (BufferedWriter bw = new BufferedWriter(new FileWriter(arquivoBackupOficial))) {
+                bw.write("# Backup editável do sistema - " + LocalDateTime.now().format(FORMATADOR_DATA_HORA) + "\n");
+                bw.write("[CAIXA_INICIO]\n");
+                bw.write("SALDO=" + (caixa != null ? caixa.obterSaldo() : 0.0) + "\n");
+                bw.write("[CAIXA_FIM]\n\n");
+
+                bw.write("[FUNCIONARIOS_INICIO]\n");
+                for (int i = 0; i < tabelaFuncId.size(); i++) {
+                    bw.write(String.join(";",
+                            tabelaFuncId.get(i),
+                            tabelaFuncNome.get(i),
+                            tabelaFuncCpf.get(i),
+                            tabelaFuncCargo.get(i),
+                            tabelaFuncSenha.get(i),
+                            String.valueOf(tabelaFuncSalario.get(i)),
+                            String.valueOf(tabelaFuncPago.get(i)),
+                            tabelaFuncStatus.get(i),
+                            tabelaFuncMotivoInativo.get(i)) + "\n");
+                }
+                bw.write("[FUNCIONARIOS_FIM]\n\n");
+
+                bw.write("[PRODUTOS_INICIO]\n");
+                for (int i = 0; i < tabelaProdNome.size(); i++) {
+                    bw.write(String.join(";",
+                            tabelaProdNome.get(i),
+                            tabelaProdNcm.get(i),
+                            String.valueOf(tabelaProdPrecoVenda.get(i)),
+                            String.valueOf(tabelaProdQtdEstoque.get(i))) + "\n");
+                }
+                bw.write("[PRODUTOS_FIM]\n");
+                return true;
+            } catch (IOException e) {
                 return false;
             }
+        }
 
-            System.out.print(" Confirme sua senha [0 para cancelar]: ");
-            String senhaConfirmacao = lerLinhaSegura(leitorEntrada);
-            if (isComandoCancelamento(senhaConfirmacao) || !senhaConfirmacao.equals(sessao.obterSenhaVigente())) {
-                System.out.println(CoresAnsi.erro("Senha incorreta ou operação cancelada.\n"));
-                return false;
+        // Exporta o backup com confirmação do usuário e registra saída/auditoria após gravar com sucesso
+        void exportarComConfirmacao(
+                Scanner leitorEntrada, ModuloSessao sessao, ModuloAuditoria auditoria, ModuloAutoridades moduloAutoridades,
+                List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
+                List<String> tabelaFuncCargo, List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario,
+                List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
+                List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
+                List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
+                List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga,
+                List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda,
+                List<Integer> tabelaProdQtdEstoque, List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
+                List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos,
+                List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
+                ModuloCaixa caixa) {
+
+            if (!sessao.exigirAutoridade(Autoridade.SIS_AUDITORIA_E_BACKUP, "Sem autoridade para exportar backup.")) return;
+            System.out.print("Confirma salvar/atualizar '" + arquivoBackupOficial + "'? [S/N]: ");
+            if (!lerLinhaSegura(leitorEntrada).toUpperCase().equals("S")) {
+                System.out.println(CoresAnsi.aviso(" Exportação cancelada.\n"));
+                return;
             }
 
-            File arquivoBackup = new File(arquivoBackupOficial);
-            if (!arquivoBackup.exists()) {
-                System.out.println(CoresAnsi.aviso(" Arquivo '" + arquivoBackupOficial + "' não encontrado.\n"));
-                return false;
-            }
-
-            // Cria ponto de segurança antes de sobrescrever os dados em memória
-            executarRollbackAutomatico(
+            boolean gravou = salvarBackupEditavel(
                     moduloAutoridades,
                     tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
                     tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
@@ -1215,38 +775,23 @@ public class prototipo {
                     caixa
             );
 
-            try {
-                carregarDeArquivo(
-                        arquivoBackup, moduloAutoridades,
-                        tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
-                        tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                        tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
-                        tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
-                        tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
-                        tabelaClienteCpf, tabelaClienteNome,
-                        tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
-                        caixa
-                );
-                if (moduloAutoridades != null) {
-                    moduloAutoridades.sincronizarComTabelaFuncionarios(tabelaFuncId, tabelaFuncCargo, tabelaFuncStatus);
-                }
+            // Registra a saída de dados e a auditoria apenas após confirmar que o backup foi gravado no disco
+            if (gravou) {
                 caixa.registrarMovimentoDados(
-                        "ENTRADA_DADOS",
+                        "SAIDA_DADOS",
                         "Operador: " + sessao.obterNomeVigente(),
-                        "Restauração de dados a partir de '" + arquivoBackupOficial + "'"
+                        "Exportação de backup para '" + arquivoBackupOficial + "' (" + tabelaTransacaoTipo.size() + " lançamentos)"
                 );
-                auditoria.registrar(sessao.obterNomeVigente(), "Restaurou/aplicou alterações do arquivo " + arquivoBackupOficial);
-                System.out.println(CoresAnsi.sucesso(" Dados atualizados a partir de '" + arquivoBackupOficial + "'.\n"));
-                return true;
-            } catch (Exception e) {
-                System.out.println(CoresAnsi.erro("Erro ao ler/validar '" + arquivoBackupOficial + "': " + e.getMessage() + "\n"));
-                return false;
+                auditoria.registrar(sessao.obterNomeVigente(), "Exportou/atualizou arquivo editável " + arquivoBackupOficial);
+                System.out.println(CoresAnsi.sucesso(" Arquivo '" + arquivoBackupOficial + "' salvo com sucesso.\n"));
+            } else {
+                System.out.println(CoresAnsi.erro("Falha técnica ao gravar arquivo.\n"));
             }
         }
 
-        // Lê todos os blocos de um arquivo de backup (incluindo autoridades, transações e caixa)
-        private void carregarDeArquivo(
-                File arquivo, ModuloAutoridades moduloAutoridades,
+        // Restaura dados a partir do arquivo de backup oficial validando integridade e funcionários ativos
+        void restaurarBackupOficial(
+                Scanner leitorEntrada, ModuloSessao sessao, ModuloAuditoria auditoria, ModuloAutoridades moduloAutoridades,
                 List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
                 List<String> tabelaFuncCargo, List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario,
                 List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
@@ -1257,252 +802,138 @@ public class prototipo {
                 List<Integer> tabelaProdQtdEstoque, List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
                 List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos,
                 List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
-                ModuloCaixa caixa) throws Exception {
+                ModuloCaixa caixa) {
 
-            List<String> tempFuncId = new ArrayList<>(), tempFuncNome = new ArrayList<>(), tempFuncCpf = new ArrayList<>();
-            List<String> tempFuncCargo = new ArrayList<>(), tempFuncSenha = new ArrayList<>(), tempFuncStatus = new ArrayList<>(), tempFuncMotivo = new ArrayList<>();
+            if (!sessao.exigirAutoridade(Autoridade.SIS_AUDITORIA_E_BACKUP, "Sem autoridade para restaurar backup.")) return;
+            File arq = new File(arquivoBackupOficial);
+            if (!arq.exists()) {
+                System.out.println(CoresAnsi.aviso(" Arquivo de backup '" + arquivoBackupOficial + "' não encontrado.\n"));
+                return;
+            }
+
+            System.out.print(CoresAnsi.aviso(" Restaurar '" + arquivoBackupOficial + "' substituirá os dados em memória. Continuar? [S/N]: "));
+            if (!lerLinhaSegura(leitorEntrada).toUpperCase().equals("S")) return;
+
+            List<String> tempFuncId = new ArrayList<>();
+            List<String> tempFuncNome = new ArrayList<>();
+            List<String> tempFuncCpf = new ArrayList<>();
+            List<String> tempFuncCargo = new ArrayList<>();
+            List<String> tempFuncSenha = new ArrayList<>();
             List<Double> tempFuncSalario = new ArrayList<>();
             List<Boolean> tempFuncPago = new ArrayList<>();
+            List<String> tempFuncStatus = new ArrayList<>();
+            List<String> tempFuncMotivo = new ArrayList<>();
 
-            // Guarda temporariamente as autoridades lidas por ID de funcionário
-            Map<String, List<String>> tempAutoridadesPorId = new LinkedHashMap<>();
-
-            List<String> tempFornRazao = new ArrayList<>(), tempFornCnpj = new ArrayList<>(), tempFornUf = new ArrayList<>(), tempFornProd = new ArrayList<>();
-            List<Double> tempFornFatura = new ArrayList<>(), tempFornMargem = new ArrayList<>();
-            List<Boolean> tempFornPago = new ArrayList<>();
-
-            List<String> tempProdNome = new ArrayList<>(), tempProdNcm = new ArrayList<>();
+            List<String> tempProdNome = new ArrayList<>();
+            List<String> tempProdNcm = new ArrayList<>();
             List<Double> tempProdPreco = new ArrayList<>();
-            List<Integer> tempProdEstoque = new ArrayList<>();
+            List<Integer> tempProdQtd = new ArrayList<>();
 
-            List<String> tempClienteCpf = new ArrayList<>(), tempClienteNome = new ArrayList<>();
+            double novoSaldo = caixa.obterSaldo();
+            String secao = "";
 
-            List<String> tempTransTipo = new ArrayList<>(), tempTransEnvolvidos = new ArrayList<>(), tempTransDesc = new ArrayList<>();
-            List<Double> tempTransValor = new ArrayList<>();
-
-            double tempCaixa = caixa.obterSaldo();
-
-            try (BufferedReader leitorArquivo = new BufferedReader(new FileReader(arquivo))) {
-                String linhaAtual, blocoLeitura = "";
-                while ((linhaAtual = leitorArquivo.readLine()) != null) {
-                    linhaAtual = linhaAtual.trim();
-                    if (linhaAtual.isEmpty() || linhaAtual.startsWith("#") || linhaAtual.startsWith("=")) continue;
-
-                    // Controle de estado do bloco atual do arquivo
-                    if (linhaAtual.equals("[FUNCIONARIOS_INICIO]")) { blocoLeitura = "FUNC"; continue; }
-                    if (linhaAtual.equals("[FUNCIONARIOS_FIM]")) { blocoLeitura = ""; continue; }
-                    if (linhaAtual.equals("[AUTORIDADES_INICIO]")) { blocoLeitura = "AUT"; continue; }
-                    if (linhaAtual.equals("[AUTORIDADES_FIM]")) { blocoLeitura = ""; continue; }
-                    if (linhaAtual.equals("[FORNECEDORES_INICIO]")) { blocoLeitura = "FORN"; continue; }
-                    if (linhaAtual.equals("[FORNECEDORES_FIM]")) { blocoLeitura = ""; continue; }
-                    if (linhaAtual.equals("[PRODUTOS_INICIO]")) { blocoLeitura = "PROD"; continue; }
-                    if (linhaAtual.equals("[PRODUTOS_FIM]")) { blocoLeitura = ""; continue; }
-                    if (linhaAtual.equals("[CLIENTES_INICIO]")) { blocoLeitura = "CLIENTE"; continue; }
-                    if (linhaAtual.equals("[CLIENTES_FIM]")) { blocoLeitura = ""; continue; }
-                    if (linhaAtual.equals("[TRANSACOES_INICIO]")) { blocoLeitura = "TRANS"; continue; }
-                    if (linhaAtual.equals("[TRANSACOES_FIM]")) { blocoLeitura = ""; continue; }
-                    if (linhaAtual.equals("[CAIXA_INICIO]")) { blocoLeitura = "CAIXA"; continue; }
-                    if (linhaAtual.equals("[CAIXA_FIM]")) { blocoLeitura = ""; continue; }
-
-                    if (blocoLeitura.equals("FUNC")) {
-                        String[] colunas = linhaAtual.split(";");
-                        if (colunas.length < 9) throw new IllegalArgumentException("Linha inválida em FUNCIONARIOS: " + linhaAtual);
-                        double salario = Double.parseDouble(colunas[5].trim().replace(",", "."));
-                        if (!Double.isFinite(salario) || salario < 0) throw new IllegalArgumentException("Salário inválido no .TXT.");
-                        tempFuncId.add(colunas[0].trim().toUpperCase());
-                        tempFuncNome.add(colunas[1].trim().toUpperCase());
-                        tempFuncCpf.add(colunas[2].trim().replaceAll("[^0-9]", ""));
-                        tempFuncCargo.add(colunas[3].trim().toUpperCase());
-                        tempFuncSenha.add(colunas[4].trim());
-                        tempFuncSalario.add(salario);
-                        tempFuncPago.add(Boolean.parseBoolean(colunas[6].trim()));
-                        tempFuncStatus.add(colunas[7].trim().toUpperCase());
-                        tempFuncMotivo.add(colunas[8].trim());
-                    } else if (blocoLeitura.equals("AUT")) {
-                        // Lê linha no formato ID_FUNCIONARIO;AUT1,AUT2,...
-                        String[] colunas = linhaAtual.split(";");
-                        if (colunas.length >= 1 && !colunas[0].trim().isEmpty()) {
-                            String idAut = colunas[0].trim().toUpperCase();
-                            List<String> listaAuts = new ArrayList<>();
-                            if (colunas.length >= 2 && !colunas[1].trim().isEmpty()) {
-                                for (String item : colunas[1].split(",")) {
-                                    listaAuts.add(item.trim());
-                                }
-                            }
-                            tempAutoridadesPorId.put(idAut, listaAuts);
+            try (BufferedReader br = new BufferedReader(new FileReader(arq))) {
+                String linha;
+                while ((linha = br.readLine()) != null) {
+                    String limpa = linha.trim();
+                    if (limpa.isEmpty() || limpa.startsWith("#")) continue;
+                    if (limpa.startsWith("[") && limpa.endsWith("]")) {
+                        secao = limpa.toUpperCase();
+                        continue;
+                    }
+                    if ("[CAIXA_INICIO]".equals(secao) && limpa.startsWith("SALDO=")) {
+                        novoSaldo = Double.parseDouble(limpa.substring(6).trim().replace(",", "."));
+                    } else if ("[FUNCIONARIOS_INICIO]".equals(secao)) {
+                        String[] p = limpa.split(";");
+                        if (p.length >= 9) {
+                            tempFuncId.add(p[0].trim().toUpperCase());
+                            tempFuncNome.add(p[1].trim().toUpperCase());
+                            tempFuncCpf.add(p[2].trim().replaceAll("[^0-9]", ""));
+                            tempFuncCargo.add(p[3].trim().toUpperCase());
+                            tempFuncSenha.add(p[4].trim());
+                            tempFuncSalario.add(Double.parseDouble(p[5].trim().replace(",", ".")));
+                            tempFuncPago.add(Boolean.parseBoolean(p[6].trim()));
+                            tempFuncStatus.add(p[7].trim().toUpperCase());
+                            tempFuncMotivo.add(p[8].trim().toUpperCase());
                         }
-                    } else if (blocoLeitura.equals("FORN")) {
-                        String[] colunas = linhaAtual.split(";");
-                        if (colunas.length < 7) throw new IllegalArgumentException("Linha inválida em FORNECEDORES: " + linhaAtual);
-                        double fatura = Double.parseDouble(colunas[4].trim().replace(",", "."));
-                        double margem = Double.parseDouble(colunas[5].trim().replace(",", "."));
-                        if (!Double.isFinite(fatura) || fatura < 0 || !Double.isFinite(margem) || margem < 0) {
-                            throw new IllegalArgumentException("Valores de fornecedor inválidos no .TXT.");
-                        }
-                        tempFornRazao.add(colunas[0].trim().toUpperCase());
-                        tempFornCnpj.add(colunas[1].trim().replaceAll("[^0-9]", ""));
-                        tempFornUf.add(colunas[2].trim().toUpperCase());
-                        tempFornProd.add(colunas[3].trim().toUpperCase());
-                        tempFornFatura.add(fatura);
-                        tempFornMargem.add(margem);
-                        tempFornPago.add(Boolean.parseBoolean(colunas[6].trim()));
-                    } else if (blocoLeitura.equals("PROD")) {
-                        String[] colunas = linhaAtual.split(";");
-                        if (colunas.length < 4) throw new IllegalArgumentException("Linha inválida em PRODUTOS: " + linhaAtual);
-                        double preco = Double.parseDouble(colunas[2].trim().replace(",", "."));
-                        int estoque = Integer.parseInt(colunas[3].trim());
-                        if (!Double.isFinite(preco) || preco <= 0 || estoque < 0) {
-                            throw new IllegalArgumentException("Preço ou estoque inválido no .TXT.");
-                        }
-                        tempProdNome.add(colunas[0].trim().toUpperCase());
-                        tempProdNcm.add(colunas[1].trim());
-                        tempProdPreco.add(preco);
-                        tempProdEstoque.add(estoque);
-                    } else if (blocoLeitura.equals("CLIENTE")) {
-                        String[] colunas = linhaAtual.split(";");
-                        if (colunas.length < 2) throw new IllegalArgumentException("Linha inválida em CLIENTES: " + linhaAtual);
-                        tempClienteCpf.add(colunas[0].trim().replaceAll("[^0-9]", ""));
-                        tempClienteNome.add(colunas[1].trim().toUpperCase());
-                    } else if (blocoLeitura.equals("TRANS")) {
-                        String[] colunas = linhaAtual.split(";");
-                        if (colunas.length < 4) throw new IllegalArgumentException("Linha inválida em TRANSACOES: " + linhaAtual);
-                        double valorTrans = Double.parseDouble(colunas[3].trim().replace(",", "."));
-                        if (!Double.isFinite(valorTrans) || valorTrans < 0.0) {
-                            throw new IllegalArgumentException("Valor de transação inválido no .TXT.");
-                        }
-                        tempTransTipo.add(colunas[0].trim());
-                        tempTransEnvolvidos.add(colunas[1].trim());
-                        tempTransDesc.add(colunas[2].trim());
-                        tempTransValor.add(valorTrans);
-                    } else if (blocoLeitura.equals("CAIXA")) {
-                        tempCaixa = Double.parseDouble(linhaAtual.replace(",", "."));
-                        if (!Double.isFinite(tempCaixa) || tempCaixa < 0.0) {
-                            throw new IllegalArgumentException("Saldo de caixa inválido no .TXT.");
+                    } else if ("[PRODUTOS_INICIO]".equals(secao)) {
+                        String[] p = limpa.split(";");
+                        if (p.length >= 4) {
+                            tempProdNome.add(p[0].trim().toUpperCase());
+                            tempProdNcm.add(p[1].trim().toUpperCase());
+                            tempProdPreco.add(Double.parseDouble(p[2].trim().replace(",", ".")));
+                            tempProdQtd.add(Integer.parseInt(p[3].trim()));
                         }
                     }
                 }
-            }
 
-            if (tempFuncId.isEmpty()) {
-                for (String linhaFunc : EMERGENCIA_FUNCIONARIOS_POR_FUNCAO) {
-                    String[] colunas = linhaFunc.split(";");
-                    tempFuncId.add(colunas[0].trim().toUpperCase());
-                    tempFuncNome.add(colunas[1].trim().toUpperCase());
-                    tempFuncCpf.add(colunas[2].trim());
-                    tempFuncCargo.add(colunas[3].trim().toUpperCase());
-                    tempFuncSenha.add(colunas[4].trim());
-                    tempFuncSalario.add(Double.parseDouble(colunas[5].trim()));
-                    tempFuncPago.add(Boolean.parseBoolean(colunas[6].trim()));
-                    tempFuncStatus.add(colunas[7].trim().toUpperCase());
-                    tempFuncMotivo.add(colunas[8].trim());
+                // Evita restaurar um arquivo de backup sem nenhum funcionário ativo, o que bloquearia o acesso ao sistema
+                boolean existeFuncionarioAtivo = false;
+                for (String st : tempFuncStatus) {
+                    if ("ATIVO".equalsIgnoreCase(st)) {
+                        existeFuncionarioAtivo = true;
+                        break;
+                    }
                 }
-            }
-
-            tabelaFuncId.clear(); tabelaFuncId.addAll(tempFuncId);
-            tabelaFuncNome.clear(); tabelaFuncNome.addAll(tempFuncNome);
-            tabelaFuncCpf.clear(); tabelaFuncCpf.addAll(tempFuncCpf);
-            tabelaFuncCargo.clear(); tabelaFuncCargo.addAll(tempFuncCargo);
-            tabelaFuncSenha.clear(); tabelaFuncSenha.addAll(tempFuncSenha);
-            tabelaFuncSalario.clear(); tabelaFuncSalario.addAll(tempFuncSalario);
-            tabelaFuncPago.clear(); tabelaFuncPago.addAll(tempFuncPago);
-            tabelaFuncStatus.clear(); tabelaFuncStatus.addAll(tempFuncStatus);
-            tabelaFuncMotivoInativo.clear(); tabelaFuncMotivoInativo.addAll(tempFuncMotivo);
-
-            // Aplica as autoridades carregadas para cada ID de funcionário ativo
-            if (moduloAutoridades != null) {
-                for (Map.Entry<String, List<String>> entry : tempAutoridadesPorId.entrySet()) {
-                    String idFunc = entry.getKey();
-                    int idx = tabelaFuncId.indexOf(idFunc);
-                    boolean ativo = idx != -1 && "ATIVO".equalsIgnoreCase(tabelaFuncStatus.get(idx));
-                    moduloAutoridades.aplicarAutoridadesCarregadas(idFunc, ativo, entry.getValue());
+                if (tempFuncId.isEmpty() || !existeFuncionarioAtivo) {
+                    throw new IllegalArgumentException("O arquivo de backup deve conter ao menos um funcionário ATIVO.");
                 }
+
+                tabelaFuncId.clear(); tabelaFuncId.addAll(tempFuncId);
+                tabelaFuncNome.clear(); tabelaFuncNome.addAll(tempFuncNome);
+                tabelaFuncCpf.clear(); tabelaFuncCpf.addAll(tempFuncCpf);
+                tabelaFuncCargo.clear(); tabelaFuncCargo.addAll(tempFuncCargo);
+                tabelaFuncSenha.clear(); tabelaFuncSenha.addAll(tempFuncSenha);
+                tabelaFuncSalario.clear(); tabelaFuncSalario.addAll(tempFuncSalario);
+                tabelaFuncPago.clear(); tabelaFuncPago.addAll(tempFuncPago);
+                tabelaFuncStatus.clear(); tabelaFuncStatus.addAll(tempFuncStatus);
+                tabelaFuncMotivoInativo.clear(); tabelaFuncMotivoInativo.addAll(tempFuncMotivo);
+
+                if (!tempProdNome.isEmpty()) {
+                    tabelaProdNome.clear(); tabelaProdNome.addAll(tempProdNome);
+                    tabelaProdNcm.clear(); tabelaProdNcm.addAll(tempProdNcm);
+                    tabelaProdPrecoVenda.clear(); tabelaProdPrecoVenda.addAll(tempProdPreco);
+                    tabelaProdQtdEstoque.clear(); tabelaProdQtdEstoque.addAll(tempProdQtd);
+                }
+
+                caixa.definirSaldo(novoSaldo);
+                if (moduloAutoridades != null) {
+                    moduloAutoridades.sincronizarComTabelaFuncionarios(tabelaFuncId, tabelaFuncCargo, tabelaFuncStatus);
+                }
+                caixa.registrarMovimentoDados("ENTRADA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Restauração do backup '" + arquivoBackupOficial + "'");
+                auditoria.registrar(sessao.obterNomeVigente(), "Restaurou backup oficial " + arquivoBackupOficial);
+                System.out.println(CoresAnsi.sucesso(" Backup restaurado com sucesso.\n"));
+            } catch (IOException | NumberFormatException | IllegalArgumentException e) {
+                System.out.println(CoresAnsi.erro("Falha ao restaurar backup: " + e.getMessage() + "\n"));
             }
-
-            tabelaFornRazaoSocial.clear(); tabelaFornRazaoSocial.addAll(tempFornRazao);
-            tabelaFornCnpj.clear(); tabelaFornCnpj.addAll(tempFornCnpj);
-            tabelaFornUf.clear(); tabelaFornUf.addAll(tempFornUf);
-            tabelaFornProdutoPrincipal.clear(); tabelaFornProdutoPrincipal.addAll(tempFornProd);
-            tabelaFornValorFatura.clear(); tabelaFornValorFatura.addAll(tempFornFatura);
-            tabelaFornMargemLucroPct.clear(); tabelaFornMargemLucroPct.addAll(tempFornMargem);
-            tabelaFornFaturaPaga.clear(); tabelaFornFaturaPaga.addAll(tempFornPago);
-
-            tabelaProdNome.clear(); tabelaProdNome.addAll(tempProdNome);
-            tabelaProdNcm.clear(); tabelaProdNcm.addAll(tempProdNcm);
-            tabelaProdPrecoVenda.clear(); tabelaProdPrecoVenda.addAll(tempProdPreco);
-            tabelaProdQtdEstoque.clear(); tabelaProdQtdEstoque.addAll(tempProdEstoque);
-
-            tabelaClienteCpf.clear(); tabelaClienteCpf.addAll(tempClienteCpf);
-            tabelaClienteNome.clear(); tabelaClienteNome.addAll(tempClienteNome);
-
-            tabelaTransacaoTipo.clear(); tabelaTransacaoTipo.addAll(tempTransTipo);
-            tabelaTransacaoEnvolvidos.clear(); tabelaTransacaoEnvolvidos.addAll(tempTransEnvolvidos);
-            tabelaTransacaoDescricao.clear(); tabelaTransacaoDescricao.addAll(tempTransDesc);
-            tabelaTransacaoValor.clear(); tabelaTransacaoValor.addAll(tempTransValor);
-
-            caixa.definirSaldo(tempCaixa);
         }
     }
 
-    // Alíquotas de referência para operações internas em SP e interestaduais
-    public static final double ALIQUOTA_ICMS_INTERNO_SP_2026 = 0.18;
-    public static final double ALIQUOTA_ICMS_INTERNO_SP_2027 = 0.19;
-    public static final double ALIQUOTA_ICMS_INTERESTADUAL_PADRAO = 0.12;
-
-    // Substitui ';' e quebras de linha para não corromper arquivos delimitados por ';'
-    public static String sanitizarCampoTxt(String valor) {
-        if (valor == null) return "";
-        return valor.replace(";", ",").replace("\r", " ").replace("\n", " ").trim();
-    }
-
-    // Calcula a alíquota de ICMS conforme UFs de origem/destino e exercício fiscal
-    public static double calcularAliquotaIcmsPorOperacao(String codigoNcmProduto, String ufOrigemOperacao, String ufDestinoOperacao, int anoExercicioFiscal) {
-        double aliquotaInternaVigente = (anoExercicioFiscal >= 2027) ? ALIQUOTA_ICMS_INTERNO_SP_2027 : ALIQUOTA_ICMS_INTERNO_SP_2026;
-        if (ufOrigemOperacao != null && ufDestinoOperacao != null
-                && ufOrigemOperacao.trim().equalsIgnoreCase("SP")
-                && ufDestinoOperacao.trim().equalsIgnoreCase("SP")) {
-            return aliquotaInternaVigente;
-        }
-        return ALIQUOTA_ICMS_INTERESTADUAL_PADRAO;
-    }
-
-    // Retorna o salário base padrão conforme o cargo do funcionário
-    public static double obterSalarioBasePorCargo(String cargoFuncionario) {
-        if (cargoFuncionario == null) return 2200.00;
-        if (cargoFuncionario.equalsIgnoreCase("GERENTE")) return 5500.00;
-        if (cargoFuncionario.equalsIgnoreCase("FINANCEIRO")) return 4800.00;
-        return 2200.00;
-    }
-
-    // Gera senha temporária padrão para novos cadastros, readmissões ou resets
-    public static String gerarSenhaTemporaria() {
-        return "Temp@2026";
-    }
-
-    // Formata valores decimais no padrão monetário brasileiro ("R$ 0,00" / "R$ 0.00")
-    public static String formatarValorMonetarioReais(double valorNumerico) {
-        double valorSeguro = Double.isFinite(valorNumerico) ? valorNumerico : 0.0;
-        return String.format("R$ %.2f", valorSeguro);
-    }
-
-    // Lê uma linha do Scanner com segurança; se o fluxo terminar, retorna "SAIR"
+    // Lê linha do Scanner com segurança e remove espaços das extremidades
     private static String lerLinhaSegura(Scanner leitorEntrada) {
-        if (leitorEntrada == null || !leitorEntrada.hasNextLine()) return "SAIR";
+        if (!leitorEntrada.hasNextLine()) return "";
         return leitorEntrada.nextLine().trim();
     }
 
-    // Identifica se o usuário digitou comando de cancelamento/retorno (0, -0 ou SAIR)
+    // Verifica se o comando digitado representa cancelamento ou retorno ("0", "SAIR" ou "VOLTAR")
     private static boolean isComandoCancelamento(String entrada) {
-        if (entrada == null) return true;
-        String limpa = entrada.trim();
-        return limpa.equals("0") || limpa.equals("-0") || limpa.equalsIgnoreCase("SAIR");
+        if (entrada == null) return false;
+        String up = entrada.trim().toUpperCase();
+        return up.equals("0") || up.equals("SAIR") || up.equals("VOLTAR");
     }
 
-    // Verifica se todos os caracteres de uma sequência numérica são iguais (ex.: 11111111111)
-    private static boolean todosDigitosIguais(String sequencia) {
-        if (sequencia == null || sequencia.isEmpty()) return true;
-        char primeiro = sequencia.charAt(0);
-        for (int i = 1; i < sequencia.length(); i++) {
-            if (sequencia.charAt(i) != primeiro) return false;
+    // Sanitiza caracteres separadores ou quebras de linha em textos de log/arquivo
+    private static String sanitizarCampoTxt(String texto) {
+        if (texto == null) return "";
+        return texto.replaceAll("[\\r\\n]+", " ").replace(";", ",");
+    }
+
+    // Verifica se todos os caracteres de uma sequência numérica são iguais (ex.: "11111111111")
+    private static boolean todosDigitosIguais(String digitos) {
+        if (digitos == null || digitos.isEmpty()) return true;
+        char primeiro = digitos.charAt(0);
+        for (int i = 1; i < digitos.length(); i++) {
+            if (digitos.charAt(i) != primeiro) return false;
         }
         return true;
     }
@@ -1512,17 +943,20 @@ public class prototipo {
         if (cpfSomenteNumeros == null || !cpfSomenteNumeros.matches("^[0-9]{11}$") || todosDigitosIguais(cpfSomenteNumeros)) {
             return false;
         }
-        int soma1 = 0, soma2 = 0;
+        int soma1 = 0;
         for (int i = 0; i < 9; i++) {
-            int digito = cpfSomenteNumeros.charAt(i) - '0';
-            soma1 += digito * (10 - i);
-            soma2 += digito * (11 - i);
+            soma1 += (cpfSomenteNumeros.charAt(i) - '0') * (10 - i);
         }
-        int dv1 = 11 - (soma1 % 11);
-        if (dv1 >= 10) dv1 = 0;
-        soma2 += dv1 * 2;
-        int dv2 = 11 - (soma2 % 11);
-        if (dv2 >= 10) dv2 = 0;
+        int resto1 = (soma1 * 10) % 11;
+        int dv1 = (resto1 == 10) ? 0 : resto1;
+
+        int soma2 = 0;
+        for (int i = 0; i < 10; i++) {
+            soma2 += (cpfSomenteNumeros.charAt(i) - '0') * (11 - i);
+        }
+        int resto2 = (soma2 * 10) % 11;
+        int dv2 = (resto2 == 10) ? 0 : resto2;
+
         return dv1 == (cpfSomenteNumeros.charAt(9) - '0') && dv2 == (cpfSomenteNumeros.charAt(10) - '0');
     }
 
@@ -1542,6 +976,40 @@ public class prototipo {
         int resto2 = soma2 % 11;
         int dv2 = (resto2 < 2) ? 0 : (11 - resto2);
         return dv1 == (cnpjSomenteNumeros.charAt(12) - '0') && dv2 == (cnpjSomenteNumeros.charAt(13) - '0');
+    }
+
+    // Formata valores numéricos em moeda brasileira (R$)
+    private static String formatarValorMonetarioReais(double valor) {
+        if (!Double.isFinite(valor)) return "R$ 0,00";
+        return FORMATADOR_MOEDA_BR.format(valor);
+    }
+
+    // Formata aviso visual quando o saldo de estoque está zerado ou baixo
+    private static String formatarAlertaEstoque(int saldo) {
+        if (saldo <= 0) return CoresAnsi.erro(" [SEM ESTOQUE]");
+        if (saldo <= 10) return CoresAnsi.aviso(" [ESTOQUE BAIXO]");
+        return "";
+    }
+
+    // Retorna o salário base padrão conforme o cargo
+    private static double obterSalarioBasePorCargo(String cargo) {
+        if (cargo == null) return 0.0;
+        switch (cargo.trim().toUpperCase()) {
+            case "GERENTE":
+                return 9500.00;
+            case "FINANCEIRO":
+                return 6200.00;
+            case "OPERADOR":
+                return 3800.00;
+            default:
+                return 0.0;
+        }
+    }
+
+    // Gera senha temporária de 6 dígitos numéricos
+    private static String gerarSenhaTemporaria() {
+        int numero = ThreadLocalRandom.current().nextInt(100000, 1000000);
+        return String.valueOf(numero);
     }
 
     // Lê e valida texto contendo apenas letras (com acentos) e espaços
@@ -1572,22 +1040,18 @@ public class prototipo {
         }
     }
 
-    // Lê e valida sigla de unidade federativa brasileira (UF)
+    // Lê e valida sigla de unidade federativa brasileira (UF) usando constante estática UFS_BRASIL
     public static String validarELerSiglaEstadoUf(Scanner leitorEntrada, String mensagemPrompt) {
-        List<String> ufs = Arrays.asList(
-            "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
-            "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
-        );
         while (true) {
             System.out.print(mensagemPrompt);
             String sigla = lerLinhaSegura(leitorEntrada).toUpperCase();
             if (isComandoCancelamento(sigla)) return "CANCELAR";
-            if (ufs.contains(sigla)) return sigla;
+            if (UFS_BRASIL.contains(sigla)) return sigla;
             System.out.println(CoresAnsi.erro("[Validação]: UF inválida.\n"));
         }
     }
 
-    // Lê número inteiro não negativo; retorna -999 se o usuário digitar 0 ou SAIR
+    // Lê número inteiro positivo (>= 1); retorna -999 se o usuário digitar 0 ou SAIR
     public static int validarELerNumeroInteiro(Scanner leitorEntrada, String mensagemPrompt) {
         while (true) {
             System.out.print(mensagemPrompt);
@@ -1641,7 +1105,7 @@ public class prototipo {
         }
     }
 
-    // Lê e valida valor decimal monetário (aceitando vírgula ou ponto e até 4 casas decimais)
+    // Lê e valida valor decimal monetário (aceitando vírgula ou ponto e até 4 casas decimais; retorna -999.0 em SAIR ou 0 quando permitirZero é false)
     public static double validarELerValorDecimalMonetario(Scanner leitorEntrada, String mensagemPrompt, boolean permitirZero) {
         while (true) {
             System.out.print(mensagemPrompt);
@@ -1699,6 +1163,104 @@ public class prototipo {
             if (isCnpjValido(nums)) return nums;
             System.out.println(CoresAnsi.erro("[Validação]: CNPJ inválido (dígitos verificadores não conferem).\n"));
         }
+    }
+
+    // Calcula a alíquota de ICMS conforme UFs de origem/destino e exercício fiscal
+    // O parâmetro codigoNcmProduto fica reservado para regras tributárias específicas por NCM
+    public static double calcularAliquotaIcmsPorOperacao(String codigoNcmProduto, String ufOrigemOperacao, String ufDestinoOperacao, int anoExercicioFiscal) {
+        String origem = (ufOrigemOperacao == null) ? "SP" : ufOrigemOperacao.trim().toUpperCase();
+        String destino = (ufDestinoOperacao == null) ? origem : ufDestinoOperacao.trim().toUpperCase();
+        if (origem.equals(destino)) {
+            return "SP".equals(destino) ? 0.18 : 0.17;
+        }
+        Set<String> sulSudesteExcetoEs = Set.of("MG", "PR", "RJ", "RS", "SC", "SP");
+        if (sulSudesteExcetoEs.contains(origem) && !sulSudesteExcetoEs.contains(destino)) {
+            return (anoExercicioFiscal >= 2026) ? 0.07 : 0.07;
+        }
+        return 0.12;
+    }
+
+    // Converte a opção numérica do menu no nome oficial do cargo cadastrado
+    private static String resolverCargoPorOpcao(int opcaoCargo) {
+        switch (opcaoCargo) {
+            case 1:
+                return "GERENTE";
+            case 2:
+                return "OPERADOR";
+            case 3:
+                return "FINANCEIRO";
+            default:
+                return null;
+        }
+    }
+
+    // Altera o cargo de um funcionário ativo (promoção ou rebaixamento), ajusta salário e sincroniza autoridades
+    private static void alterarCargoFuncionario(
+            Scanner leitorEntrada,
+            int indiceFuncionario,
+            ModuloSessao sessao,
+            ModuloAuditoria auditoria,
+            ModuloCaixa caixa,
+            ModuloAutoridades moduloAutoridades,
+            List<String> tabelaFuncId,
+            List<String> tabelaFuncNome,
+            List<String> tabelaFuncCargo,
+            List<Double> tabelaFuncSalario) {
+
+        // Exige autoridade específica para alterar cargo/salário e impede ação em conta inativa
+        if (!sessao.exigirAutoridade(Autoridade.RH_ALTERAR_CARGO_SALARIO, "Sem autoridade para alterar cargo/salário.")) {
+            return;
+        }
+        if (indiceFuncionario < 0 || indiceFuncionario >= tabelaFuncId.size()) {
+            System.out.println(CoresAnsi.erro("Registro de funcionário inválido.\n"));
+            return;
+        }
+
+        String idAlvo = tabelaFuncId.get(indiceFuncionario);
+        String nomeAlvo = tabelaFuncNome.get(indiceFuncionario);
+        String cargoAtual = tabelaFuncCargo.get(indiceFuncionario).toUpperCase();
+
+        // Exibe opções de cargo e lê a escolha do operador
+        int opcaoCargo = validarELerNumeroInteiro(
+                leitorEntrada,
+                "Novo cargo [1 - GERENTE | 2 - OPERADOR | 3 - FINANCEIRO] [0 para cancelar]: "
+        );
+        if (opcaoCargo == -999) return;
+
+        String novoCargo = resolverCargoPorOpcao(opcaoCargo);
+        if (novoCargo == null) {
+            System.out.println(CoresAnsi.erro("Opção de cargo inválida.\n"));
+            return;
+        }
+        if (novoCargo.equalsIgnoreCase(cargoAtual)) {
+            System.out.println(CoresAnsi.aviso(" O funcionário já ocupa o cargo de " + cargoAtual + ".\n"));
+            return;
+        }
+
+        // Calcula novo salário base e atualiza cargo e remuneração na tabela em memória
+        double novoSalario = obterSalarioBasePorCargo(novoCargo);
+        tabelaFuncCargo.set(indiceFuncionario, novoCargo);
+        tabelaFuncSalario.set(indiceFuncionario, novoSalario);
+
+        // Redefine o EnumSet de autoridades de acordo com o novo cargo para o usuário ativo
+        if (moduloAutoridades != null) {
+            moduloAutoridades.redefinirPorCargo(idAlvo, novoCargo, true);
+        }
+
+        // Classifica a movimentação para deixar o registro de auditoria e log mais claro
+        String tipoMovimento = "ALTERAÇÃO DE CARGO";
+        if (novoSalario > obterSalarioBasePorCargo(cargoAtual)) {
+            tipoMovimento = "PROMOÇÃO";
+        } else if (novoSalario < obterSalarioBasePorCargo(cargoAtual)) {
+            tipoMovimento = "REBAIXAMENTO";
+        }
+
+        String detalheEvento = tipoMovimento + " de " + nomeAlvo + " (ID: " + idAlvo + "): "
+                + cargoAtual + " -> " + novoCargo + " | Novo salário base: " + formatarValorMonetarioReais(novoSalario);
+
+        caixa.registrarMovimentoDados("ENTRADA_DADOS", "Operador: " + sessao.obterNomeVigente(), detalheEvento);
+        auditoria.registrar(sessao.obterNomeVigente(), detalheEvento);
+        System.out.println(CoresAnsi.sucesso(" " + detalheEvento + ".\n"));
     }
 
     // Recarrega pré-cadastros do .TXT preservando senhas e estoques já alterados na memória
@@ -1899,9 +1461,11 @@ public class prototipo {
             if (!sessao.validarOuRevogarSessao()) return;
 
             // Localiza o registro ativo correspondente ao usuário da sessão
+            // Prioriza a correspondência exata do ID da sessão para evitar ambiguidade se houver nomes iguais
             int indice = -1;
             for (int i = 0; i < tabelaFuncId.size(); i++) {
-                if (tabelaFuncNome.get(i).equals(sessao.obterNomeVigente()) && tabelaFuncStatus.get(i).equalsIgnoreCase("ATIVO")) {
+                if (tabelaFuncId.get(i).equalsIgnoreCase(sessao.obterIdVigente())
+                        && tabelaFuncStatus.get(i).equalsIgnoreCase("ATIVO")) {
                     indice = i;
                     break;
                 }
@@ -1999,7 +1563,89 @@ public class prototipo {
         }
     }
 
-    // Menu de RH: listagem paginada com filtro e cadastro de novos funcionários
+    // Auxiliar de cadastro de novo funcionário (chamado diretamente da tabela unificada de RH)
+    private static void cadastrarNovoFuncionarioNaTabela(
+            Scanner leitorEntrada,
+            ModuloSessao sessao,
+            ModuloAuditoria auditoria,
+            ModuloCaixa caixa,
+            ModuloPersistenciaTxt persistencia,
+            ModuloAutoridades moduloAutoridades,
+            List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf,
+            List<String> tabelaFuncCargo, List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario,
+            List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
+            List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
+            List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
+            List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga,
+            List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda,
+            List<Integer> tabelaProdQtdEstoque, List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
+            List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos,
+            List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor) {
+
+        if (!sessao.exigirAutoridade(Autoridade.RH_GERIR_CADASTROS, "Sem autoridade para cadastrar funcionários.")) return;
+
+        // Gera ponto de rollback antes de adicionar novo registro
+        persistencia.executarRollbackAutomatico(
+                moduloAutoridades,
+                tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
+                tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
+                tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
+                tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
+                tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
+                tabelaClienteCpf, tabelaClienteNome,
+                tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
+                caixa
+        );
+
+        String novoIdFuncional;
+        while (true) {
+            System.out.print("Novo ID (3 dígitos, ex: 009) [0 para cancelar]: ");
+            novoIdFuncional = lerLinhaSegura(leitorEntrada).toUpperCase();
+            if (isComandoCancelamento(novoIdFuncional)) break;
+            if (novoIdFuncional.matches("^[0-9]{3}$") && !novoIdFuncional.equals("000") && !tabelaFuncId.contains(novoIdFuncional)) break;
+            System.out.println(CoresAnsi.erro("ID inválido ou já cadastrado.\n"));
+        }
+        if (isComandoCancelamento(novoIdFuncional)) return;
+
+        String nomeCompleto = validarELerTextoAlfabetico(leitorEntrada, "Nome completo: ");
+        if (nomeCompleto.equals("CANCELAR")) return;
+
+        String cpfValidado = validarEFormatarCpf(leitorEntrada);
+        if (cpfValidado.equals("CANCELAR")) return;
+        if (tabelaFuncCpf.contains(cpfValidado)) {
+            System.out.println(CoresAnsi.erro("[Duplicidade]: Já existe um registro com este CPF.\n"));
+            return;
+        }
+
+        int opcaoCargo = validarELerNumeroInteiro(leitorEntrada, "Nível de acesso [1 - Gerente | 2 - Operador | 3 - Financeiro] [0 para cancelar]: ");
+        if (opcaoCargo == -999) return;
+        String cargoDefinido = resolverCargoPorOpcao(opcaoCargo);
+        if (cargoDefinido == null) {
+            System.out.println(CoresAnsi.erro("Opção inválida.\n"));
+            return;
+        }
+        String senhaGerada = gerarSenhaTemporaria();
+
+        tabelaFuncId.add(novoIdFuncional);
+        tabelaFuncNome.add(nomeCompleto);
+        tabelaFuncCpf.add(cpfValidado);
+        tabelaFuncCargo.add(cargoDefinido);
+        tabelaFuncSenha.add(senhaGerada);
+        tabelaFuncSalario.add(obterSalarioBasePorCargo(cargoDefinido));
+        tabelaFuncPago.add(false);
+        tabelaFuncStatus.add("ATIVO");
+        tabelaFuncMotivoInativo.add("NENHUM");
+
+        if (moduloAutoridades != null) {
+            moduloAutoridades.redefinirPorCargo(novoIdFuncional, cargoDefinido, true);
+        }
+
+        caixa.registrarMovimentoDados("ENTRADA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Novo cadastro ID " + novoIdFuncional + " - " + nomeCompleto + " (" + cargoDefinido + ")");
+        auditoria.registrar(sessao.obterNomeVigente(), "Cadastrou registro ID " + novoIdFuncional + " (" + nomeCompleto + ")");
+        System.out.println(CoresAnsi.sucesso(" Registro salvo! Senha inicial gerada: " + senhaGerada + "\n"));
+    }
+
+    // Menu unificado de RH: exibe diretamente a tabela paginada/filtrável e permite cadastrar novo sem menu intermediário
     public static void exibirMenuGestaoFuncionarios(
             Scanner leitorEntrada,
             ModuloSessao sessao,
@@ -2035,171 +1681,102 @@ public class prototipo {
                 tabelaProdQtdEstoque, tabelaClienteCpf, tabelaClienteNome
         );
 
-        boolean menuRhAtivo = true;
+        int paginaAtual = 1;
+        final int ITENS_POR_PAGINA = 25;
         String filtroFuncAtivo = "";
+        boolean navegandoLista = true;
 
-        while (menuRhAtivo) {
+        while (navegandoLista) {
             if (!sessao.validarOuRevogarSessao()) return;
 
+            // Filtra funcionários por ID, nome, CPF, cargo ou status
+            List<Integer> indicesFiltrados = new ArrayList<>();
+            for (int i = 0; i < tabelaFuncNome.size(); i++) {
+                String busca = (tabelaFuncId.get(i) + " " + tabelaFuncNome.get(i) + " "
+                        + tabelaFuncCpf.get(i) + " " + tabelaFuncCargo.get(i) + " "
+                        + tabelaFuncStatus.get(i)).toUpperCase();
+                if (filtroFuncAtivo.isEmpty() || busca.contains(filtroFuncAtivo)) {
+                    indicesFiltrados.add(i);
+                }
+            }
+
+            int totalFiltrados = indicesFiltrados.size();
+            int totalPaginas = Math.max(1, (int) Math.ceil((double) totalFiltrados / ITENS_POR_PAGINA));
+            if (paginaAtual > totalPaginas) paginaAtual = totalPaginas;
+
+            String etiquetaFiltro = filtroFuncAtivo.isEmpty() ? "TODOS" : "FILTRO: '" + filtroFuncAtivo + "'";
             System.out.println(CoresAnsi.titulo("\n================================================================"));
             System.out.println(CoresAnsi.titulo("                      GESTÃO DE CADASTROS (RH)                  "));
             System.out.println(CoresAnsi.titulo("================================================================"));
-            System.out.println("[1] Listar registros (Paginado 25/pág)");
-            if (sessao.temAutoridade(Autoridade.RH_GERIR_CADASTROS)) {
-                System.out.println("[2] Novo registro");
+            System.out.println(CoresAnsi.titulo("--- REGISTROS [" + etiquetaFiltro + "] (Página " + paginaAtual + " de " + totalPaginas + " | Encontrados: " + totalFiltrados + ") ---"));
+
+            if (tabelaFuncNome.isEmpty()) {
+                System.out.println(CoresAnsi.aviso(" Nenhum registro disponível."));
+            } else if (totalFiltrados == 0) {
+                System.out.println(CoresAnsi.aviso(" Nenhum funcionário encontrado para o filtro '" + filtroFuncAtivo + "'. Use [L] para limpar."));
+            } else {
+                int indiceInicial = (paginaAtual - 1) * ITENS_POR_PAGINA;
+                int indiceFinal = Math.min(indiceInicial + ITENS_POR_PAGINA, totalFiltrados);
+
+                for (int i = indiceInicial; i < indiceFinal; i++) {
+                    int idxReal = indicesFiltrados.get(i);
+                    String etiquetaPagamento = tabelaFuncPago.get(idxReal) ? CoresAnsi.sucesso("PAGO ") : CoresAnsi.aviso("PENDENTE ");
+                    String etiquetaStatus = tabelaFuncStatus.get(idxReal).equalsIgnoreCase("ATIVO")
+                            ? CoresAnsi.sucesso("ATIVO")
+                            : CoresAnsi.erro("INATIVO (READMITÍVEL) ");
+                    String valorExibido = sessao.exibirValorCondicional(Autoridade.FIN_VER_VALORES_SENSIVEIS, tabelaFuncSalario.get(idxReal));
+                    System.out.printf("[%d] ID: %s | Nome: %s | Cargo: %s | Status: %s | Valor: %s [%s]\n",
+                            (i + 1), tabelaFuncId.get(idxReal), tabelaFuncNome.get(idxReal),
+                            tabelaFuncCargo.get(idxReal), etiquetaStatus, valorExibido, etiquetaPagamento);
+                }
             }
-            System.out.println("[3] Voltar");
-            System.out.println(CoresAnsi.titulo("================================================================"));
+            System.out.println("----------------------------------------------------------------");
+            System.out.print("[N] Próxima | [P] Anterior | [F] Filtrar | [L] Limpar");
+            if (sessao.temAutoridade(Autoridade.RH_GERIR_CADASTROS)) {
+                System.out.print(" | [C] Cadastrar Novo");
+            }
+            System.out.println(" | [NÚMERO] Detalhes | [0] Voltar");
+            System.out.print("Comando: ");
+            String comandoUsuario = lerLinhaSegura(leitorEntrada).toUpperCase();
 
-            int opcaoEscolhida = validarELerNumeroInteiro(leitorEntrada, "Selecione: ");
-            if (opcaoEscolhida == 3 || opcaoEscolhida == -999) {
-                menuRhAtivo = false;
-            } else if (opcaoEscolhida == 1) {
-                if (tabelaFuncNome.isEmpty()) {
-                    System.out.println(CoresAnsi.aviso(" Nenhum registro disponível.\n"));
-                    continue;
+            if (comandoUsuario.equals("N") && paginaAtual < totalPaginas) paginaAtual++;
+            else if (comandoUsuario.equals("P") && paginaAtual > 1) paginaAtual--;
+            else if (comandoUsuario.equals("F")) {
+                String termo = validarELerTextoLivreObrigatorio(leitorEntrada, "Filtrar por ID, nome, cargo ou status [0 para cancelar]: ");
+                if (!termo.equals("CANCELAR")) {
+                    filtroFuncAtivo = termo;
+                    paginaAtual = 1;
                 }
-                int paginaAtual = 1;
-                final int ITENS_POR_PAGINA = 25;
-                boolean navegandoLista = true;
-
-                while (navegandoLista) {
-                    if (!sessao.validarOuRevogarSessao()) return;
-
-                    // Filtra funcionários por ID, nome, CPF, cargo ou status
-                    List<Integer> indicesFiltrados = new ArrayList<>();
-                    for (int i = 0; i < tabelaFuncNome.size(); i++) {
-                        String busca = (tabelaFuncId.get(i) + " " + tabelaFuncNome.get(i) + " "
-                                + tabelaFuncCpf.get(i) + " " + tabelaFuncCargo.get(i) + " "
-                                + tabelaFuncStatus.get(i)).toUpperCase();
-                        if (filtroFuncAtivo.isEmpty() || busca.contains(filtroFuncAtivo)) {
-                            indicesFiltrados.add(i);
-                        }
-                    }
-
-                    int totalFiltrados = indicesFiltrados.size();
-                    int totalPaginas = Math.max(1, (int) Math.ceil((double) totalFiltrados / ITENS_POR_PAGINA));
-                    if (paginaAtual > totalPaginas) paginaAtual = totalPaginas;
-
-                    String etiquetaFiltro = filtroFuncAtivo.isEmpty() ? "TODOS" : "FILTRO: '" + filtroFuncAtivo + "'";
-                    System.out.println(CoresAnsi.titulo("\n--- REGISTROS [" + etiquetaFiltro + "] (Página " + paginaAtual + " de " + totalPaginas + " | Encontrados: " + totalFiltrados + ") ---"));
-
-                    if (totalFiltrados == 0) {
-                        System.out.println(CoresAnsi.aviso(" Nenhum funcionário encontrado para o filtro '" + filtroFuncAtivo + "'. Use [L] para limpar."));
-                    } else {
-                        int indiceInicial = (paginaAtual - 1) * ITENS_POR_PAGINA;
-                        int indiceFinal = Math.min(indiceInicial + ITENS_POR_PAGINA, totalFiltrados);
-
-                        for (int i = indiceInicial; i < indiceFinal; i++) {
-                            int idxReal = indicesFiltrados.get(i);
-                            String etiquetaPagamento = tabelaFuncPago.get(idxReal) ? CoresAnsi.sucesso("PAGO ") : CoresAnsi.aviso("PENDENTE ");
-                            String etiquetaStatus = tabelaFuncStatus.get(idxReal).equalsIgnoreCase("ATIVO")
-                                    ? CoresAnsi.sucesso("ATIVO")
-                                    : CoresAnsi.erro("INATIVO (READMITÍVEL) ");
-                            String valorExibido = sessao.exibirValorCondicional(Autoridade.FIN_VER_VALORES_SENSIVEIS, tabelaFuncSalario.get(idxReal));
-                            System.out.printf("[%d] ID: %s | Nome: %s | Cargo: %s | Status: %s | Valor: %s [%s]\n",
-                                    (i + 1), tabelaFuncId.get(idxReal), tabelaFuncNome.get(idxReal),
-                                    tabelaFuncCargo.get(idxReal), etiquetaStatus, valorExibido, etiquetaPagamento);
-                        }
-                    }
-                    System.out.println("----------------------------------------------------------------");
-                    System.out.println("[N] Próxima | [P] Anterior | [F] Filtrar | [L] Limpar Filtro | [NÚMERO] Detalhes | [0] Voltar");
-                    System.out.print("Comando: ");
-                    String comandoUsuario = lerLinhaSegura(leitorEntrada).toUpperCase();
-
-                    if (comandoUsuario.equals("N") && paginaAtual < totalPaginas) paginaAtual++;
-                    else if (comandoUsuario.equals("P") && paginaAtual > 1) paginaAtual--;
-                    else if (comandoUsuario.equals("F")) {
-                        String termo = validarELerTextoLivreObrigatorio(leitorEntrada, "Filtrar por ID, nome, cargo ou status [0 para cancelar]: ");
-                        if (!termo.equals("CANCELAR")) {
-                            filtroFuncAtivo = termo;
-                            paginaAtual = 1;
-                        }
-                    } else if (comandoUsuario.equals("L")) {
-                        filtroFuncAtivo = "";
-                        paginaAtual = 1;
-                        System.out.println(CoresAnsi.sucesso(" Filtro de funcionários removido.\n"));
-                    } else if (isComandoCancelamento(comandoUsuario)) navegandoLista = false;
-                    else if (comandoUsuario.matches("^[0-9]+$")) {
-                        int pos = Integer.parseInt(comandoUsuario) - 1;
-                        if (pos >= 0 && pos < totalFiltrados) {
-                            int indiceSelecionado = indicesFiltrados.get(pos);
-                            abrirModalDetalhesEGestaoFuncionario(
-                                    leitorEntrada, indiceSelecionado, sessao, auditoria, caixa, moduloAutoridades,
-                                    tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha, tabelaFuncSalario,
-                                    tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo, indicadorTotalSalariosPagos
-                            );
-                        } else {
-                            System.out.println(CoresAnsi.erro("Índice inválido.\n"));
-                        }
-                    } else {
-                        System.out.println(CoresAnsi.erro("Comando inválido.\n"));
-                    }
-                }
-            } else if (opcaoEscolhida == 2) {
-                if (!sessao.exigirAutoridade(Autoridade.RH_GERIR_CADASTROS, "Sem autoridade para cadastrar funcionários.")) continue;
-
-                // Gera ponto de rollback antes de adicionar novo registro
-                persistencia.executarRollbackAutomatico(
-                        moduloAutoridades,
+            } else if (comandoUsuario.equals("L")) {
+                filtroFuncAtivo = "";
+                paginaAtual = 1;
+                System.out.println(CoresAnsi.sucesso(" Filtro de funcionários removido.\n"));
+            } else if (comandoUsuario.equals("C")) {
+                cadastrarNovoFuncionarioNaTabela(
+                        leitorEntrada, sessao, auditoria, caixa, persistencia, moduloAutoridades,
                         tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
                         tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
                         tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
                         tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
                         tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
                         tabelaClienteCpf, tabelaClienteNome,
-                        tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
-                        caixa
+                        tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor
                 );
-
-                String novoIdFuncional;
-                while (true) {
-                    System.out.print("Novo ID (3 dígitos, ex: 009) [0 para cancelar]: ");
-                    novoIdFuncional = lerLinhaSegura(leitorEntrada).toUpperCase();
-                    if (isComandoCancelamento(novoIdFuncional)) break;
-                    if (novoIdFuncional.matches("^[0-9]{3}$") && !novoIdFuncional.equals("000") && !tabelaFuncId.contains(novoIdFuncional)) break;
-                    System.out.println(CoresAnsi.erro("ID inválido ou já cadastrado.\n"));
+            } else if (isComandoCancelamento(comandoUsuario)) navegandoLista = false;
+            else if (comandoUsuario.matches("^[0-9]+$")) {
+                int pos = Integer.parseInt(comandoUsuario) - 1;
+                if (pos >= 0 && pos < totalFiltrados) {
+                    int indiceSelecionado = indicesFiltrados.get(pos);
+                    abrirModalDetalhesEGestaoFuncionario(
+                            leitorEntrada, indiceSelecionado, sessao, auditoria, caixa, moduloAutoridades,
+                            tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha, tabelaFuncSalario,
+                            tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo, indicadorTotalSalariosPagos
+                    );
+                } else {
+                    System.out.println(CoresAnsi.erro("Índice inválido.\n"));
                 }
-                if (isComandoCancelamento(novoIdFuncional)) continue;
-
-                String nomeCompleto = validarELerTextoAlfabetico(leitorEntrada, "Nome completo: ");
-                if (nomeCompleto.equals("CANCELAR")) continue;
-
-                String cpfValidado = validarEFormatarCpf(leitorEntrada);
-                if (cpfValidado.equals("CANCELAR")) continue;
-                if (tabelaFuncCpf.contains(cpfValidado)) {
-                    System.out.println(CoresAnsi.erro("[Duplicidade]: Já existe um registro com este CPF.\n"));
-                    continue;
-                }
-
-                int opcaoCargo = validarELerNumeroInteiro(leitorEntrada, "Nível de acesso [1 - Gerente | 2 - Operador | 3 - Financeiro] [0 para cancelar]: ");
-                if (opcaoCargo == -999) continue;
-                if (opcaoCargo < 1 || opcaoCargo > 3) {
-                    System.out.println(CoresAnsi.erro("Opção inválida.\n"));
-                    continue;
-                }
-                String cargoDefinido = (opcaoCargo == 1) ? "GERENTE" : (opcaoCargo == 3 ? "FINANCEIRO" : "OPERADOR");
-                String senhaGerada = gerarSenhaTemporaria();
-
-                tabelaFuncId.add(novoIdFuncional);
-                tabelaFuncNome.add(nomeCompleto);
-                tabelaFuncCpf.add(cpfValidado);
-                tabelaFuncCargo.add(cargoDefinido);
-                tabelaFuncSenha.add(senhaGerada);
-                tabelaFuncSalario.add(obterSalarioBasePorCargo(cargoDefinido));
-                tabelaFuncPago.add(false);
-                tabelaFuncStatus.add("ATIVO");
-                tabelaFuncMotivoInativo.add("NENHUM");
-
-                if (moduloAutoridades != null) {
-                    moduloAutoridades.redefinirPorCargo(novoIdFuncional, cargoDefinido, true);
-                }
-
-                caixa.registrarMovimentoDados("ENTRADA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Novo cadastro ID " + novoIdFuncional + " - " + nomeCompleto + " (" + cargoDefinido + ")");
-                auditoria.registrar(sessao.obterNomeVigente(), "Cadastrou registro ID " + novoIdFuncional + " (" + nomeCompleto + ")");
-                System.out.println(CoresAnsi.sucesso(" Registro salvo! Senha inicial gerada: " + senhaGerada + "\n"));
             } else {
-                System.out.println(CoresAnsi.erro("Opção indisponível.\n"));
+                System.out.println(CoresAnsi.erro("Comando inválido.\n"));
             }
         }
     }
@@ -2229,7 +1806,7 @@ public class prototipo {
             for (int i = 0; i < todas.length; i++) {
                 Autoridade aut = todas[i];
                 boolean marcada = atuais.contains(aut);
-                System.out.printf("[%2d] %s %-26s -> %s\n",
+                System.out.printf("[%2d] %s %-28s -> %s\n",
                         (i + 1),
                         (marcada ? CoresAnsi.sucesso("[ON ]") : CoresAnsi.aviso("[OFF]")),
                         aut.name(),
@@ -2254,7 +1831,7 @@ public class prototipo {
         }
     }
 
-    // Exibe detalhes de um funcionário e ações de pagamento, edição, inativação, readmissão, senha e autoridades
+    // Exibe detalhes de um funcionário e ações de pagamento, edição, inativação, readmissão, senha, autoridades e cargo
     private static void abrirModalDetalhesEGestaoFuncionario(
             Scanner leitorEntrada, int indiceFuncionario,
             ModuloSessao sessao, ModuloAuditoria auditoria, ModuloCaixa caixa, ModuloAutoridades moduloAutoridades,
@@ -2267,6 +1844,8 @@ public class prototipo {
         boolean podeGerirCadastro = sessao.temAutoridade(Autoridade.RH_GERIR_CADASTROS);
         boolean podeResetarSenha = sessao.temAutoridade(Autoridade.RH_RESETAR_SENHA);
         boolean podeGerirAutoridades = sessao.temAutoridade(Autoridade.RH_GERIR_AUTORIDADES);
+        // Verifica previamente se o usuário autenticado pode alterar cargo e salário
+        boolean podeAlterarCargo = sessao.temAutoridade(Autoridade.RH_ALTERAR_CARGO_SALARIO);
 
         boolean modalAberto = true;
         while (modalAberto) {
@@ -2302,6 +1881,10 @@ public class prototipo {
             }
             if (podeGerirAutoridades && estaAtivo && moduloAutoridades != null) {
                 System.out.println("│ [7] Gerenciar lista de autoridades                             │");
+            }
+            // Exibe a opção de promoção/rebaixamento apenas para contas ativas com permissão
+            if (podeAlterarCargo && estaAtivo) {
+                System.out.println("│ [8] Promover / Rebaixar / Alterar cargo                        │");
             }
             System.out.println("│ [0] Fechar                                                     │");
             System.out.println(CoresAnsi.titulo("└────────────────────────────────────────────────────────────────┘"));
@@ -2385,11 +1968,11 @@ public class prototipo {
                 }
                 int opcaoCargo = validarELerNumeroInteiro(leitorEntrada, "Nível de acesso [1 - Gerente | 2 - Operador | 3 - Financeiro] [0 para cancelar]: ");
                 if (opcaoCargo == -999) continue;
-                if (opcaoCargo < 1 || opcaoCargo > 3) {
+                String novoCargo = resolverCargoPorOpcao(opcaoCargo);
+                if (novoCargo == null) {
                     System.out.println(CoresAnsi.erro("Opção inválida.\n"));
                     continue;
                 }
-                String novoCargo = (opcaoCargo == 1) ? "GERENTE" : (opcaoCargo == 3 ? "FINANCEIRO" : "OPERADOR");
                 String novaSenha = gerarSenhaTemporaria();
 
                 tabelaFuncStatus.set(indiceFuncionario, "ATIVO");
@@ -2425,6 +2008,17 @@ public class prototipo {
                 if (moduloAutoridades != null) {
                     gerenciarAutoridadesDoFuncionario(leitorEntrada, sessao, auditoria, caixa, moduloAutoridades, idAlvo, tabelaFuncNome.get(indiceFuncionario), estaAtivo);
                 }
+            // Trata a ação [8] delegando para alterarCargoFuncionario e revalidando estado ativo e autoridade
+            } else if (acaoEscolhida == 8) {
+                if (!sessao.exigirAutoridade(Autoridade.RH_ALTERAR_CARGO_SALARIO, "Sem autoridade para alterar cargo/salário.")) continue;
+                if (!estaAtivo) {
+                    System.out.println(CoresAnsi.erro(" Registro inativo.\n"));
+                    continue;
+                }
+                alterarCargoFuncionario(
+                        leitorEntrada, indiceFuncionario, sessao, auditoria, caixa, moduloAutoridades,
+                        tabelaFuncId, tabelaFuncNome, tabelaFuncCargo, tabelaFuncSalario
+                );
             } else if (acaoEscolhida == 0 || acaoEscolhida == -999) {
                 modalAberto = false;
             } else {
@@ -2433,7 +2027,93 @@ public class prototipo {
         }
     }
 
-    // Menu de fornecedores: listagem paginada e registro de compras com entrada no estoque
+    // Auxiliar de registro de operação com fornecedor e entrada de estoque
+    private static void registrarOperacaoFornecedorNaTabela(
+            Scanner leitorEntrada,
+            ModuloSessao sessao,
+            ModuloAuditoria auditoria,
+            ModuloCaixa caixa,
+            ModuloMovimentacaoEstoque movEstoque,
+            List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
+            List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
+            List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga,
+            List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda,
+            List<Integer> tabelaProdQtdEstoque,
+            List<Double> indicadorGastosEstoque, List<Double> indicadorTotalFornecedoresPagos) {
+
+        if (!sessao.exigirAutoridade(Autoridade.FORN_GERIR_OPERACOES, "Sem autoridade para registrar operação de fornecimento.")) return;
+
+        String razaoSocial = validarELerTextoAlfabetico(leitorEntrada, "Razão Social: ");
+        if (razaoSocial.equals("CANCELAR")) return;
+
+        String cnpjValidado = validarEFormatarCnpj(leitorEntrada);
+        if (cnpjValidado.equals("CANCELAR")) return;
+        if (tabelaFornCnpj.contains(cnpjValidado)) {
+            System.out.println(CoresAnsi.erro("[Duplicidade]: Já existe um registro com este CNPJ.\n"));
+            return;
+        }
+
+        String siglaUf = validarELerSiglaEstadoUf(leitorEntrada, "Estado (UF): ");
+        if (siglaUf.equals("CANCELAR")) return;
+
+        String nomeProduto = validarELerTextoLivreObrigatorio(leitorEntrada, "Descrição do item [0 para cancelar]: ");
+        if (nomeProduto.equals("CANCELAR")) return;
+
+        double custoUnitario = validarELerValorDecimalMonetario(leitorEntrada, "Custo unitário (R$) [0 para cancelar]: ", false);
+        if (custoUnitario <= 0) return;
+
+        int quantidadeCompra = validarELerQuantidadePositiva(leitorEntrada, "Quantidade [0 para cancelar]: ");
+        if (quantidadeCompra <= 0) return;
+
+        double valorTotalFatura = custoUnitario * quantidadeCompra;
+        if (!Double.isFinite(valorTotalFatura) || valorTotalFatura <= 0.0) {
+            System.out.println(CoresAnsi.erro("Valor total inválido.\n"));
+            return;
+        }
+
+        // Debita do caixa antes de consolidar a compra e a entrada de estoque
+        boolean debitou = caixa.registrarSaida(
+                valorTotalFatura,
+                "COMPRA / ABASTECIMENTO",
+                "Fornecedor: " + razaoSocial + " (" + siglaUf + ")",
+                "Entrada em estoque: " + quantidadeCompra + "x " + nomeProduto
+        );
+        if (!debitou) return;
+
+        tabelaFornRazaoSocial.add(razaoSocial);
+        tabelaFornCnpj.add(cnpjValidado);
+        tabelaFornUf.add(siglaUf);
+        tabelaFornProdutoPrincipal.add(nomeProduto);
+        tabelaFornValorFatura.add(valorTotalFatura);
+        tabelaFornMargemLucroPct.add(40.0);
+        tabelaFornFaturaPaga.add(true);
+
+        indicadorGastosEstoque.set(0, indicadorGastosEstoque.get(0) + valorTotalFatura);
+        indicadorTotalFornecedoresPagos.set(0, indicadorTotalFornecedoresPagos.get(0) + valorTotalFatura);
+
+        // Soma ao estoque existente ou cria novo item no catálogo com margem padrão de 40%
+        int saldoFinalItem;
+        int indiceProdutoExistente = tabelaProdNome.indexOf(nomeProduto);
+        if (indiceProdutoExistente != -1) {
+            saldoFinalItem = tabelaProdQtdEstoque.get(indiceProdutoExistente) + quantidadeCompra;
+            tabelaProdQtdEstoque.set(indiceProdutoExistente, saldoFinalItem);
+        } else {
+            saldoFinalItem = quantidadeCompra;
+            tabelaProdNome.add(nomeProduto);
+            tabelaProdNcm.add("2106.90.30");
+            tabelaProdPrecoVenda.add(custoUnitario * 1.40);
+            tabelaProdQtdEstoque.add(saldoFinalItem);
+        }
+
+        if (movEstoque != null) {
+            movEstoque.registrarMovimento("ENTRADA_FORNECEDOR", nomeProduto, quantidadeCompra, saldoFinalItem, "Fornecedor: " + razaoSocial, sessao.obterNomeVigente());
+        }
+
+        auditoria.registrar(sessao.obterNomeVigente(), "Operação registrada junto a " + razaoSocial);
+        System.out.println(CoresAnsi.sucesso(" Operação registrada com sucesso.\n"));
+    }
+
+    // Menu unificado de fornecedores: exibe diretamente a tabela e permite registrar operação sem menu intermediário
     public static void exibirMenuGestaoFornecedores(
             Scanner leitorEntrada,
             ModuloSessao sessao,
@@ -2470,146 +2150,69 @@ public class prototipo {
                 tabelaProdQtdEstoque, tabelaClienteCpf, tabelaClienteNome
         );
 
-        boolean menuFornecedoresAtivo = true;
-        while (menuFornecedoresAtivo) {
+        int paginaAtual = 1;
+        final int ITENS_POR_PAGINA = 25;
+        boolean navegandoLista = true;
+
+        while (navegandoLista) {
+            int totalPaginas = Math.max(1, (int) Math.ceil((double) tabelaFornRazaoSocial.size() / ITENS_POR_PAGINA));
+            if (paginaAtual > totalPaginas) paginaAtual = totalPaginas;
+
             System.out.println(CoresAnsi.titulo("\n================================================================"));
             System.out.println(CoresAnsi.titulo("                   CONTROLE DE FORNECIMENTO                     "));
             System.out.println(CoresAnsi.titulo("================================================================"));
-            System.out.println("[1] Listar itens (Paginado 25/pág)");
-            if (sessao.temAutoridade(Autoridade.FORN_GERIR_OPERACOES)) {
-                System.out.println("[2] Registrar operação");
-            }
-            System.out.println("[3] Voltar");
-            System.out.println(CoresAnsi.titulo("================================================================"));
+            System.out.println(CoresAnsi.titulo("--- REGISTROS DE FORNECIMENTO (Página " + paginaAtual + " de " + totalPaginas + ") ---"));
 
-            int opcaoEscolhida = validarELerNumeroInteiro(leitorEntrada, "Selecione: ");
-            if (opcaoEscolhida == 3 || opcaoEscolhida == -999) {
-                menuFornecedoresAtivo = false;
-            } else if (opcaoEscolhida == 1) {
-                if (tabelaFornRazaoSocial.isEmpty()) {
-                    System.out.println(CoresAnsi.aviso(" Nenhum registro disponível.\n"));
-                    continue;
-                }
-                int paginaAtual = 1;
-                final int ITENS_POR_PAGINA = 25;
-                boolean navegandoLista = true;
-
-                while (navegandoLista) {
-                    if (tabelaFornRazaoSocial.isEmpty()) {
-                        System.out.println(CoresAnsi.aviso("ℹ️ Todos os registros foram removidos.\n"));
-                        break;
-                    }
-                    int totalPaginas = Math.max(1, (int) Math.ceil((double) tabelaFornRazaoSocial.size() / ITENS_POR_PAGINA));
-                    if (paginaAtual > totalPaginas) paginaAtual = totalPaginas;
-
-                    System.out.println(CoresAnsi.titulo("\n--- REGISTROS DE FORNECIMENTO (Página " + paginaAtual + " de " + totalPaginas + ") ---"));
-                    int indiceInicial = (paginaAtual - 1) * ITENS_POR_PAGINA;
-                    int indiceFinal = Math.min(indiceInicial + ITENS_POR_PAGINA, tabelaFornRazaoSocial.size());
-
-                    for (int i = indiceInicial; i < indiceFinal; i++) {
-                        String etiquetaFatura = tabelaFornFaturaPaga.get(i) ? CoresAnsi.sucesso("QUITADO ") : CoresAnsi.aviso("PENDENTE ");
-                        String valorExibido = sessao.exibirValorCondicional(Autoridade.FIN_VER_VALORES_SENSIVEIS, tabelaFornValorFatura.get(i));
-                        System.out.printf("[%d] %s | CNPJ: %s | UF: %s | Valor: %s [%s]\n",
-                                (i + 1), tabelaFornRazaoSocial.get(i), tabelaFornCnpj.get(i), tabelaFornUf.get(i),
-                                valorExibido, etiquetaFatura);
-                    }
-                    System.out.println("----------------------------------------------------------------");
-                    System.out.println("[N] Próxima Página | [P] Página Anterior | [NÚMERO] Detalhes | [0] Voltar");
-                    System.out.print("Comando: ");
-                    String comandoUsuario = lerLinhaSegura(leitorEntrada).toUpperCase();
-
-                    if (comandoUsuario.equals("N") && paginaAtual < totalPaginas) paginaAtual++;
-                    else if (comandoUsuario.equals("P") && paginaAtual > 1) paginaAtual--;
-                    else if (isComandoCancelamento(comandoUsuario)) navegandoLista = false;
-                    else if (comandoUsuario.matches("^[0-9]+$")) {
-                        int indiceSelecionado = Integer.parseInt(comandoUsuario) - 1;
-                        if (indiceSelecionado >= 0 && indiceSelecionado < tabelaFornRazaoSocial.size()) {
-                            abrirModalDetalhesEGestaoFornecedor(
-                                    leitorEntrada, indiceSelecionado, sessao, auditoria, caixa,
-                                    tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
-                                    tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
-                                    indicadorTotalFornecedoresPagos
-                            );
-                        } else {
-                            System.out.println(CoresAnsi.erro("Índice inválido.\n"));
-                        }
-                    } else {
-                        System.out.println(CoresAnsi.erro("Comando inválido.\n"));
-                    }
-                }
-            } else if (opcaoEscolhida == 2) {
-                if (!sessao.exigirAutoridade(Autoridade.FORN_GERIR_OPERACOES, "Sem autoridade para registrar operação de fornecimento.")) continue;
-
-                String razaoSocial = validarELerTextoAlfabetico(leitorEntrada, "Razão Social: ");
-                if (razaoSocial.equals("CANCELAR")) continue;
-
-                String cnpjValidado = validarEFormatarCnpj(leitorEntrada);
-                if (cnpjValidado.equals("CANCELAR")) continue;
-                if (tabelaFornCnpj.contains(cnpjValidado)) {
-                    System.out.println(CoresAnsi.erro("[Duplicidade]: Já existe um registro com este CNPJ.\n"));
-                    continue;
-                }
-
-                String siglaUf = validarELerSiglaEstadoUf(leitorEntrada, "Estado (UF): ");
-                if (siglaUf.equals("CANCELAR")) continue;
-
-                String nomeProduto = validarELerTextoLivreObrigatorio(leitorEntrada, "Descrição do item [0 para cancelar]: ");
-                if (nomeProduto.equals("CANCELAR")) continue;
-
-                double custoUnitario = validarELerValorDecimalMonetario(leitorEntrada, "Custo unitário (R$) [0 para cancelar]: ", false);
-                if (custoUnitario <= 0) continue;
-
-                int quantidadeCompra = validarELerQuantidadePositiva(leitorEntrada, "Quantidade [0 para cancelar]: ");
-                if (quantidadeCompra <= 0) continue;
-
-                double valorTotalFatura = custoUnitario * quantidadeCompra;
-                if (!Double.isFinite(valorTotalFatura) || valorTotalFatura <= 0.0) {
-                    System.out.println(CoresAnsi.erro("Valor total inválido.\n"));
-                    continue;
-                }
-
-                // Debita do caixa antes de consolidar a compra e a entrada de estoque
-                boolean debitou = caixa.registrarSaida(
-                        valorTotalFatura,
-                        "COMPRA / ABASTECIMENTO",
-                        "Fornecedor: " + razaoSocial + " (" + siglaUf + ")",
-                        "Entrada em estoque: " + quantidadeCompra + "x " + nomeProduto
-                );
-                if (!debitou) continue;
-
-                tabelaFornRazaoSocial.add(razaoSocial);
-                tabelaFornCnpj.add(cnpjValidado);
-                tabelaFornUf.add(siglaUf);
-                tabelaFornProdutoPrincipal.add(nomeProduto);
-                tabelaFornValorFatura.add(valorTotalFatura);
-                tabelaFornMargemLucroPct.add(40.0);
-                tabelaFornFaturaPaga.add(true);
-
-                indicadorGastosEstoque.set(0, indicadorGastosEstoque.get(0) + valorTotalFatura);
-                indicadorTotalFornecedoresPagos.set(0, indicadorTotalFornecedoresPagos.get(0) + valorTotalFatura);
-
-                // Soma ao estoque existente ou cria novo item no catálogo com margem padrão de 40%
-                int saldoFinalItem;
-                int indiceProdutoExistente = tabelaProdNome.indexOf(nomeProduto);
-                if (indiceProdutoExistente != -1) {
-                    saldoFinalItem = tabelaProdQtdEstoque.get(indiceProdutoExistente) + quantidadeCompra;
-                    tabelaProdQtdEstoque.set(indiceProdutoExistente, saldoFinalItem);
-                } else {
-                    saldoFinalItem = quantidadeCompra;
-                    tabelaProdNome.add(nomeProduto);
-                    tabelaProdNcm.add("2106.90.30");
-                    tabelaProdPrecoVenda.add(custoUnitario * 1.40);
-                    tabelaProdQtdEstoque.add(saldoFinalItem);
-                }
-
-                if (movEstoque != null) {
-                    movEstoque.registrarMovimento("ENTRADA_FORNECEDOR", nomeProduto, quantidadeCompra, saldoFinalItem, "Fornecedor: " + razaoSocial, sessao.obterNomeVigente());
-                }
-
-                auditoria.registrar(sessao.obterNomeVigente(), "Operação registrada junto a " + razaoSocial);
-                System.out.println(CoresAnsi.sucesso(" Operação registrada com sucesso.\n"));
+            if (tabelaFornRazaoSocial.isEmpty()) {
+                System.out.println(CoresAnsi.aviso(" Nenhum registro disponível."));
             } else {
-                System.out.println(CoresAnsi.erro("Opção indisponível.\n"));
+                int indiceInicial = (paginaAtual - 1) * ITENS_POR_PAGINA;
+                int indiceFinal = Math.min(indiceInicial + ITENS_POR_PAGINA, tabelaFornRazaoSocial.size());
+
+                for (int i = indiceInicial; i < indiceFinal; i++) {
+                    String etiquetaFatura = tabelaFornFaturaPaga.get(i) ? CoresAnsi.sucesso("QUITADO ") : CoresAnsi.aviso("PENDENTE ");
+                    String valorExibido = sessao.exibirValorCondicional(Autoridade.FIN_VER_VALORES_SENSIVEIS, tabelaFornValorFatura.get(i));
+                    System.out.printf("[%d] %s | CNPJ: %s | UF: %s | Valor: %s [%s]\n",
+                            (i + 1), tabelaFornRazaoSocial.get(i), tabelaFornCnpj.get(i), tabelaFornUf.get(i),
+                            valorExibido, etiquetaFatura);
+                }
+            }
+
+            // Barra de comandos unificada de Fornecedores: exibe os itens visíveis e permite registrar operação sem sair da tela
+            System.out.println("----------------------------------------------------------------");
+            System.out.print("[N] Próxima Página | [P] Página Anterior");
+            if (sessao.temAutoridade(Autoridade.FORN_GERIR_OPERACOES)) {
+                System.out.print(" | [C] Registrar Operação");
+            }
+            System.out.println(" | [NÚMERO] Detalhes | [0] Voltar");
+            System.out.print("Comando: ");
+            String comandoUsuario = lerLinhaSegura(leitorEntrada).toUpperCase();
+
+            if (comandoUsuario.equals("N") && paginaAtual < totalPaginas) paginaAtual++;
+            else if (comandoUsuario.equals("P") && paginaAtual > 1) paginaAtual--;
+            else if (comandoUsuario.equals("C")) {
+                registrarOperacaoFornecedorNaTabela(
+                        leitorEntrada, sessao, auditoria, caixa, movEstoque,
+                        tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
+                        tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
+                        tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
+                        indicadorGastosEstoque, indicadorTotalFornecedoresPagos
+                );
+            } else if (isComandoCancelamento(comandoUsuario)) navegandoLista = false;
+            else if (comandoUsuario.matches("^[0-9]+$")) {
+                int indiceSelecionado = Integer.parseInt(comandoUsuario) - 1;
+                if (indiceSelecionado >= 0 && indiceSelecionado < tabelaFornRazaoSocial.size()) {
+                    abrirModalDetalhesEGestaoFornecedor(
+                            leitorEntrada, indiceSelecionado, sessao, auditoria, caixa,
+                            tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
+                            tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
+                            indicadorTotalFornecedoresPagos
+                    );
+                } else {
+                    System.out.println(CoresAnsi.erro("Índice inválido.\n"));
+                }
+            } else {
+                System.out.println(CoresAnsi.erro("Comando inválido.\n"));
             }
         }
     }
@@ -2697,6 +2300,7 @@ public class prototipo {
                 tabelaFornValorFatura.remove(indiceFornecedor);
                 tabelaFornMargemLucroPct.remove(indiceFornecedor);
                 tabelaFornFaturaPaga.remove(indiceFornecedor);
+                // Registra a exclusão e encerra o modal para evitar reindexação de índices na mesma tela
                 caixa.registrarMovimentoDados("SAIDA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Remoção de registro de fornecimento: " + nomeRemovido);
                 auditoria.registrar(sessao.obterNomeVigente(), "Removeu registro: " + nomeRemovido);
                 System.out.println(CoresAnsi.aviso(" Registro removido.\n"));
@@ -2744,13 +2348,18 @@ public class prototipo {
                 }
 
                 // Extrai o nome do cliente da string de envolvidos
+                // Considera sufixos como "(CPF:" ou "|" quando existirem para isolar o nome com segurança
                 String nomeCliente = "CLIENTE AVULSO";
                 if (envolvidos.contains("Cliente:")) {
-                    int inicio = envolvidos.indexOf("Cliente:") + 8;
-                    int fim = envolvidos.indexOf(" (CPF:");
-                    if (fim == -1) fim = envolvidos.indexOf(" |");
-                    if (fim == -1) fim = envolvidos.length();
-                    nomeCliente = envolvidos.substring(inicio, fim).trim().toUpperCase();
+                    int inicio = envolvidos.indexOf("Cliente:") + "Cliente:".length();
+                    int fimCpf = envolvidos.indexOf("(CPF:", inicio);
+                    int fimPipe = envolvidos.indexOf("|", inicio);
+                    int fim = envolvidos.length();
+                    if (fimCpf != -1 && fimPipe != -1) fim = Math.min(fimCpf, fimPipe);
+                    else if (fimCpf != -1) fim = fimCpf;
+                    else if (fimPipe != -1) fim = fimPipe;
+                    String extraido = envolvidos.substring(inicio, fim).trim().toUpperCase();
+                    if (!extraido.isEmpty()) nomeCliente = extraido;
                 }
 
                 totalGeralVendas += valor;
@@ -2825,7 +2434,128 @@ public class prototipo {
         lerLinhaSegura(leitorEntrada);
     }
 
-    // Submenu de operações de estoque, cadastro de itens, lançamentos, relatórios, logs e backup
+    // Exibe histórico paginado de lançamentos financeiros com filtro e opção de estorno
+    private static void gerenciarHistoricoTransacoesPaginado(
+            Scanner leitorEntrada, ModuloSessao sessao, ModuloAuditoria auditoria, ModuloCaixa caixa,
+            ModuloMovimentacaoEstoque movEstoque, List<String> tabelaProdNome, List<Integer> tabelaProdQtdEstoque,
+            List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos,
+            List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor) {
+
+        int paginaAtual = 1;
+        final int ITENS_POR_PAGINA = 25;
+        String filtro = "";
+        boolean navegando = true;
+
+        while (navegando) {
+            List<Integer> indices = new ArrayList<>();
+            for (int i = 0; i < tabelaTransacaoTipo.size(); i++) {
+                String linhaBusca = (tabelaTransacaoTipo.get(i) + " " + tabelaTransacaoEnvolvidos.get(i) + " " + tabelaTransacaoDescricao.get(i)).toUpperCase();
+                if (filtro.isEmpty() || linhaBusca.contains(filtro)) indices.add(i);
+            }
+
+            int total = indices.size();
+            int totalPaginas = Math.max(1, (int) Math.ceil((double) total / ITENS_POR_PAGINA));
+            if (paginaAtual > totalPaginas) paginaAtual = totalPaginas;
+
+            String etiquetaFiltro = filtro.isEmpty() ? "SEM FILTRO" : "FILTRO: '" + filtro + "'";
+            System.out.println(CoresAnsi.titulo("\n--- HISTÓRICO DE LANÇAMENTOS [" + etiquetaFiltro + "] (Página " + paginaAtual + " de " + totalPaginas + " | Encontrados: " + total + ") ---"));
+
+            if (total == 0) {
+                System.out.println(CoresAnsi.aviso(" Nenhum lançamento encontrado."));
+            } else {
+                int ini = (paginaAtual - 1) * ITENS_POR_PAGINA;
+                int fim = Math.min(ini + ITENS_POR_PAGINA, total);
+                for (int i = ini; i < fim; i++) {
+                    int idxReal = indices.get(i);
+                    String valorExibido = sessao.exibirValorCondicional(Autoridade.FIN_VER_VALORES_SENSIVEIS, tabelaTransacaoValor.get(idxReal));
+                    System.out.printf("[%d] [%s] %s | %s | Valor: %s\n",
+                            (i + 1), tabelaTransacaoTipo.get(idxReal), tabelaTransacaoEnvolvidos.get(idxReal),
+                            tabelaTransacaoDescricao.get(idxReal), valorExibido);
+                }
+            }
+
+            System.out.println("----------------------------------------------------------------");
+            System.out.println("[N] Próxima | [P] Anterior | [F] Filtrar | [L] Limpar Filtro | [0] Voltar");
+            System.out.print("Comando: ");
+            String cmd = lerLinhaSegura(leitorEntrada).toUpperCase();
+
+            if (cmd.equals("N") && paginaAtual < totalPaginas) paginaAtual++;
+            else if (cmd.equals("P") && paginaAtual > 1) paginaAtual--;
+            else if (cmd.equals("F")) {
+                String termo = validarELerTextoLivreObrigatorio(leitorEntrada, "Termo para filtrar [0 para cancelar]: ");
+                if (!termo.equals("CANCELAR")) {
+                    filtro = termo;
+                    paginaAtual = 1;
+                }
+            } else if (cmd.equals("L")) {
+                filtro = "";
+                paginaAtual = 1;
+                System.out.println(CoresAnsi.sucesso(" Filtro removido.\n"));
+            } else if (isComandoCancelamento(cmd)) navegando = false;
+            else System.out.println(CoresAnsi.erro("Comando inválido.\n"));
+        }
+    }
+
+    // Auxiliar de cadastro de novo item no catálogo (chamado diretamente da tabela unificada de catálogo)
+    private static void cadastrarItemCatalogoNaTabela(
+            Scanner leitorEntrada,
+            ModuloSessao sessao,
+            ModuloAuditoria auditoria,
+            ModuloCaixa caixa,
+            ModuloPersistenciaTxt persistencia,
+            ModuloAutoridades moduloAutoridades,
+            ModuloMovimentacaoEstoque movEstoque,
+            List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda, List<Integer> tabelaProdQtdEstoque,
+            List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
+            List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos, List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
+            List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf, List<String> tabelaFuncCargo,
+            List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario, List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
+            List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
+            List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
+            List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga) {
+
+        if (!sessao.exigirAutoridade(Autoridade.EST_GERIR_CATALOGO, "Sem autoridade para cadastrar item.")) return;
+
+        persistencia.executarRollbackAutomatico(
+                moduloAutoridades,
+                tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
+                tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
+                tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
+                tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
+                tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
+                tabelaClienteCpf, tabelaClienteNome,
+                tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
+                caixa
+        );
+
+        String nomeProduto = validarELerTextoLivreObrigatorio(leitorEntrada, "Nome do item [0 para cancelar]: ");
+        if (nomeProduto.equals("CANCELAR")) return;
+        if (tabelaProdNome.contains(nomeProduto)) {
+            System.out.println(CoresAnsi.erro("[Duplicidade]: Já existe um item com o nome '" + nomeProduto + "'.\n"));
+            return;
+        }
+
+        double precoVenda = validarELerValorDecimalMonetario(leitorEntrada, "Preço unitário (R$) [0 para cancelar]: ", false);
+        if (precoVenda <= 0) return;
+
+        int estoqueInicial = validarELerInteiroNaoNegativoComSair(leitorEntrada, "Quantidade inicial [SAIR para cancelar]: ");
+        if (estoqueInicial == -999) return;
+
+        tabelaProdNome.add(nomeProduto);
+        tabelaProdNcm.add("2106.90.30");
+        tabelaProdPrecoVenda.add(precoVenda);
+        tabelaProdQtdEstoque.add(estoqueInicial);
+
+        if (movEstoque != null) {
+            movEstoque.registrarMovimento("CADASTRO_ITEM", nomeProduto, estoqueInicial, estoqueInicial, "Catálogo", sessao.obterNomeVigente());
+        }
+
+        caixa.registrarMovimentoDados("ENTRADA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Cadastro de item '" + nomeProduto + "' (" + estoqueInicial + " un @ " + formatarValorMonetarioReais(precoVenda) + ")");
+        auditoria.registrar(sessao.obterNomeVigente(), "Cadastrou item: " + nomeProduto);
+        System.out.println(CoresAnsi.sucesso(" Item adicionado.\n"));
+    }
+
+    // Submenu renumerado e agrupado por domínio: Estoque [1-2], Financeiro [3-5], Logs/Backup [6-9], Voltar [0]
     public static void exibirMenuFinanceiroEstoqueEHistorico(
             Scanner leitorEntrada,
             ModuloSessao sessao,
@@ -2851,43 +2581,34 @@ public class prototipo {
         while (menuFinanceiroAtivo) {
             if (!sessao.validarOuRevogarSessao()) return;
 
+            // Exibe o menu agrupado por Estoque, Financeiro, Logs/Persistência e Retorno ([0])
             System.out.println(CoresAnsi.titulo("\n================================================================"));
             System.out.println(CoresAnsi.titulo("                     OPERAÇÕES E REGISTROS                      "));
             System.out.println(CoresAnsi.titulo("================================================================"));
             if (sessao.temAutoridade(Autoridade.EST_VER_CATALOGO)) {
-                System.out.println("[1] Catálogo e saldos (Paginado 25/pág)");
-            }
-            if (sessao.temAutoridade(Autoridade.EST_GERIR_CATALOGO)) {
-                System.out.println("[2] Cadastrar item");
+                System.out.println("[1] Catálogo, saldos e itens (25/pág)");
+                System.out.println("[2] Movimentações de estoque (25/pág)");
             }
             if (sessao.temAutoridade(Autoridade.FIN_VER_VALORES_SENSIVEIS)) {
-                System.out.println("[3] Histórico de lançamentos (Paginado 25/pág)");
+                System.out.println("[3] Histórico de lançamentos (25/pág)");
                 System.out.println("[4] Relatório por cliente (.TXT)");
                 System.out.println("[5] Consolidado financeiro");
             }
-            if (sessao.temAutoridade(Autoridade.SIS_AUDITORIA_E_BACKUP)) {
-                System.out.println("[6] Registros de auditoria (Paginado 25/pág)");
-                System.out.println("[7] Salvar arquivo .TXT");
-                System.out.println("[8] Carregar arquivo .TXT");
-            }
-            System.out.println("[9] Voltar");
             if (sessao.temAutoridade(Autoridade.LOG_VER_E_EXPORTAR)) {
-                System.out.println("[10] Consultar/filtrar log de entradas e saídas (.TXT)");
+                System.out.println("[6] Log de entradas e saídas (.TXT)");
             }
-            if (sessao.temAutoridade(Autoridade.EST_VER_CATALOGO)) {
-                System.out.println("[11] Histórico de movimentações de estoque");
+            if (sessao.temAutoridade(Autoridade.SIS_AUDITORIA_E_BACKUP)) {
+                System.out.println("[7] Registros de auditoria (25/pág)");
+                System.out.println("[8] Salvar backup (.TXT)");
+                System.out.println("[9] Carregar backup (.TXT)");
             }
+            System.out.println("[0] Voltar");
             System.out.println(CoresAnsi.titulo("================================================================"));
 
+            // Roteia as opções renumeradas validando a autoridade correspondente de cada ação
             int opcaoEscolhida = validarELerNumeroInteiro(leitorEntrada, "Selecione: ");
-            if (opcaoEscolhida == 9 || opcaoEscolhida == -999) {
+            if (opcaoEscolhida == 0 || opcaoEscolhida == -999) {
                 menuFinanceiroAtivo = false;
-            } else if (opcaoEscolhida == 10) {
-                if (!sessao.exigirAutoridade(Autoridade.LOG_VER_E_EXPORTAR, "Sem autoridade para consultar/exportar log.")) continue;
-                exibirLogEntradasSaidasPaginado(leitorEntrada, sessao, auditoria, caixa, logDados);
-            } else if (opcaoEscolhida == 11) {
-                if (!sessao.exigirAutoridade(Autoridade.EST_VER_CATALOGO, "Sem autoridade para consultar movimentações de estoque.")) continue;
-                exibirMovimentacoesEstoquePaginado(leitorEntrada, movEstoque);
             } else if (opcaoEscolhida == 1) {
                 if (!sessao.exigirAutoridade(Autoridade.EST_VER_CATALOGO, "Sem autoridade para ver o catálogo.")) continue;
                 garantirPreCadastrosAtualizadosDoTxt(
@@ -2901,46 +2622,20 @@ public class prototipo {
                         tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda,
                         tabelaProdQtdEstoque, tabelaClienteCpf, tabelaClienteNome
                 );
-                gerenciarCatalogoProdutosPaginado(leitorEntrada, sessao, auditoria, caixa, movEstoque, tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque);
-            } else if (opcaoEscolhida == 2) {
-                if (!sessao.exigirAutoridade(Autoridade.EST_GERIR_CATALOGO, "Sem autoridade para cadastrar item.")) continue;
-                persistencia.executarRollbackAutomatico(
-                        moduloAutoridades,
-                        tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
-                        tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                        tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
-                        tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
+                gerenciarCatalogoProdutosPaginado(
+                        leitorEntrada, sessao, auditoria, caixa, persistencia, moduloAutoridades, movEstoque,
                         tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
                         tabelaClienteCpf, tabelaClienteNome,
                         tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
-                        caixa
+                        tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo,
+                        tabelaFuncSenha, tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
+                        tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf,
+                        tabelaFornProdutoPrincipal, tabelaFornValorFatura,
+                        tabelaFornMargemLucroPct, tabelaFornFaturaPaga
                 );
-
-                String nomeProduto = validarELerTextoLivreObrigatorio(leitorEntrada, "Nome do item [0 para cancelar]: ");
-                if (nomeProduto.equals("CANCELAR")) continue;
-                if (tabelaProdNome.contains(nomeProduto)) {
-                    System.out.println(CoresAnsi.erro("[Duplicidade]: Já existe um item com o nome '" + nomeProduto + "'.\n"));
-                    continue;
-                }
-
-                double precoVenda = validarELerValorDecimalMonetario(leitorEntrada, "Preço unitário (R$) [0 para cancelar]: ", false);
-                if (precoVenda <= 0) continue;
-
-                int estoqueInicial = validarELerInteiroNaoNegativoComSair(leitorEntrada, "Quantidade inicial [SAIR para cancelar]: ");
-                if (estoqueInicial == -999) continue;
-
-                tabelaProdNome.add(nomeProduto);
-                tabelaProdNcm.add("2106.90.30");
-                tabelaProdPrecoVenda.add(precoVenda);
-                tabelaProdQtdEstoque.add(estoqueInicial);
-
-                if (movEstoque != null) {
-                    movEstoque.registrarMovimento("CADASTRO_ITEM", nomeProduto, estoqueInicial, estoqueInicial, "Catálogo", sessao.obterNomeVigente());
-                }
-
-                caixa.registrarMovimentoDados("ENTRADA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Cadastro de item '" + nomeProduto + "' (" + estoqueInicial + " un @ " + formatarValorMonetarioReais(precoVenda) + ")");
-                auditoria.registrar(sessao.obterNomeVigente(), "Cadastrou item: " + nomeProduto);
-                System.out.println(CoresAnsi.sucesso(" Item adicionado.\n"));
+            } else if (opcaoEscolhida == 2) {
+                if (!sessao.exigirAutoridade(Autoridade.EST_VER_CATALOGO, "Sem autoridade para consultar movimentações de estoque.")) continue;
+                exibirMovimentacoesEstoquePaginado(leitorEntrada, movEstoque);
             } else if (opcaoEscolhida == 3) {
                 if (!sessao.exigirAutoridade(Autoridade.FIN_VER_VALORES_SENSIVEIS, "Sem autoridade para ver lançamentos financeiros.")) continue;
                 gerenciarHistoricoTransacoesPaginado(leitorEntrada, sessao, auditoria, caixa, movEstoque, tabelaProdNome, tabelaProdQtdEstoque, tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor);
@@ -2959,8 +2654,11 @@ public class prototipo {
                 System.out.println("• Impostos Provisionados (ICMS)    : " + formatarValorMonetarioReais(indicadorImpostosProvisionados.get(0)));
                 System.out.println(CoresAnsi.titulo("============================================================\n"));
             } else if (opcaoEscolhida == 6) {
-                exibirLogAuditoriaPaginado(leitorEntrada, sessao, auditoria);
+                if (!sessao.exigirAutoridade(Autoridade.LOG_VER_E_EXPORTAR, "Sem autoridade para consultar/exportar log.")) continue;
+                exibirLogEntradasSaidasPaginado(leitorEntrada, sessao, auditoria, caixa, logDados);
             } else if (opcaoEscolhida == 7) {
+                exibirLogAuditoriaPaginado(leitorEntrada, sessao, auditoria);
+            } else if (opcaoEscolhida == 8) {
                 persistencia.exportarComConfirmacao(
                         leitorEntrada, sessao, auditoria, moduloAutoridades,
                         tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
@@ -2972,7 +2670,7 @@ public class prototipo {
                         tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
                         caixa
                 );
-            } else if (opcaoEscolhida == 8) {
+            } else if (opcaoEscolhida == 9) {
                 persistencia.restaurarBackupOficial(
                         leitorEntrada, sessao, auditoria, moduloAutoridades,
                         tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
@@ -3204,9 +2902,9 @@ public class prototipo {
             if (comandoUsuario.equals("N") && paginaAtual < totalPaginas) paginaAtual++;
             else if (comandoUsuario.equals("P") && paginaAtual > 1) paginaAtual--;
             else if (comandoUsuario.equals("F")) {
-                String termoBusca = validarELerTextoLivreObrigatorio(leitorEntrada, "Termo para filtrar [0 para cancelar]: ");
-                if (!termoBusca.equals("CANCELAR")) {
-                    filtroAtivo = termoBusca;
+                String termo = validarELerTextoLivreObrigatorio(leitorEntrada, "Termo para filtrar [0 para cancelar]: ");
+                if (!termo.equals("CANCELAR")) {
+                    filtroAtivo = termo;
                     paginaAtual = 1;
                 }
             } else if (comandoUsuario.equals("L")) {
@@ -3221,530 +2919,213 @@ public class prototipo {
         }
     }
 
-    // Retorna etiqueta visual de alerta para estoque zerado ou baixo
-    private static String formatarAlertaEstoque(int saldo) {
-        if (saldo <= 0) return CoresAnsi.erro(" [SEM ESTOQUE ]");
-        if (saldo <= ESTOQUE_MINIMO_ALERTA) return CoresAnsi.aviso(" [ESTOQUE BAIXO ]");
-        return "";
-    }
-
-    // Gerencia catálogo paginado com filtro, ficha técnica, edição de preço, ajuste de saldo e remoção
+    // Tabela paginada unificada do catálogo de produtos com atalho [C] para cadastrar item sem menu separado
     private static void gerenciarCatalogoProdutosPaginado(
-            Scanner leitorEntrada, ModuloSessao sessao, ModuloAuditoria auditoria, ModuloCaixa caixa, ModuloMovimentacaoEstoque movEstoque,
-            List<String> tabelaProdNome, List<String> tabelaProdNcm,
-            List<Double> tabelaProdPrecoVenda, List<Integer> tabelaProdQtdEstoque) {
-
-        if (tabelaProdNome.isEmpty()) {
-            System.out.println(CoresAnsi.aviso(" Catálogo vazio.\n"));
-            return;
-        }
-
-        boolean podeEditar = sessao.temAutoridade(Autoridade.EST_GERIR_CATALOGO);
-        boolean podeRemover = sessao.isGerente() || podeEditar;
+            Scanner leitorEntrada,
+            ModuloSessao sessao,
+            ModuloAuditoria auditoria,
+            ModuloCaixa caixa,
+            ModuloPersistenciaTxt persistencia,
+            ModuloAutoridades moduloAutoridades,
+            ModuloMovimentacaoEstoque movEstoque,
+            List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda, List<Integer> tabelaProdQtdEstoque,
+            List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
+            List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos, List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
+            List<String> tabelaFuncId, List<String> tabelaFuncNome, List<String> tabelaFuncCpf, List<String> tabelaFuncCargo,
+            List<String> tabelaFuncSenha, List<Double> tabelaFuncSalario, List<Boolean> tabelaFuncPago, List<String> tabelaFuncStatus, List<String> tabelaFuncMotivoInativo,
+            List<String> tabelaFornRazaoSocial, List<String> tabelaFornCnpj, List<String> tabelaFornUf,
+            List<String> tabelaFornProdutoPrincipal, List<Double> tabelaFornValorFatura,
+            List<Double> tabelaFornMargemLucroPct, List<Boolean> tabelaFornFaturaPaga) {
 
         int paginaAtual = 1;
         final int ITENS_POR_PAGINA = 25;
-        String filtroProdutoAtivo = "";
-        boolean navegandoLista = true;
+        String filtroCatalogo = "";
+        boolean navegandoCatalogo = true;
 
-        while (navegandoLista) {
-            if (tabelaProdNome.isEmpty()) {
-                System.out.println(CoresAnsi.aviso("ℹ️ Todos os itens foram removidos.\n"));
-                break;
-            }
-
-            List<Integer> listaIndicesReaisFiltrados = new ArrayList<>();
+        while (navegandoCatalogo) {
+            List<Integer> indicesFiltrados = new ArrayList<>();
             for (int i = 0; i < tabelaProdNome.size(); i++) {
-                String nome = tabelaProdNome.get(i);
-                String ncm = tabelaProdNcm.get(i);
-                if (nome != null && (filtroProdutoAtivo.isEmpty() || nome.toUpperCase().contains(filtroProdutoAtivo) || ncm.toUpperCase().contains(filtroProdutoAtivo))) {
-                    listaIndicesReaisFiltrados.add(i);
+                String busca = (tabelaProdNome.get(i) + " " + tabelaProdNcm.get(i)).toUpperCase();
+                if (filtroCatalogo.isEmpty() || busca.contains(filtroCatalogo)) {
+                    indicesFiltrados.add(i);
                 }
             }
 
-            int totalFiltrados = listaIndicesReaisFiltrados.size();
+            int totalFiltrados = indicesFiltrados.size();
             int totalPaginas = Math.max(1, (int) Math.ceil((double) totalFiltrados / ITENS_POR_PAGINA));
             if (paginaAtual > totalPaginas) paginaAtual = totalPaginas;
 
-            String etiquetaFiltro = filtroProdutoAtivo.isEmpty() ? "TODOS OS ITENS" : "FILTRO: '" + filtroProdutoAtivo + "'";
-            System.out.println(CoresAnsi.titulo("\n--- CATÁLOGO [" + etiquetaFiltro + "] (Página " + paginaAtual + " de " + totalPaginas + " | Encontrados: " + totalFiltrados + ") ---"));
+            String etiquetaFiltro = filtroCatalogo.isEmpty() ? "TODOS" : "FILTRO: '" + filtroCatalogo + "'";
+            System.out.println(CoresAnsi.titulo("\n--- CATÁLOGO E SALDOS [" + etiquetaFiltro + "] (Página " + paginaAtual + " de " + totalPaginas + " | Itens: " + totalFiltrados + ") ---"));
 
-            if (totalFiltrados == 0) {
-                System.out.println(CoresAnsi.aviso(" Nenhum item encontrado para o filtro '" + filtroProdutoAtivo + "'. Pressione [L] para limpar."));
+            if (tabelaProdNome.isEmpty()) {
+                System.out.println(CoresAnsi.aviso(" Nenhum item cadastrado no catálogo."));
+            } else if (totalFiltrados == 0) {
+                System.out.println(CoresAnsi.aviso(" Nenhum item corresponde ao filtro '" + filtroCatalogo + "'. Use [L] para limpar."));
             } else {
                 int indiceInicial = (paginaAtual - 1) * ITENS_POR_PAGINA;
                 int indiceFinal = Math.min(indiceInicial + ITENS_POR_PAGINA, totalFiltrados);
                 for (int i = indiceInicial; i < indiceFinal; i++) {
-                    int indiceReal = listaIndicesReaisFiltrados.get(i);
-                    int saldo = tabelaProdQtdEstoque.get(indiceReal);
-                    System.out.printf("[%d] %s (NCM: %s) | Preço: %s | Saldo: %d un%s\n",
-                            (i + 1), tabelaProdNome.get(indiceReal), tabelaProdNcm.get(indiceReal),
-                            formatarValorMonetarioReais(tabelaProdPrecoVenda.get(indiceReal)), saldo,
-                            formatarAlertaEstoque(saldo));
+                    int idxReal = indicesFiltrados.get(i);
+                    int saldo = tabelaProdQtdEstoque.get(idxReal);
+                    System.out.printf("[%d] %s | NCM: %s | Preço: %s | Estoque: %d un%s\n",
+                            (i + 1), tabelaProdNome.get(idxReal), tabelaProdNcm.get(idxReal),
+                            formatarValorMonetarioReais(tabelaProdPrecoVenda.get(idxReal)),
+                            saldo, formatarAlertaEstoque(saldo));
                 }
             }
 
+            // Barra de comandos unificada do Catálogo: evita alternar entre tela de consulta e tela de novo cadastro
             System.out.println("----------------------------------------------------------------");
-            System.out.println("[N] Próxima | [P] Anterior | [F] Filtrar | [L] Limpar Filtro | [NÚMERO] Detalhes | [0] Voltar");
+            System.out.print("[N] Próxima | [P] Anterior | [F] Filtrar | [L] Limpar");
+            if (sessao.temAutoridade(Autoridade.EST_GERIR_CATALOGO)) {
+                System.out.print(" | [C] Cadastrar Item");
+            }
+            System.out.println(" | [0] Voltar");
             System.out.print("Comando: ");
-            String comandoUsuario = lerLinhaSegura(leitorEntrada).toUpperCase();
+            String comandoCatalogo = lerLinhaSegura(leitorEntrada).toUpperCase();
 
-            if (comandoUsuario.equals("N") && paginaAtual < totalPaginas) paginaAtual++;
-            else if (comandoUsuario.equals("P") && paginaAtual > 1) paginaAtual--;
-            else if (comandoUsuario.equals("F")) {
-                String termoBusca = validarELerTextoLivreObrigatorio(leitorEntrada, "Termo para filtrar [0 para cancelar]: ");
-                if (!termoBusca.equals("CANCELAR")) {
-                    filtroProdutoAtivo = termoBusca;
+            if (comandoCatalogo.equals("N") && paginaAtual < totalPaginas) paginaAtual++;
+            else if (comandoCatalogo.equals("P") && paginaAtual > 1) paginaAtual--;
+            else if (comandoCatalogo.equals("F")) {
+                String termo = validarELerTextoLivreObrigatorio(leitorEntrada, "Filtrar item [0 para cancelar]: ");
+                if (!termo.equals("CANCELAR")) {
+                    filtroCatalogo = termo;
                     paginaAtual = 1;
                 }
-            } else if (comandoUsuario.equals("L")) {
-                filtroProdutoAtivo = "";
+            } else if (comandoCatalogo.equals("L")) {
+                filtroCatalogo = "";
                 paginaAtual = 1;
-                System.out.println(CoresAnsi.sucesso(" Filtro removido.\n"));
-            } else if (isComandoCancelamento(comandoUsuario)) {
-                navegandoLista = false;
-            } else if (comandoUsuario.matches("^[0-9]+$")) {
-                int pos = Integer.parseInt(comandoUsuario) - 1;
-                if (pos >= 0 && pos < totalFiltrados) {
-                    int indiceSelecionado = listaIndicesReaisFiltrados.get(pos);
-                    boolean modalAberto = true;
-                    while (modalAberto) {
-                        if (indiceSelecionado < 0 || indiceSelecionado >= tabelaProdNome.size()) {
-                            System.out.println(CoresAnsi.aviso(" Item já removido.\n"));
-                            break;
-                        }
-                        System.out.println(CoresAnsi.titulo("\n┌────────────────────────────────────────────────────────────────┐"));
-                        System.out.println(CoresAnsi.titulo("│                      [DETALHES DO ITEM]                        │"));
-                        System.out.println(CoresAnsi.titulo("├────────────────────────────────────────────────────────────────┤"));
-                        System.out.printf("│ Item: %s\n", tabelaProdNome.get(indiceSelecionado));
-                        System.out.printf("│ Preço: %s | Saldo: %d un%s\n",
-                                formatarValorMonetarioReais(tabelaProdPrecoVenda.get(indiceSelecionado)),
-                                tabelaProdQtdEstoque.get(indiceSelecionado),
-                                formatarAlertaEstoque(tabelaProdQtdEstoque.get(indiceSelecionado)));
-                        System.out.println(CoresAnsi.titulo("├────────────────────────────────────────────────────────────────┤"));
-                        System.out.println("│ [1] Ver ficha técnica                                          │");
-                        if (podeEditar) {
-                            System.out.println("│ [2] Editar preço                                               │");
-                            System.out.println("│ [3] Ajustar saldo                                              │");
-                        }
-                        if (podeRemover) {
-                            System.out.println("│ [4] Remover item                                               │");
-                        }
-                        System.out.println("│ [0] Fechar                                                     │");
-                        System.out.println(CoresAnsi.titulo("└────────────────────────────────────────────────────────────────┘"));
-
-                        int acaoEscolhida = validarELerNumeroInteiro(leitorEntrada, "Ação: ");
-                        if (acaoEscolhida == 1) {
-                            System.out.println(CoresAnsi.titulo("\n--- FICHA DO ITEM ---"));
-                            System.out.println("• Nome      : " + tabelaProdNome.get(indiceSelecionado));
-                            System.out.println("• NCM       : " + tabelaProdNcm.get(indiceSelecionado));
-                            System.out.println("• Preço     : " + formatarValorMonetarioReais(tabelaProdPrecoVenda.get(indiceSelecionado)));
-                            System.out.println("• Saldo     : " + tabelaProdQtdEstoque.get(indiceSelecionado) + " unidades" + formatarAlertaEstoque(tabelaProdQtdEstoque.get(indiceSelecionado)) + "\n");
-                        } else if (acaoEscolhida == 2) {
-                            if (!sessao.exigirAutoridade(Autoridade.EST_GERIR_CATALOGO, "Sem autoridade para editar preço.")) continue;
-                            double novoPreco = validarELerValorDecimalMonetario(leitorEntrada, "Novo preço (R$) [0 para cancelar]: ", false);
-                            if (novoPreco > 0) {
-                                tabelaProdPrecoVenda.set(indiceSelecionado, novoPreco);
-                                caixa.registrarMovimentoDados("ENTRADA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Novo preço de '" + tabelaProdNome.get(indiceSelecionado) + "': " + formatarValorMonetarioReais(novoPreco));
-                                auditoria.registrar(sessao.obterNomeVigente(), "Alterou preço de " + tabelaProdNome.get(indiceSelecionado));
-                                System.out.println(CoresAnsi.sucesso(" Preço atualizado.\n"));
-                            }
-                        } else if (acaoEscolhida == 3) {
-                            if (!sessao.exigirAutoridade(Autoridade.EST_GERIR_CATALOGO, "Sem autoridade para ajustar saldo.")) continue;
-                            int novoEstoque = validarELerInteiroNaoNegativoComSair(leitorEntrada, "Novo saldo [SAIR para cancelar]: ");
-                            if (novoEstoque != -999 && novoEstoque >= 0) {
-                                int saldoAnterior = tabelaProdQtdEstoque.get(indiceSelecionado);
-                                int delta = novoEstoque - saldoAnterior;
-                                tabelaProdQtdEstoque.set(indiceSelecionado, novoEstoque);
-                                if (movEstoque != null) {
-                                    movEstoque.registrarMovimento("AJUSTE_INVENTARIO", tabelaProdNome.get(indiceSelecionado), delta, novoEstoque, "Ajuste manual", sessao.obterNomeVigente());
-                                }
-                                String direcao = novoEstoque >= saldoAnterior ? "ENTRADA_DADOS" : "SAIDA_DADOS";
-                                caixa.registrarMovimentoDados(direcao, "Operador: " + sessao.obterNomeVigente(), "Saldo de '" + tabelaProdNome.get(indiceSelecionado) + "': " + saldoAnterior + " -> " + novoEstoque + " un");
-                                auditoria.registrar(sessao.obterNomeVigente(), "Ajustou saldo de " + tabelaProdNome.get(indiceSelecionado));
-                                System.out.println(CoresAnsi.sucesso(" Saldo atualizado.\n"));
-                            }
-                        } else if (acaoEscolhida == 4) {
-                            if (!sessao.exigirAutoridade(Autoridade.EST_GERIR_CATALOGO, "Sem autoridade para remover item.")) continue;
-                            String nomeRemovido = tabelaProdNome.get(indiceSelecionado);
-                            int saldoRemovido = tabelaProdQtdEstoque.get(indiceSelecionado);
-                            tabelaProdNome.remove(indiceSelecionado);
-                            tabelaProdNcm.remove(indiceSelecionado);
-                            tabelaProdPrecoVenda.remove(indiceSelecionado);
-                            tabelaProdQtdEstoque.remove(indiceSelecionado);
-                            if (movEstoque != null) {
-                                movEstoque.registrarMovimento("REMOCAO_ITEM", nomeRemovido, -saldoRemovido, 0, "Catálogo", sessao.obterNomeVigente());
-                            }
-                            caixa.registrarMovimentoDados("SAIDA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Remoção de item do catálogo: " + nomeRemovido);
-                            auditoria.registrar(sessao.obterNomeVigente(), "Removeu item: " + nomeRemovido);
-                            System.out.println(CoresAnsi.aviso(" Item removido.\n"));
-                            modalAberto = false;
-                        } else if (acaoEscolhida == 0 || acaoEscolhida == -999) {
-                            modalAberto = false;
-                        } else {
-                            System.out.println(CoresAnsi.erro("Opção indisponível.\n"));
-                        }
-                    }
-                } else {
-                    System.out.println(CoresAnsi.erro("Item inexistente.\n"));
-                }
+                System.out.println(CoresAnsi.sucesso(" Filtro do catálogo removido.\n"));
+            } else if (comandoCatalogo.equals("C")) {
+                cadastrarItemCatalogoNaTabela(
+                        leitorEntrada, sessao, auditoria, caixa, persistencia, moduloAutoridades, movEstoque,
+                        tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
+                        tabelaClienteCpf, tabelaClienteNome,
+                        tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
+                        tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo,
+                        tabelaFuncSenha, tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
+                        tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf,
+                        tabelaFornProdutoPrincipal, tabelaFornValorFatura,
+                        tabelaFornMargemLucroPct, tabelaFornFaturaPaga
+                );
+            } else if (isComandoCancelamento(comandoCatalogo)) {
+                navegandoCatalogo = false;
             } else {
                 System.out.println(CoresAnsi.erro("Comando inválido.\n"));
             }
         }
     }
 
-    // Gerencia histórico de lançamentos com paginação, filtro, comprovante, edição de descrição e estorno
-    private static void gerenciarHistoricoTransacoesPaginado(
-            Scanner leitorEntrada, ModuloSessao sessao, ModuloAuditoria auditoria, ModuloCaixa caixa, ModuloMovimentacaoEstoque movEstoque,
-            List<String> tabelaProdNome, List<Integer> tabelaProdQtdEstoque,
+    // Soma a quantidade de um produto já reservada no carrinho atual
+    private static int obterQuantidadeReservadaNoCarrinho(int indiceProduto, List<Integer> carrinhoIndices, List<Integer> carrinhoQuantidades) {
+        int totalReservado = 0;
+        for (int i = 0; i < carrinhoIndices.size(); i++) {
+            if (carrinhoIndices.get(i) == indiceProduto) {
+                totalReservado += carrinhoQuantidades.get(i);
+            }
+        }
+        return totalReservado;
+    }
+
+    // Exibe compras anteriores filtradas por CPF informado
+    private static void consultarHistoricoClientePorCpf(
+            Scanner leitorEntrada, List<String> tabelaClienteCpf, List<String> tabelaClienteNome,
             List<String> tabelaTransacaoTipo, List<String> tabelaTransacaoEnvolvidos,
             List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor) {
-
-        if (tabelaTransacaoTipo.isEmpty()) {
-            System.out.println(CoresAnsi.aviso(" Nenhum lançamento registrado.\n"));
-            return;
-        }
-
-        boolean podeEstornar = sessao.temAutoridade(Autoridade.FIN_PAGAR_E_ESTORNAR);
-
-        int paginaAtual = 1;
-        final int ITENS_POR_PAGINA = 25;
-        String filtroTransacaoAtivo = "";
-        boolean navegandoLista = true;
-
-        while (navegandoLista) {
-            if (tabelaTransacaoTipo.isEmpty()) {
-                System.out.println(CoresAnsi.aviso("ℹ️ Todos os lançamentos foram removidos.\n"));
-                break;
-            }
-
-            List<Integer> listaIndicesReaisFiltrados = new ArrayList<>();
-            for (int i = 0; i < tabelaTransacaoTipo.size(); i++) {
-                String tipo = tabelaTransacaoTipo.get(i);
-                String envolvidos = tabelaTransacaoEnvolvidos.get(i);
-                String descricao = tabelaTransacaoDescricao.get(i);
-                if (filtroTransacaoAtivo.isEmpty() || tipo.toUpperCase().contains(filtroTransacaoAtivo) || envolvidos.toUpperCase().contains(filtroTransacaoAtivo) || descricao.toUpperCase().contains(filtroTransacaoAtivo)) {
-                    listaIndicesReaisFiltrados.add(i);
-                }
-            }
-
-            int totalFiltrados = listaIndicesReaisFiltrados.size();
-            int totalPaginas = Math.max(1, (int) Math.ceil((double) totalFiltrados / ITENS_POR_PAGINA));
-            if (paginaAtual > totalPaginas) paginaAtual = totalPaginas;
-
-            String etiquetaFiltro = filtroTransacaoAtivo.isEmpty() ? "TODOS OS LANÇAMENTOS" : "FILTRO: '" + filtroTransacaoAtivo + "'";
-            System.out.println(CoresAnsi.titulo("\n--- HISTÓRICO DE LANÇAMENTOS [" + etiquetaFiltro + "] (Página " + paginaAtual + " de " + totalPaginas + " | Encontrados: " + totalFiltrados + ") ---"));
-
-            if (totalFiltrados == 0) {
-                System.out.println(CoresAnsi.aviso(" Nenhum lançamento corresponde ao filtro '" + filtroTransacaoAtivo + "'. Pressione [L] para limpar."));
-            } else {
-                int indiceInicial = (paginaAtual - 1) * ITENS_POR_PAGINA;
-                int indiceFinal = Math.min(indiceInicial + ITENS_POR_PAGINA, totalFiltrados);
-                for (int i = indiceInicial; i < indiceFinal; i++) {
-                    int indiceReal = listaIndicesReaisFiltrados.get(i);
-                    System.out.printf("[%d] %s | Valor: %s | %s\n",
-                            (i + 1), tabelaTransacaoTipo.get(indiceReal),
-                            formatarValorMonetarioReais(tabelaTransacaoValor.get(indiceReal)),
-                            tabelaTransacaoDescricao.get(indiceReal));
-                }
-            }
-
-            System.out.println("----------------------------------------------------------------");
-            System.out.println("[N] Próxima | [P] Anterior | [F] Filtrar | [L] Limpar Filtro | [NÚMERO] Detalhes | [0] Voltar");
-            System.out.print("Comando: ");
-            String comandoUsuario = lerLinhaSegura(leitorEntrada).toUpperCase();
-
-            if (comandoUsuario.equals("N") && paginaAtual < totalPaginas) paginaAtual++;
-            else if (comandoUsuario.equals("P") && paginaAtual > 1) paginaAtual--;
-            else if (comandoUsuario.equals("F")) {
-                String termoBusca = validarELerTextoLivreObrigatorio(leitorEntrada, "Termo para filtrar [0 para cancelar]: ");
-                if (!termoBusca.equals("CANCELAR")) {
-                    filtroTransacaoAtivo = termoBusca;
-                    paginaAtual = 1;
-                }
-            } else if (comandoUsuario.equals("L")) {
-                filtroTransacaoAtivo = "";
-                paginaAtual = 1;
-                System.out.println(CoresAnsi.sucesso(" Filtro removido.\n"));
-            } else if (isComandoCancelamento(comandoUsuario)) {
-                navegandoLista = false;
-            } else if (comandoUsuario.matches("^[0-9]+$")) {
-                int pos = Integer.parseInt(comandoUsuario) - 1;
-                if (pos >= 0 && pos < totalFiltrados) {
-                    int indiceSelecionado = listaIndicesReaisFiltrados.get(pos);
-                    boolean modalAberto = true;
-                    while (modalAberto) {
-                        if (indiceSelecionado < 0 || indiceSelecionado >= tabelaTransacaoTipo.size()) {
-                            System.out.println(CoresAnsi.aviso(" Lançamento já removido.\n"));
-                            break;
-                        }
-                        System.out.println(CoresAnsi.titulo("\n┌────────────────────────────────────────────────────────────────┐"));
-                        System.out.println(CoresAnsi.titulo("│                    [DETALHES DO LANÇAMENTO]                    │"));
-                        System.out.println(CoresAnsi.titulo("├────────────────────────────────────────────────────────────────┤"));
-                        System.out.printf("│ Operação: %s | Valor: %s\n", tabelaTransacaoTipo.get(indiceSelecionado), formatarValorMonetarioReais(tabelaTransacaoValor.get(indiceSelecionado)));
-                        System.out.printf("│ Envolvidos: %s\n", tabelaTransacaoEnvolvidos.get(indiceSelecionado));
-                        System.out.println(CoresAnsi.titulo("├────────────────────────────────────────────────────────────────┤"));
-                        System.out.println("│ [1] Ver comprovante                                             │");
-                        if (podeEstornar) {
-                            System.out.println("│ [2] Editar descrição                                           │");
-                            System.out.println("│ [3] Estornar e remover                                         │");
-                        }
-                        System.out.println("│ [0] Fechar                                                     │");
-                        System.out.println(CoresAnsi.titulo("└────────────────────────────────────────────────────────────────┘"));
-
-                        int acaoEscolhida = validarELerNumeroInteiro(leitorEntrada, "Ação: ");
-                        if (acaoEscolhida == 1) {
-                            System.out.println(CoresAnsi.titulo("\n--- COMPROVANTE #" + (indiceSelecionado + 1) + " ---"));
-                            System.out.println("• Tipo       : " + tabelaTransacaoTipo.get(indiceSelecionado));
-                            System.out.println("• Envolvidos : " + tabelaTransacaoEnvolvidos.get(indiceSelecionado));
-                            System.out.println("• Descrição  : " + tabelaTransacaoDescricao.get(indiceSelecionado));
-                            System.out.println("• Valor      : " + formatarValorMonetarioReais(tabelaTransacaoValor.get(indiceSelecionado)));
-                            System.out.println("----------------------------------------------------------------\n");
-                        } else if (acaoEscolhida == 2) {
-                            if (!sessao.exigirAutoridade(Autoridade.FIN_PAGAR_E_ESTORNAR, "Sem autoridade para editar lançamento.")) continue;
-                            String novaDescricao = validarELerTextoLivreObrigatorio(leitorEntrada, "Nova descrição [0 para cancelar]: ");
-                            if (!novaDescricao.equals("CANCELAR")) {
-                                tabelaTransacaoDescricao.set(indiceSelecionado, sanitizarCampoTxt(novaDescricao));
-                                auditoria.registrar(sessao.obterNomeVigente(), "Editou descrição do lançamento #" + (indiceSelecionado + 1));
-                                System.out.println(CoresAnsi.sucesso(" Descrição atualizada.\n"));
-                            }
-                        } else if (acaoEscolhida == 3) {
-                            if (!sessao.exigirAutoridade(Autoridade.FIN_PAGAR_E_ESTORNAR, "Sem autoridade para estornar lançamento.")) continue;
-                            String tipoEstorno = tabelaTransacaoTipo.get(indiceSelecionado);
-                            String descEstorno = tabelaTransacaoDescricao.get(indiceSelecionado);
-                            if (caixa.estornarLancamento(indiceSelecionado)) {
-                                if (movEstoque != null && "VENDA".equalsIgnoreCase(tipoEstorno)) {
-                                    movEstoque.registrarMovimento("ESTORNO_VENDA", descEstorno, 0, 0, "Estorno financeiro", sessao.obterNomeVigente());
-                                }
-                                caixa.registrarMovimentoDados("SAIDA_DADOS", "Operador: " + sessao.obterNomeVigente(), "Estorno/remoção do lançamento: " + descEstorno);
-                                auditoria.registrar(sessao.obterNomeVigente(), "Estornou lançamento #" + (indiceSelecionado + 1));
-                                System.out.println(CoresAnsi.aviso(" Lançamento estornado e removido.\n"));
-                                modalAberto = false;
-                            }
-                        } else if (acaoEscolhida == 0 || acaoEscolhida == -999) {
-                            modalAberto = false;
-                        } else {
-                            System.out.println(CoresAnsi.erro("Opção indisponível.\n"));
-                        }
-                    }
-                } else {
-                    System.out.println(CoresAnsi.erro("Lançamento inexistente.\n"));
-                }
-            } else {
-                System.out.println(CoresAnsi.erro("Comando inválido.\n"));
-            }
-        }
-    }
-
-    // Consulta todas as vendas vinculadas a um CPF informado pelo cliente
-    private static void consultarHistoricoClientePorCpf(
-            Scanner leitorEntrada,
-            List<String> tabelaClienteCpf,
-            List<String> tabelaClienteNome,
-            List<String> tabelaTransacaoTipo,
-            List<String> tabelaTransacaoEnvolvidos,
-            List<String> tabelaTransacaoDescricao,
-            List<Double> tabelaTransacaoValor) {
 
         String cpfBusca = validarEFormatarCpf(leitorEntrada);
         if (cpfBusca.equals("CANCELAR")) return;
 
         int idxCliente = tabelaClienteCpf.indexOf(cpfBusca);
-        String nomeCliente = (idxCliente != -1) ? tabelaClienteNome.get(idxCliente) : "CLIENTE NÃO CADASTRADO";
+        String nomeCliente = (idxCliente != -1) ? tabelaClienteNome.get(idxCliente) : "CLIENTE";
+        System.out.println(CoresAnsi.titulo("\n--- COMPRAS REGISTRADAS PARA CPF " + cpfBusca + " (" + nomeCliente + ") ---"));
 
-        System.out.println(CoresAnsi.titulo("\n================================================================"));
-        System.out.println(CoresAnsi.titulo("                  HISTÓRICO DE COMPRAS DO CLIENTE               "));
-        System.out.println(CoresAnsi.titulo("================================================================"));
-        System.out.println("• Cliente : " + nomeCliente);
-        System.out.println("• CPF     : " + cpfBusca);
-        System.out.println("----------------------------------------------------------------");
-
-        int qtdCompras = 0;
-        double totalGasto = 0.0;
-
+        boolean achou = false;
         for (int i = 0; i < tabelaTransacaoTipo.size(); i++) {
-            if ("VENDA".equalsIgnoreCase(tabelaTransacaoTipo.get(i))) {
-                String env = tabelaTransacaoEnvolvidos.get(i);
-                if (env.contains(cpfBusca) || (idxCliente != -1 && env.toUpperCase().contains(nomeCliente))) {
-                    qtdCompras++;
-                    double val = tabelaTransacaoValor.get(i);
-                    totalGasto += val;
-                    System.out.printf("[%d] %s | Valor: %s\n", qtdCompras, tabelaTransacaoDescricao.get(i), formatarValorMonetarioReais(val));
-                }
+            if ("VENDA".equalsIgnoreCase(tabelaTransacaoTipo.get(i)) && tabelaTransacaoEnvolvidos.get(i).contains(cpfBusca)) {
+                achou = true;
+                System.out.printf("• %s | %s | Valor: %s\n",
+                        tabelaTransacaoEnvolvidos.get(i), tabelaTransacaoDescricao.get(i),
+                        formatarValorMonetarioReais(tabelaTransacaoValor.get(i)));
             }
         }
-
-        if (qtdCompras == 0) {
-            System.out.println(CoresAnsi.aviso("ℹ️ Nenhuma compra registrada para este CPF até o momento.\n"));
+        if (!achou) {
+            System.out.println(CoresAnsi.aviso(" Nenhuma compra localizada para este CPF.\n"));
         } else {
-            System.out.println("----------------------------------------------------------------");
-            System.out.printf("Total de compras: %d | Valor acumulado: %s\n\n", qtdCompras, CoresAnsi.sucesso(formatarValorMonetarioReais(totalGasto)));
+            System.out.println();
         }
     }
 
-    // Retorna a quantidade de um produto já reservada no carrinho atual
-    private static int obterQuantidadeReservadaNoCarrinho(int indiceProduto, List<Integer> carrinhoIndicesProdutos, List<Integer> carrinhoQuantidades) {
-        int pos = carrinhoIndicesProdutos.indexOf(indiceProduto);
-        return (pos != -1) ? carrinhoQuantidades.get(pos) : 0;
-    }
-
-    // Gerencia itens do carrinho, cadastro rápido de cliente e finalização da venda com baixa em estoque
-    private static boolean gerenciarCarrinhoEFinalizarCompra(
+    // Finaliza a compra dos itens reservados no carrinho, atualizando estoque, caixa e indicadores
+    private static void gerenciarCarrinhoEFinalizarCompra(
             Scanner leitorEntrada, ModuloCaixa caixa, ModuloMovimentacaoEstoque movEstoque,
             List<Integer> carrinhoIndicesProdutos, List<Integer> carrinhoQuantidades,
             List<String> tabelaProdNome, List<String> tabelaProdNcm, List<Double> tabelaProdPrecoVenda, List<Integer> tabelaProdQtdEstoque,
             List<Double> indicadorReceitaBrutaVendas, List<Double> indicadorCustoMercadoriaVendida, List<Double> indicadorImpostosProvisionados,
             List<String> tabelaClienteCpf, List<String> tabelaClienteNome, int anoExercicioFiscal) {
 
-        boolean gerenciandoCarrinho = true;
-        while (gerenciandoCarrinho) {
-            if (carrinhoIndicesProdutos.isEmpty()) {
-                System.out.println(CoresAnsi.aviso("\n🛒 Seu carrinho está vazio.\n"));
-                return false;
-            }
+        if (carrinhoIndicesProdutos.isEmpty()) {
+            System.out.println(CoresAnsi.aviso(" Seu carrinho está vazio.\n"));
+            return;
+        }
 
-            double subtotalGeral = 0.0;
-            double totalImpostosGeral = 0.0;
-            int totalUnidades = 0;
+        double totalCompra = 0.0;
+        System.out.println(CoresAnsi.titulo("\n--- RESUMO DO CARRINHO ---"));
+        for (int i = 0; i < carrinhoIndicesProdutos.size(); i++) {
+            int idxProd = carrinhoIndicesProdutos.get(i);
+            int qtd = carrinhoQuantidades.get(i);
+            double subtotal = tabelaProdPrecoVenda.get(idxProd) * qtd;
+            totalCompra += subtotal;
+            System.out.printf("• %dx %s (%s cada) = %s\n",
+                    qtd, tabelaProdNome.get(idxProd),
+                    formatarValorMonetarioReais(tabelaProdPrecoVenda.get(idxProd)),
+                    formatarValorMonetarioReais(subtotal));
+        }
+        System.out.println("Total do pedido: " + CoresAnsi.sucesso(formatarValorMonetarioReais(totalCompra)));
+        System.out.print("Confirmar compra? [S/N]: ");
+        if (!lerLinhaSegura(leitorEntrada).toUpperCase().equals("S")) {
+            System.out.println(CoresAnsi.aviso(" Compra mantida no carrinho.\n"));
+            return;
+        }
 
-            System.out.println(CoresAnsi.titulo("\n┌────────────────────────────────────────────────────────────────────────┐"));
-            System.out.println(CoresAnsi.titulo("│                       🛒 CARRINHO DE COMPRAS                           │"));
-            System.out.println(CoresAnsi.titulo("├────────────────────────────────────────────────────────────────────────┤"));
-            for (int i = 0; i < carrinhoIndicesProdutos.size(); i++) {
-                int idxProd = carrinhoIndicesProdutos.get(i);
-                int qtd = carrinhoQuantidades.get(i);
-                double precoUnit = tabelaProdPrecoVenda.get(idxProd);
-                double subtotalItem = precoUnit * qtd;
-                double aliquota = calcularAliquotaIcmsPorOperacao(tabelaProdNcm.get(idxProd), "SP", "SP", anoExercicioFiscal);
+        String nomeCliente = validarELerTextoAlfabetico(leitorEntrada, "Nome do cliente: ");
+        if (nomeCliente.equals("CANCELAR")) return;
+        String cpfCliente = validarEFormatarCpf(leitorEntrada);
+        if (cpfCliente.equals("CANCELAR")) return;
 
-                subtotalGeral += subtotalItem;
-                totalImpostosGeral += (subtotalItem * aliquota);
-                totalUnidades += qtd;
+        if (!tabelaClienteCpf.contains(cpfCliente)) {
+            tabelaClienteCpf.add(cpfCliente);
+            tabelaClienteNome.add(nomeCliente);
+        }
 
-                System.out.printf("│ [%d] %s | %dx %s = %s\n",
-                        (i + 1), tabelaProdNome.get(idxProd), qtd,
-                        formatarValorMonetarioReais(precoUnit), formatarValorMonetarioReais(subtotalItem));
-            }
-            System.out.println(CoresAnsi.titulo("├────────────────────────────────────────────────────────────────────────┤"));
-            System.out.printf("│ Total de Itens: %d un | ICMS Embutido: %s | TOTAL A PAGAR: %s\n",
-                    totalUnidades, formatarValorMonetarioReais(totalImpostosGeral), CoresAnsi.sucesso(formatarValorMonetarioReais(subtotalGeral)));
-            System.out.println(CoresAnsi.titulo("└────────────────────────────────────────────────────────────────────────┘"));
-            System.out.println("[K] Finalizar e Pagar Pedido | [R] Remover Item | [E] Esvaziar Carrinho | [0] Continuar Comprando");
-            System.out.print("Opção no Carrinho: ");
-            String comandoCarrinho = lerLinhaSegura(leitorEntrada).toUpperCase();
-
-            if (isComandoCancelamento(comandoCarrinho)) {
-                gerenciandoCarrinho = false;
-            } else if (comandoCarrinho.equals("E")) {
-                carrinhoIndicesProdutos.clear();
-                carrinhoQuantidades.clear();
-                System.out.println(CoresAnsi.aviso(" Carrinho esvaziado com sucesso.\n"));
-                return false;
-            } else if (comandoCarrinho.equals("R")) {
-                int itemRemover = validarELerNumeroInteiro(leitorEntrada, "Número do item para remover [0 para cancelar]: ");
-                if (itemRemover != -999) {
-                    int idxCarrinho = itemRemover - 1;
-                    if (idxCarrinho >= 0 && idxCarrinho < carrinhoIndicesProdutos.size()) {
-                        String nomeRemovido = tabelaProdNome.get(carrinhoIndicesProdutos.get(idxCarrinho));
-                        carrinhoIndicesProdutos.remove(idxCarrinho);
-                        carrinhoQuantidades.remove(idxCarrinho);
-                        System.out.println(CoresAnsi.aviso(" Item '" + nomeRemovido + "' removido.\n"));
-                    } else {
-                        System.out.println(CoresAnsi.erro("Item inválido.\n"));
-                    }
-                }
-            } else if (comandoCarrinho.equals("K")) {
-                String cpfComprador = validarEFormatarCpf(leitorEntrada);
-                if (cpfComprador.equals("CANCELAR")) continue;
-
-                String nomeComprador = "CLIENTE AVULSO";
-                int indiceClienteCadastrado = tabelaClienteCpf.indexOf(cpfComprador);
-                if (indiceClienteCadastrado != -1) {
-                    nomeComprador = tabelaClienteNome.get(indiceClienteCadastrado);
-                } else {
-                    System.out.println(CoresAnsi.aviso(" CPF não encontrado na base de clientes cadastrados."));
-                    System.out.print("Deseja cadastrar este novo cliente agora? [S/N]: ");
-                    if (lerLinhaSegura(leitorEntrada).toUpperCase().equals("S")) {
-                        String novoNomeCliente = validarELerTextoAlfabetico(leitorEntrada, "Nome completo do novo cliente: ");
-                        if (!novoNomeCliente.equals("CANCELAR")) {
-                            tabelaClienteCpf.add(cpfComprador);
-                            tabelaClienteNome.add(novoNomeCliente);
-                            nomeComprador = novoNomeCliente;
-                            caixa.registrarMovimentoDados("ENTRADA_DADOS", "Portal Cliente", "Novo cliente cadastrado: " + novoNomeCliente + " (" + cpfComprador + ")");
-                            System.out.println(CoresAnsi.sucesso(" Novo cliente cadastrado com sucesso.\n"));
-                        } else {
-                            System.out.println(CoresAnsi.aviso("ℹ️ Cadastro cancelado. Prosseguindo como CLIENTE AVULSO.\n"));
-                        }
-                    } else {
-                        System.out.println(CoresAnsi.aviso("ℹ️ Prosseguindo como CLIENTE AVULSO.\n"));
-                    }
-                }
-
-                // Revalida o estoque disponível de todos os itens antes de efetivar o pedido
-                for (int i = 0; i < carrinhoIndicesProdutos.size(); i++) {
-                    int idxProd = carrinhoIndicesProdutos.get(i);
-                    int qtd = carrinhoQuantidades.get(i);
-                    if (idxProd < 0 || idxProd >= tabelaProdNome.size() || tabelaProdNome.get(idxProd) == null) {
-                        System.out.println(CoresAnsi.erro("\nUm item do carrinho não está mais disponível.\n"));
-                        return false;
-                    }
-                    int estoqueAtualReal = tabelaProdQtdEstoque.get(idxProd);
-                    if (qtd <= 0 || estoqueAtualReal < qtd) {
-                        System.out.println(CoresAnsi.erro("\nSaldo insuficiente para concluir o pedido."));
-                        System.out.printf("• Item: %s\n• Solicitado: %d un | Disponível: %d un\n\n",
-                                tabelaProdNome.get(idxProd), qtd, Math.max(0, estoqueAtualReal));
-                        return false;
-                    }
-                }
-
-                // Efetiva baixa no estoque, registra movimentação e monta resumo do pedido
-                StringBuilder resumoItensPedido = new StringBuilder();
-                for (int i = 0; i < carrinhoIndicesProdutos.size(); i++) {
-                    int idxProd = carrinhoIndicesProdutos.get(i);
-                    int qtd = carrinhoQuantidades.get(i);
-                    int novoSaldo = tabelaProdQtdEstoque.get(idxProd) - qtd;
-                    tabelaProdQtdEstoque.set(idxProd, novoSaldo);
-
-                    if (movEstoque != null) {
-                        movEstoque.registrarMovimento("SAIDA_VENDA", tabelaProdNome.get(idxProd), -qtd, novoSaldo, "Cliente: " + nomeComprador + " (" + cpfComprador + ")", "PORTAL_CLIENTE");
-                    }
-
-                    if (i > 0) resumoItensPedido.append(", ");
-                    resumoItensPedido.append(qtd).append("x ").append(tabelaProdNome.get(idxProd));
-                }
-
-                indicadorReceitaBrutaVendas.set(0, indicadorReceitaBrutaVendas.get(0) + subtotalGeral);
-                indicadorCustoMercadoriaVendida.set(0, indicadorCustoMercadoriaVendida.get(0) + (subtotalGeral * 0.45));
-                indicadorImpostosProvisionados.set(0, indicadorImpostosProvisionados.get(0) + totalImpostosGeral);
-
-                caixa.registrarEntrada(
-                        subtotalGeral,
-                        "VENDA",
-                        "Cliente: " + nomeComprador + " (CPF: " + cpfComprador + ")",
-                        "Pedido Carrinho (" + carrinhoIndicesProdutos.size() + " itens): " + resumoItensPedido.toString()
-                );
-
-                carrinhoIndicesProdutos.clear();
-                carrinhoQuantidades.clear();
-
-                System.out.println(CoresAnsi.sucesso("\n================================================================"));
-                System.out.println(CoresAnsi.sucesso("               PEDIDO CONCLUÍDO COM SUCESSO!                  "));
-                System.out.println(CoresAnsi.sucesso("================================================================"));
-                System.out.println("• Cliente       : " + nomeComprador + " (CPF: " + cpfComprador + ")");
-                System.out.println("• Itens         : " + resumoItensPedido.toString());
-                System.out.println("• Total Pago    : " + CoresAnsi.sucesso(formatarValorMonetarioReais(subtotalGeral)));
-                System.out.println("• ICMS Embutido : " + formatarValorMonetarioReais(totalImpostosGeral));
-                System.out.println(CoresAnsi.sucesso("================================================================\n"));
-                return true;
-            } else {
-                System.out.println(CoresAnsi.erro("Opção inválida no carrinho.\n"));
+        double impostosVenda = 0.0;
+        StringBuilder resumoItens = new StringBuilder();
+        for (int i = 0; i < carrinhoIndicesProdutos.size(); i++) {
+            int idxProd = carrinhoIndicesProdutos.get(i);
+            int qtd = carrinhoQuantidades.get(i);
+            int novoSaldo = Math.max(0, tabelaProdQtdEstoque.get(idxProd) - qtd);
+            tabelaProdQtdEstoque.set(idxProd, novoSaldo);
+            double subtotal = tabelaProdPrecoVenda.get(idxProd) * qtd;
+            impostosVenda += subtotal * calcularAliquotaIcmsPorOperacao(tabelaProdNcm.get(idxProd), "SP", "SP", anoExercicioFiscal);
+            if (i > 0) resumoItens.append(", ");
+            resumoItens.append(qtd).append("x ").append(tabelaProdNome.get(idxProd));
+            if (movEstoque != null) {
+                movEstoque.registrarMovimento("SAIDA_VENDA", tabelaProdNome.get(idxProd), -qtd, novoSaldo, "Cliente: " + nomeCliente, "PORTAL_CLIENTE");
             }
         }
-        return false;
+
+        caixa.registrarEntrada(totalCompra, "VENDA", "Cliente: " + nomeCliente + " (CPF: " + cpfCliente + ") | Caixa: PORTAL", resumoItens.toString());
+        indicadorReceitaBrutaVendas.set(0, indicadorReceitaBrutaVendas.get(0) + totalCompra);
+        indicadorCustoMercadoriaVendida.set(0, indicadorCustoMercadoriaVendida.get(0) + (totalCompra * 0.45));
+        indicadorImpostosProvisionados.set(0, indicadorImpostosProvisionados.get(0) + impostosVenda);
+
+        carrinhoIndicesProdutos.clear();
+        carrinhoQuantidades.clear();
+        System.out.println(CoresAnsi.sucesso(" Compra finalizada com sucesso!\n"));
     }
 
-    // Vitrine paginada para o cliente adicionar produtos ao carrinho, abrir carrinho ou consultar histórico
+    // Portal de compras paginado e filtrável do cliente com carrinho em memória
     public static void executarPortalComprasCliente(
             Scanner leitorEntrada, ModuloCaixa caixa, ModuloPersistenciaTxt persistencia,
             ModuloAutoridades moduloAutoridades, ModuloMovimentacaoEstoque movEstoque,
@@ -3761,36 +3142,18 @@ public class prototipo {
             List<String> tabelaTransacaoDescricao, List<Double> tabelaTransacaoValor,
             int anoExercicioFiscal) {
 
-        garantirPreCadastrosAtualizadosDoTxt(
-                persistencia, caixa, moduloAutoridades,
-                tabelaFuncId, tabelaFuncNome, tabelaFuncCpf,
-                tabelaFuncCargo, tabelaFuncSenha, tabelaFuncSalario,
-                tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf,
-                tabelaFornProdutoPrincipal, tabelaFornValorFatura,
-                tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
-                tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda,
-                tabelaProdQtdEstoque, tabelaClienteCpf, tabelaClienteNome
-        );
-
-        if (tabelaProdNome.isEmpty()) {
-            System.out.println(CoresAnsi.aviso(" Nenhum item disponível na vitrine.\n"));
-            return;
-        }
-
+        List<Integer> carrinhoIndicesProdutos = new ArrayList<>();
+        List<Integer> carrinhoQuantidades = new ArrayList<>();
         int paginaAtual = 1;
         final int ITENS_POR_PAGINA = 25;
         String filtroVitrineAtivo = "";
         boolean portalClienteAtivo = true;
 
-        List<Integer> carrinhoIndicesProdutos = new ArrayList<>();
-        List<Integer> carrinhoQuantidades = new ArrayList<>();
-
         while (portalClienteAtivo) {
             List<Integer> listaIndicesReaisFiltrados = new ArrayList<>();
             for (int i = 0; i < tabelaProdNome.size(); i++) {
-                String nome = tabelaProdNome.get(i);
-                if (nome != null && (filtroVitrineAtivo.isEmpty() || nome.toUpperCase().contains(filtroVitrineAtivo))) {
+                String busca = (tabelaProdNome.get(i) + " " + tabelaProdNcm.get(i)).toUpperCase();
+                if (filtroVitrineAtivo.isEmpty() || busca.contains(filtroVitrineAtivo)) {
                     listaIndicesReaisFiltrados.add(i);
                 }
             }
@@ -3799,23 +3162,14 @@ public class prototipo {
             int totalPaginas = Math.max(1, (int) Math.ceil((double) totalFiltrados / ITENS_POR_PAGINA));
             if (paginaAtual > totalPaginas) paginaAtual = totalPaginas;
 
-            int qtdTotalNoCarrinho = 0;
-            double valorTotalNoCarrinho = 0.0;
-            for (int i = 0; i < carrinhoIndicesProdutos.size(); i++) {
-                int idx = carrinhoIndicesProdutos.get(i);
-                int q = carrinhoQuantidades.get(i);
-                qtdTotalNoCarrinho += q;
-                valorTotalNoCarrinho += tabelaProdPrecoVenda.get(idx) * q;
-            }
-
-            String etiquetaFiltro = filtroVitrineAtivo.isEmpty() ? "TODOS OS ITENS" : "FILTRO: '" + filtroVitrineAtivo + "'";
-            System.out.println(CoresAnsi.titulo("\n--- VITRINE [" + etiquetaFiltro + "] (Página " + paginaAtual + " de " + totalPaginas + ") ---"));
-            System.out.printf("🛒 CARRINHO ATUAL: %d un (%d tipos) | Subtotal: %s\n",
-                    qtdTotalNoCarrinho, carrinhoIndicesProdutos.size(), CoresAnsi.sucesso(formatarValorMonetarioReais(valorTotalNoCarrinho)));
-            System.out.println("----------------------------------------------------------------");
+            String etiquetaFiltro = filtroVitrineAtivo.isEmpty() ? "TODOS" : "FILTRO: '" + filtroVitrineAtivo + "'";
+            System.out.println(CoresAnsi.titulo("\n================================================================"));
+            System.out.println(CoresAnsi.titulo("                       PORTAL DO CLIENTE                        "));
+            System.out.println(CoresAnsi.titulo("================================================================"));
+            System.out.println(CoresAnsi.titulo("--- VITRINE [" + etiquetaFiltro + "] (Página " + paginaAtual + " de " + totalPaginas + ") ---"));
 
             if (totalFiltrados == 0) {
-                System.out.println(CoresAnsi.aviso(" Nenhum item corresponde ao filtro '" + filtroVitrineAtivo + "'. Pressione [L] para limpar."));
+                System.out.println(CoresAnsi.aviso(" Nenhum produto disponível para exibição."));
             } else {
                 int indiceInicial = (paginaAtual - 1) * ITENS_POR_PAGINA;
                 int indiceFinal = Math.min(indiceInicial + ITENS_POR_PAGINA, totalFiltrados);
@@ -4011,187 +3365,173 @@ public class prototipo {
 
     // Ponto de entrada: inicializa estruturas, carrega base e executa o loop de acesso
     public static void main(String[] args) {
-        Scanner leitorEntrada = new Scanner(System.in);
+        // Garante o fechamento automático do Scanner ao encerrar o programa
+        try (Scanner leitorEntrada = new Scanner(System.in)) {
 
-        System.out.println(CoresAnsi.titulo("\n================================================================"));
-        System.out.println(CoresAnsi.titulo("            BEM-VINDO AO PROTEI CREAT (L'ESTOQUE)               "));
-        System.out.println(CoresAnsi.titulo("       SISTEMA MODULAR DE GESTÃO TRIBUTÁRIA E OPERACIONAL       "));
-        System.out.println(CoresAnsi.titulo("================================================================"));
-
-        // Tabelas paralelas de funcionários
-        List<String> tabelaFuncId = new ArrayList<>();
-        List<String> tabelaFuncNome = new ArrayList<>();
-        List<String> tabelaFuncCpf = new ArrayList<>();
-        List<String> tabelaFuncCargo = new ArrayList<>();
-        List<String> tabelaFuncSenha = new ArrayList<>();
-        List<Double> tabelaFuncSalario = new ArrayList<>();
-        List<Boolean> tabelaFuncPago = new ArrayList<>();
-        List<String> tabelaFuncStatus = new ArrayList<>();
-        List<String> tabelaFuncMotivoInativo = new ArrayList<>();
-
-        // Tabelas paralelas de fornecedores
-        List<String> tabelaFornRazaoSocial = new ArrayList<>();
-        List<String> tabelaFornCnpj = new ArrayList<>();
-        List<String> tabelaFornUf = new ArrayList<>();
-        List<String> tabelaFornProdutoPrincipal = new ArrayList<>();
-        List<Double> tabelaFornValorFatura = new ArrayList<>();
-        List<Double> tabelaFornMargemLucroPct = new ArrayList<>();
-        List<Boolean> tabelaFornFaturaPaga = new ArrayList<>();
-
-        // Tabelas paralelas de clientes
-        List<String> tabelaClienteCpf = new ArrayList<>();
-        List<String> tabelaClienteNome = new ArrayList<>();
-
-        // Tabelas paralelas de produtos
-        List<String> tabelaProdNome = new ArrayList<>();
-        List<String> tabelaProdNcm = new ArrayList<>();
-        List<Double> tabelaProdPrecoVenda = new ArrayList<>();
-        List<Integer> tabelaProdQtdEstoque = new ArrayList<>();
-
-        // Tabelas paralelas de transações (financeiro e entradas/saídas de dados)
-        List<String> tabelaTransacaoTipo = new ArrayList<>();
-        List<String> tabelaTransacaoEnvolvidos = new ArrayList<>();
-        List<String> tabelaTransacaoDescricao = new ArrayList<>();
-        List<Double> tabelaTransacaoValor = new ArrayList<>();
-
-        // Indicadores em lista de 1 elemento para permitir mutação por referência entre métodos
-        List<Double> indicadorSaldoCaixaGlobal = new ArrayList<>(Arrays.asList(200000.00));
-        List<Double> indicadorGastosEstoque = new ArrayList<>(Arrays.asList(35000.00));
-        List<Double> indicadorReceitaBrutaVendas = new ArrayList<>(Arrays.asList(0.0));
-        List<Double> indicadorCustoMercadoriaVendida = new ArrayList<>(Arrays.asList(0.0));
-        List<Double> indicadorTotalSalariosPagos = new ArrayList<>(Arrays.asList(0.0));
-        List<Double> indicadorTotalFornecedoresPagos = new ArrayList<>(Arrays.asList(0.0));
-        List<Double> indicadorImpostosProvisionados = new ArrayList<>(Arrays.asList(0.0));
-        int anoExercicioFiscal = 2026;
-
-        // Instancia os módulos do sistema
-        ModuloAutoridades moduloAutoridades = new ModuloAutoridades();
-        ModuloMovimentacaoEstoque movEstoque = new ModuloMovimentacaoEstoque();
-        ModuloLogDadosTxt logDados = new ModuloLogDadosTxt(ARQUIVO_LOG_DADOS);
-        ModuloAuditoria auditoria = new ModuloAuditoria();
-        ModuloCaixa caixa = new ModuloCaixa(indicadorSaldoCaixaGlobal, tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor, logDados);
-        ModuloPersistenciaTxt persistencia = new ModuloPersistenciaTxt(ARQUIVO_PRE_CADASTROS, ARQUIVO_BACKUP_OFICIAL, ARQUIVO_ROLLBACK_AUTO);
-
-        // Popula dados iniciais e salva o primeiro backup editável
-        popularBaseOperacional(
-                auditoria, caixa, persistencia, moduloAutoridades, movEstoque,
-                tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
-                tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
-                tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
-                tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
-                tabelaClienteCpf, tabelaClienteNome,
-                tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
-                indicadorReceitaBrutaVendas, indicadorCustoMercadoriaVendida,
-                indicadorTotalFornecedoresPagos, indicadorTotalSalariosPagos, indicadorImpostosProvisionados,
-                anoExercicioFiscal
-        );
-
-        boolean execucaoSistemaAtiva = true;
-        while (execucaoSistemaAtiva) {
             System.out.println(CoresAnsi.titulo("\n================================================================"));
-            System.out.println(CoresAnsi.titulo("                 MENU PRINCIPAL DE ACESSO                       "));
-            System.out.println(CoresAnsi.titulo("================================================================"));
-            System.out.println("[1] Portal do Cliente");
-            System.out.println("[2] Acesso Administrativo");
-            System.out.println("[3] Encerrar Sistema");
+            System.out.println(CoresAnsi.titulo("            BEM-VINDO AO PROTEI CREAT (L'ESTOQUE)               "));
+            System.out.println(CoresAnsi.titulo("       SISTEMA MODULAR DE GESTÃO TRIBUTÁRIA E OPERACIONAL       "));
             System.out.println(CoresAnsi.titulo("================================================================"));
 
-            int opcaoAcesso = validarELerNumeroInteiro(leitorEntrada, "Opção: ");
-            if (opcaoAcesso == 1) {
-                executarPortalComprasCliente(
-                        leitorEntrada, caixa, persistencia, moduloAutoridades, movEstoque,
-                        tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
-                        tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                        tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf,
-                        tabelaFornProdutoPrincipal, tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
-                        tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
-                        indicadorReceitaBrutaVendas, indicadorCustoMercadoriaVendida, indicadorImpostosProvisionados,
-                        tabelaClienteCpf, tabelaClienteNome,
-                        tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
-                        anoExercicioFiscal
-                );
-            } else if (opcaoAcesso == 2) {
-                if (tabelaFuncId.isEmpty()) {
-                    garantirPreCadastrosAtualizadosDoTxt(
-                            persistencia, caixa, moduloAutoridades,
-                            tabelaFuncId, tabelaFuncNome, tabelaFuncCpf,
-                            tabelaFuncCargo, tabelaFuncSenha, tabelaFuncSalario,
-                            tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                            tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf,
-                            tabelaFornProdutoPrincipal, tabelaFornValorFatura,
-                            tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
-                            tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda,
-                            tabelaProdQtdEstoque, tabelaClienteCpf, tabelaClienteNome
-                    );
-                }
+            // Tabelas paralelas de funcionários
+            List<String> tabelaFuncId = new ArrayList<>();
+            List<String> tabelaFuncNome = new ArrayList<>();
+            List<String> tabelaFuncCpf = new ArrayList<>();
+            List<String> tabelaFuncCargo = new ArrayList<>();
+            List<String> tabelaFuncSenha = new ArrayList<>();
+            List<Double> tabelaFuncSalario = new ArrayList<>();
+            List<Boolean> tabelaFuncPago = new ArrayList<>();
+            List<String> tabelaFuncStatus = new ArrayList<>();
+            List<String> tabelaFuncMotivoInativo = new ArrayList<>();
 
-                System.out.println(CoresAnsi.titulo("\n=== AUTENTICAÇÃO ==="));
-                System.out.print("Identificação [0 para voltar]: ");
-                String idDigitado = lerLinhaSegura(leitorEntrada).toUpperCase();
-                if (isComandoCancelamento(idDigitado)) continue;
+            // Tabelas paralelas de fornecedores
+            List<String> tabelaFornRazaoSocial = new ArrayList<>();
+            List<String> tabelaFornCnpj = new ArrayList<>();
+            List<String> tabelaFornUf = new ArrayList<>();
+            List<String> tabelaFornProdutoPrincipal = new ArrayList<>();
+            List<Double> tabelaFornValorFatura = new ArrayList<>();
+            List<Double> tabelaFornMargemLucroPct = new ArrayList<>();
+            List<Boolean> tabelaFornFaturaPaga = new ArrayList<>();
 
-                // Permite até 3 tentativas de senha para o ID informado
-                boolean loginAutenticado = false;
-                for (int tentativa = 1; tentativa <= 3; tentativa++) {
-                    System.out.print("Senha (Tentativa " + tentativa + "/3): ");
-                    String senhaDigitada = lerLinhaSegura(leitorEntrada);
+            // Tabelas paralelas de clientes
+            List<String> tabelaClienteCpf = new ArrayList<>();
+            List<String> tabelaClienteNome = new ArrayList<>();
 
-                    int indiceAtual = tabelaFuncId.indexOf(idDigitado);
-                    boolean usuarioValidoEAtivo = (indiceAtual != -1)
-                            && tabelaFuncStatus.get(indiceAtual).equalsIgnoreCase("ATIVO");
+            // Tabelas paralelas de produtos
+            List<String> tabelaProdNome = new ArrayList<>();
+            List<String> tabelaProdNcm = new ArrayList<>();
+            List<Double> tabelaProdPrecoVenda = new ArrayList<>();
+            List<Integer> tabelaProdQtdEstoque = new ArrayList<>();
 
-                    if (usuarioValidoEAtivo && tabelaFuncSenha.get(indiceAtual).equals(senhaDigitada)) {
-                        loginAutenticado = true;
-                        auditoria.registrar(tabelaFuncNome.get(indiceAtual), "Login realizado com sucesso");
-                        System.out.println(CoresAnsi.sucesso("\n Acesso autorizado.\n"));
-                        break;
-                    }
-                    System.out.println(CoresAnsi.erro("Credenciais inválidas.\n"));
-                }
+            // Tabelas paralelas de transações (financeiro e entradas/saídas de dados)
+            List<String> tabelaTransacaoTipo = new ArrayList<>();
+            List<String> tabelaTransacaoEnvolvidos = new ArrayList<>();
+            List<String> tabelaTransacaoDescricao = new ArrayList<>();
+            List<Double> tabelaTransacaoValor = new ArrayList<>();
 
-                if (loginAutenticado) {
-                    ModuloSessao sessao = new ModuloSessao(
-                            idDigitado, tabelaFuncId, tabelaFuncNome, tabelaFuncCargo, tabelaFuncSenha, tabelaFuncStatus, moduloAutoridades
-                    );
+            // Indicadores em lista de 1 elemento para permitir mutação por referência entre métodos
+            List<Double> indicadorSaldoCaixaGlobal = new ArrayList<>(Arrays.asList(200000.00));
+            List<Double> indicadorGastosEstoque = new ArrayList<>(Arrays.asList(35000.00));
+            List<Double> indicadorReceitaBrutaVendas = new ArrayList<>(Arrays.asList(0.0));
+            List<Double> indicadorCustoMercadoriaVendida = new ArrayList<>(Arrays.asList(0.0));
+            List<Double> indicadorTotalSalariosPagos = new ArrayList<>(Arrays.asList(0.0));
+            List<Double> indicadorTotalFornecedoresPagos = new ArrayList<>(Arrays.asList(0.0));
+            List<Double> indicadorImpostosProvisionados = new ArrayList<>(Arrays.asList(0.0));
+            int anoExercicioFiscal = 2026;
 
-                    // Abre "Meu Perfil" ao entrar e em seguida o painel administrativo
-                    exibirAbaMeuPerfil(
-                            leitorEntrada, sessao, auditoria, caixa, persistencia, moduloAutoridades,
-                            tabelaFuncId, tabelaFuncNome, tabelaFuncCpf,
-                            tabelaFuncCargo, tabelaFuncSenha,
-                            tabelaFuncSalario, tabelaFuncPago,
-                            tabelaFuncStatus, tabelaFuncMotivoInativo,
-                            tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf,
-                            tabelaFornProdutoPrincipal, tabelaFornValorFatura,
-                            tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
-                            tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda,
-                            tabelaProdQtdEstoque, tabelaClienteCpf, tabelaClienteNome,
-                            tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor
-                    );
+            // Instancia os módulos do sistema
+            ModuloAutoridades moduloAutoridades = new ModuloAutoridades();
+            ModuloMovimentacaoEstoque movEstoque = new ModuloMovimentacaoEstoque();
+            ModuloLogDadosTxt logDados = new ModuloLogDadosTxt(ARQUIVO_LOG_DADOS);
+            ModuloAuditoria auditoria = new ModuloAuditoria();
+            ModuloCaixa caixa = new ModuloCaixa(indicadorSaldoCaixaGlobal, tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor, logDados);
+            ModuloPersistenciaTxt persistencia = new ModuloPersistenciaTxt(ARQUIVO_PRE_CADASTROS, ARQUIVO_BACKUP_OFICIAL, ARQUIVO_ROLLBACK_AUTO);
 
-                    exibirMenuPainelAdministrativo(
-                            leitorEntrada, sessao, auditoria, caixa, logDados, persistencia, moduloAutoridades, movEstoque,
+            // Popula dados iniciais e salva o primeiro backup editável
+            popularBaseOperacional(
+                    auditoria, caixa, persistencia, moduloAutoridades, movEstoque,
+                    tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
+                    tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
+                    tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
+                    tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
+                    tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
+                    tabelaClienteCpf, tabelaClienteNome,
+                    tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
+                    indicadorReceitaBrutaVendas, indicadorCustoMercadoriaVendida,
+                    indicadorTotalFornecedoresPagos, indicadorTotalSalariosPagos, indicadorImpostosProvisionados,
+                    anoExercicioFiscal
+            );
+
+            boolean execucaoSistemaAtiva = true;
+            while (execucaoSistemaAtiva) {
+                System.out.println(CoresAnsi.titulo("\n================================================================"));
+                System.out.println(CoresAnsi.titulo("                 MENU PRINCIPAL DE ACESSO                       "));
+                System.out.println(CoresAnsi.titulo("================================================================"));
+                System.out.println("[1] Portal do Cliente");
+                System.out.println("[2] Acesso Administrativo");
+                System.out.println("[3] Encerrar Sistema");
+                System.out.println(CoresAnsi.titulo("================================================================"));
+
+                int opcaoAcesso = validarELerNumeroInteiro(leitorEntrada, "Opção: ");
+                if (opcaoAcesso == 1) {
+                    executarPortalComprasCliente(
+                            leitorEntrada, caixa, persistencia, moduloAutoridades, movEstoque,
                             tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
                             tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
-                            tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
-                            tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
+                            tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf,
+                            tabelaFornProdutoPrincipal, tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
                             tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
+                            indicadorReceitaBrutaVendas, indicadorCustoMercadoriaVendida, indicadorImpostosProvisionados,
                             tabelaClienteCpf, tabelaClienteNome,
-                            indicadorGastosEstoque, indicadorReceitaBrutaVendas,
-                            indicadorCustoMercadoriaVendida, indicadorTotalSalariosPagos,
-                            indicadorTotalFornecedoresPagos, indicadorImpostosProvisionados,
-                            tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor
+                            tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor,
+                            anoExercicioFiscal
                     );
+                } else if (opcaoAcesso == 2) {
+                    if (tabelaFuncId.isEmpty()) {
+                        garantirPreCadastrosAtualizadosDoTxt(
+                                persistencia, caixa, moduloAutoridades,
+                                tabelaFuncId, tabelaFuncNome, tabelaFuncCpf,
+                                tabelaFuncCargo, tabelaFuncSenha, tabelaFuncSalario,
+                                tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
+                                tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf,
+                                tabelaFornProdutoPrincipal, tabelaFornValorFatura,
+                                tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
+                                tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda,
+                                tabelaProdQtdEstoque, tabelaClienteCpf, tabelaClienteNome
+                        );
+                    }
+
+                    System.out.println(CoresAnsi.titulo("\n=== AUTENTICAÇÃO ==="));
+                    System.out.print("Identificação [0 para voltar]: ");
+                    String idDigitado = lerLinhaSegura(leitorEntrada).toUpperCase();
+                    if (isComandoCancelamento(idDigitado)) continue;
+
+                    // Permite até 3 tentativas de senha para o ID informado
+                    boolean loginAutenticado = false;
+                    for (int tentativa = 1; tentativa <= 3; tentativa++) {
+                        System.out.print("Senha (Tentativa " + tentativa + "/3): ");
+                        String senhaDigitada = lerLinhaSegura(leitorEntrada);
+
+                        int indiceAtual = tabelaFuncId.indexOf(idDigitado);
+                        boolean usuarioValidoEAtivo = (indiceAtual != -1)
+                                && tabelaFuncStatus.get(indiceAtual).equalsIgnoreCase("ATIVO");
+
+                        if (usuarioValidoEAtivo && tabelaFuncSenha.get(indiceAtual).equals(senhaDigitada)) {
+                            loginAutenticado = true;
+                            auditoria.registrar(tabelaFuncNome.get(indiceAtual), "Login realizado com sucesso");
+                            System.out.println(CoresAnsi.sucesso("\n Acesso autorizado.\n"));
+                            break;
+                        }
+                        System.out.println(CoresAnsi.erro("Credenciais inválidas.\n"));
+                    }
+
+                    if (loginAutenticado) {
+                        ModuloSessao sessao = new ModuloSessao(
+                                idDigitado, tabelaFuncId, tabelaFuncNome, tabelaFuncCargo, tabelaFuncSenha, tabelaFuncStatus, moduloAutoridades
+                        );
+
+                        // Abre diretamente o painel administrativo após autenticar; Meu Perfil fica acessível pela opção [0]
+                        exibirMenuPainelAdministrativo(
+                                leitorEntrada, sessao, auditoria, caixa, logDados, persistencia, moduloAutoridades, movEstoque,
+                                tabelaFuncId, tabelaFuncNome, tabelaFuncCpf, tabelaFuncCargo, tabelaFuncSenha,
+                                tabelaFuncSalario, tabelaFuncPago, tabelaFuncStatus, tabelaFuncMotivoInativo,
+                                tabelaFornRazaoSocial, tabelaFornCnpj, tabelaFornUf, tabelaFornProdutoPrincipal,
+                                tabelaFornValorFatura, tabelaFornMargemLucroPct, tabelaFornFaturaPaga,
+                                tabelaProdNome, tabelaProdNcm, tabelaProdPrecoVenda, tabelaProdQtdEstoque,
+                                tabelaClienteCpf, tabelaClienteNome,
+                                indicadorGastosEstoque, indicadorReceitaBrutaVendas,
+                                indicadorCustoMercadoriaVendida, indicadorTotalSalariosPagos,
+                                indicadorTotalFornecedoresPagos, indicadorImpostosProvisionados,
+                                tabelaTransacaoTipo, tabelaTransacaoEnvolvidos, tabelaTransacaoDescricao, tabelaTransacaoValor
+                        );
+                    }
+                } else if (opcaoAcesso == 3 || opcaoAcesso == -999) {
+                    execucaoSistemaAtiva = false;
+                    System.out.println(CoresAnsi.colorir(CoresAnsi.CIANO, "\n[SISTEMA] Encerrado com segurança.\n"));
+                } else {
+                    System.out.println(CoresAnsi.erro("Opção inválida.\n"));
                 }
-            } else if (opcaoAcesso == 3 || opcaoAcesso == -999) {
-                execucaoSistemaAtiva = false;
-                System.out.println(CoresAnsi.colorir(CoresAnsi.CIANO, "\n[SISTEMA] Encerrado com segurança.\n"));
-            } else {
-                System.out.println(CoresAnsi.erro("Opção inválida.\n"));
             }
         }
-        // Fecha o Scanner ao encerrar o programa
-        leitorEntrada.close();
     }
 }

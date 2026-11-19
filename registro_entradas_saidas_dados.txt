@@ -34,3 +34,5 @@
 [2026-11-19 13:43:23] | [ENTRADA DE DADOS] | Envolvidos: Arquivo: dados_pre_cadastros.txt | Detalhes: Leitura sob demanda de pré-cadastros (25 itens, 25 cadastros)
 [2026-11-19 13:43:23] | [ENTRADA DE DADOS] | Envolvidos: Arquivo: dados_pre_cadastros.txt | Detalhes: Carga inicial de pré-cadastros externos
 [2026-11-19 13:43:23] | [SAÍDA DE DADOS] | Envolvidos: Arquivo: protei_creat_backup_oficial.txt | Detalhes: Gravação inicial de backup editável
+[2026-11-19 13:47:21] | [ENTRADA DE DADOS] | Envolvidos: Arquivo: dados_pre_cadastros.txt | Detalhes: Leitura sob demanda de pré-cadastros (25 itens, 25 cadastros)
+[2026-11-19 13:47:57] | [ENTRADA DE DADOS] | Envolvidos: Arquivo: dados_pre_cadastros.txt | Detalhes: Leitura sob demanda de pré-cadastros (25 itens, 25 cadastros)
