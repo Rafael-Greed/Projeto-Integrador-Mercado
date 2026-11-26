@@ -25,19 +25,7 @@ import java.util.Locale; // Usado em LOCALE_PT_BR, exibirListaPaginada, salvarTo
 import java.util.Scanner; // Usado em todos os menus, modais, carrinho, cadastros e operacoes interativas no console
 import java.util.Set; // Usado em validarConsistenciaBackup para verificar existencia de codigos de produto nas vendas
 
-/**
- * Sistema Unificado de Gestao e Vendas (Sem Classes de Dominio)
- * - Utiliza apenas ArrayList<String>, String e tipos primitivos/wrappers em metodos estaticos.
- * - Integra:
- *   1) Busca segura por chave/ID (sem desalinhamento de listas paralelas).
- *   2) Persistencia .TXT blindada com escape/unescape de ';', '\r' e '\n' + sincronizacao automatica.
- *   3) Paginacao protegida (ate 25 paginas ou tamanho configuravel, sem IndexOutOfBounds).
- *   4) Validacao cruzada na abertura + quarentena em 'quarentena/' + base padrao limpa + arquivo de teste.
- *   5) Modulos completos: Cliente (vitrine paginada, filtro, carrinho, NF), Meu Perfil, Estoque & Fornecedores,
- *      RH (admissao, edicao modal, demissao com motivo, readmissao), Caixa, Financeiro (salarios,
- *      fornecedores, aliquotas ano atual/proximo, lucro liquido), TI (desbloqueio apos 3 erros, ajuste de
- *      autoridades com trava para gerencia/inativos, historico de acessos, consulta de .TXT, backup) e Gerencia.
- */
+
 public class SistemaGestaoCompleto {
 
     // Nomes dos arquivos de dados, historicos, backup e teste
